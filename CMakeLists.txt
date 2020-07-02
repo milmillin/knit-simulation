@@ -9,6 +9,16 @@ option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"           ON)
 
 find_package(LIBIGL REQUIRED QUIET)
 
+# glm
+find_package(GLM REQUIRED)
+include_directories(${GLM_INCLUDE_DIRS})
+link_directories(${GLM_LIBRARY_DIRS})
+add_definitions(${GLM_DEFINITIONS})
+
+if (NOT GLM_FOUND)
+  message(Error "GLM not found")
+endif(NOT GLM_FOUND)
+
 # Add your project files
 file(GLOB SRCFILES *.cpp)
 add_executable(${PROJECT_NAME}_bin ${SRCFILES})
