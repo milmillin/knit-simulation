@@ -3,49 +3,48 @@
 #include "SimulatorParams.h"
 
 #include <Eigen/Core>
+#include <Eigen/Sparse>
 
 namespace simulator {
 
 // Simulator contains all yarn simulation functionalities
+//
+// A yarn is modeled by a Catmull-Rom spline with #m control points
+// denoted by q[i], i from 0 to m - 1. Each segment is governed by
+// 4 control points, so there are #N = #m - 3 segments (0-indexed).
+// segment[i] is governed by q[i], q[i + 1], q[i + 2], q[i + 3].
 class Simulator {
-  private:
-    Eigen::MatrixXf q;
-    SimulatorParams params;
+private:
+	size_t m;
+	Eigen::MatrixXf q;
+	SimulatorParams params;
+	Eigen::SparseMatrix<float> M;
 
-    // first-derivative of q
-    Eigen::MatrixXf qD;
+	// first-derivative of q
+	Eigen::MatrixXf qD;
 
-    // gradient of positional energy
-    Eigen::MatrixXf gradE;
+	// gradient of positional energy
+	Eigen::MatrixXf gradE;
 
-    // gradient of damping energy
-    Eigen::MatrixXf gradD;
+	// gradient of damping energy
+	Eigen::MatrixXf gradD;
 
-    // external force
-    Eigen::MatrixXf f;
-  public:
-    /**
-     * Constructs a new Simulator
-     *
-     * @param q_ The #m x 3 matrix containing initial control points.
-     * @param params_ Simulation paramters
-     */
-    Simulator(Eigen::MatrixXf q_, SimulatorParams params_);
+	// external force
+	Eigen::MatrixXf f;
 
-    /**
-     * @return the number of control points.
-     */
-    int getNumPoints() const;
+	void constructMassMatrix();
+public:
+	// Constructs a new Simulator
+	//
+	// q_ : The #m x 3 matrix containing initial control points.
+	// params_ : Simulation paramters
+	Simulator(Eigen::MatrixXf q_, SimulatorParams params_);
 
-    /**
-     * @return #m x 3 matrix containing the current control points.
-     */
-    const Eigen::MatrixXf& getCurrentPoints();
+	// Returns #m x 3 matrix containing the current control points.
+	Eigen::MatrixXf getControlPoints() const;
 
-    /**
-     * Simulate the next timestep
-     */
-    void step();
+	// Simulates next timestep.
+	void step();
 };
 
 }; // namespace simulator

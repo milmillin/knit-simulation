@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   // Load .yarns file
   file_format::Yarns yarn;
   try {
-    yarn = file_format::Yarns::load("../helloworld.yarns");
+    yarn = file_format::Yarns::load("../../../helloworld.yarns");
   } catch (const std::runtime_error& e) {
     std::cout << e.what() << std::endl;
     return 0;
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
   viewer.data().set_mesh(V, F);
   viewer.data().set_face_based(true);
-  viewer.data().set_edges(simulator.getCurrentPoints().cast<double>(),
+  viewer.data().set_edges(simulator.getControlPoints().cast<double>(),
       E, Eigen::RowVector3d(1, 1, 1));
   viewer.launch();
 }
