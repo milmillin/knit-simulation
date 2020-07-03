@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
-project(example)
+project(knit-simulator)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # libigl
 option(LIBIGL_WITH_OPENGL            "Use OpenGL"         ON)
 option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"           ON)
+option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use IMGUI"          ON)
 
 find_package(LIBIGL REQUIRED QUIET)
 
@@ -15,11 +16,7 @@ include_directories(${GLM_INCLUDE_DIRS})
 link_directories(${GLM_LIBRARY_DIRS})
 add_definitions(${GLM_DEFINITIONS})
 
-if (NOT GLM_FOUND)
-  message(Error "GLM not found")
-endif(NOT GLM_FOUND)
-
 # Add your project files
 file(GLOB SRCFILES *.cpp)
-add_executable(${PROJECT_NAME}_bin ${SRCFILES})
-target_link_libraries(${PROJECT_NAME}_bin igl::core igl::opengl_glfw)
+add_executable(${PROJECT_NAME} ${SRCFILES})
+target_link_libraries(${PROJECT_NAME} igl::core igl::opengl_glfw igl::opengl_glfw_imgui)
