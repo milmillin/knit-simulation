@@ -4,6 +4,8 @@
 
 #include <Eigen/Core>
 
+namespace simulator {
+
 // Simulator contains all yarn simulation functionalities
 class Simulator {
   private:
@@ -45,3 +47,5 @@ class Simulator {
      */
     void step();
 };
+
+}; // namespace simulator

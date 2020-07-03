@@ -1,5 +1,7 @@
 #pragma once
 
+namespace simulator {
+
 // SimulatorParams contains all parameters for Simulator
 struct SimulatorParams {
   float r;
@@ -32,3 +34,4 @@ struct SimulatorParams {
   }
 };
 
+}; // namespace simulator

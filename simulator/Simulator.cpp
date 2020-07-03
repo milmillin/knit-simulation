@@ -4,6 +4,8 @@
 
 #include <Eigen/Core>
 
+namespace simulator {
+
 Simulator::Simulator(Eigen::MatrixXf q_, SimulatorParams params_) : q(q_), params(params_)  {
   // initial velocity is zero
   qD = Eigen::MatrixXf::Zero(q_.rows(), q_.cols());
@@ -20,3 +22,5 @@ const Eigen::MatrixXf& Simulator::getCurrentPoints() {
 void Simulator::step() {
   //TODO:
 }
+
+};  // namespace simulator

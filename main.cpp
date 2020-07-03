@@ -1,8 +1,11 @@
 #include <igl/opengl/glfw/Viewer.h>
+#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
+#include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
+#include <imgui/imgui.h>
 
-#include "sm.hpp"
-#include "Simulator.h"
-#include "SimulatorParams.h"
+#include "file_format/yarns.h"
+#include "simulator/Simulator.h"
+#include "simulator/SimulatorParams.h"
 
 int main(int argc, char *argv[])
 {
@@ -33,9 +36,9 @@ int main(int argc, char *argv[])
   std::cout << "Hello, world!" << std::endl;
 
   // Load .yarns file
-  sm::Yarns yarn;
+  file_format::Yarns yarn;
   try {
-    yarn = sm::Yarns::load("../helloworld.yarns");
+    yarn = file_format::Yarns::load("../helloworld.yarns");
   } catch (const std::runtime_error& e) {
     std::cout << e.what() << std::endl;
     return 0;
@@ -57,13 +60,68 @@ int main(int argc, char *argv[])
   }
 
   // Feed to the simulator
-  Simulator simulator(P, SimulatorParams::Default());
+  simulator::Simulator simulator(P, simulator::SimulatorParams::Default());
   simulator.step();
 
   // TODO: Construct tube mesh from polyline
 
   // Plot the mesh
   igl::opengl::glfw::Viewer viewer;
+
+  igl::opengl::glfw::imgui::ImGuiMenu menu;
+  viewer.plugins.push_back(&menu);
+
+  double doubleVariable = 0.1;
+
+  menu.callback_draw_viewer_menu = [&]() {
+    // Draw parent menu content
+    menu.draw_viewer_menu();
+
+    // Add new group
+    if (ImGui::CollapsingHeader("New Group", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+      // Expose variable directly ...
+      ImGui::InputDouble("double", &doubleVariable, 0, 0, "%.4f");
+
+      // ... or using a custom callback
+      static bool boolVariable = true;
+      if (ImGui::Checkbox("bool", &boolVariable))
+      {
+        // do something
+        std::cout << "boolVariable: " << std::boolalpha << boolVariable << std::endl;
+      }
+
+      // Expose an enumeration type
+      enum Orientation { Up=0, Down, Left, Right };
+      static Orientation dir = Up;
+      ImGui::Combo("Direction", (int *)(&dir), "Up\0Down\0Left\0Right\0\0");
+
+      // We can also use a std::vector<std::string> defined dynamically
+      static int num_choices = 3;
+      static std::vector<std::string> choices;
+      static int idx_choice = 0;
+      if (ImGui::InputInt("Num letters", &num_choices))
+      {
+        num_choices = std::max(1, std::min(26, num_choices));
+      }
+      if (num_choices != (int) choices.size())
+      {
+        choices.resize(num_choices);
+        for (int i = 0; i < num_choices; ++i)
+          choices[i] = std::string(1, 'A' + i);
+        if (idx_choice >= num_choices)
+          idx_choice = num_choices - 1;
+      }
+      ImGui::Combo("Letter", &idx_choice, choices);
+
+      // Add a button
+      if (ImGui::Button("Print Hello", ImVec2(-1,0)))
+      {
+        std::cout << "Hello\n";
+      }
+    }
+  };
+
   viewer.data().set_mesh(V, F);
   viewer.data().set_face_based(true);
   viewer.data().set_edges(simulator.getCurrentPoints().cast<double>(),
