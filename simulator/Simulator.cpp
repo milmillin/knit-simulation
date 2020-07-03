@@ -1,6 +1,6 @@
 #include "Simulator.h"
 
-#include "SimulatorParams.h";
+#include "SimulatorParams.h"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
