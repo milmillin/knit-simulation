@@ -24,7 +24,7 @@ Compile this project using the standard cmake routine:
     cmake ..
     cmake --build .
 
-This should find and build the dependencies and create a `example_bin` binary.
+This should find and build the dependencies and create a `knit-simulator` binary.
 
 ## Run
 
@@ -33,3 +33,9 @@ From within the `build` directory just issue:
     ./knit-simulator
 
 A glfw app should launch displaying a 3D cube.
+
+## Note
+
+You might want to change the path to example yarns file in `main.cpp` according to your build directory.
+
+    yarn = file_format::Yarns::load("../../../helloworld.yarns");
