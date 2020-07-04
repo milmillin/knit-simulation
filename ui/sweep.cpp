@@ -55,17 +55,20 @@ void circleSweep(const Eigen::MatrixXf path, const float radius,
     circle(startPoint, up, cross, radius, stride);
   
   for (int i = 1; i < nPoints; i++) {
+    glm::vec3 prevPoint;
     glm::vec3 currentPoint;
     glm::vec3 nextPoint;
     // TODO: better handler the end point
     if (i == nPoints - 1) {
+      prevPoint = POINT_FROM_ROW(path, i - 2);
       currentPoint = POINT_FROM_ROW(path, i - 1);
       nextPoint = POINT_FROM_ROW(path, i);
     } else {
+      prevPoint = POINT_FROM_ROW(path, i - 1);
       currentPoint = POINT_FROM_ROW(path, i);
       nextPoint = POINT_FROM_ROW(path, i + 1);
     }
-    parallelTransform(nextPoint - currentPoint, up, up, cross);
+    parallelTransform(glm::normalize(glm::normalize(nextPoint - currentPoint)+glm::normalize(currentPoint - prevPoint)), up, up, cross);
 
     vertex.block(i * stride, 0, stride, 3) = 
       circle(currentPoint, up, cross,
