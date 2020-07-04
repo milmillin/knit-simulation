@@ -36,3 +36,4 @@ build/*
 /.vs
 /glm
 /libigl
+/CMakeSettings.json

@@ -6,18 +6,22 @@
 #include "ui/viewer.h"
 
 int main(int argc, char *argv[]) {
-
-  // Load .yarns file
-  std::cout << "Loading model" << std::endl;
-  file_format::Yarns yarn;
-  try {
-    yarn = file_format::Yarns::load("../helloworld.yarns");
-  } catch (const std::runtime_error& e) {
-    std::cout << e.what() << std::endl;
-    return 0;
+  if (argc != 2) {
+    std::cout << "Usage: " << argv[0] << " yarns-filename" << std::endl;
+    return -1;
   }
 
-  // Construct polyling
+  // Load .yarns file
+  std::cout << "Loading model: " << argv[1] << std::endl;
+  file_format::Yarns yarn;
+  try {
+    yarn = file_format::Yarns::load(argv[1]);
+  } catch (const std::runtime_error& e) {
+    std::cout << e.what() << std::endl;
+    return -1;
+  }
+
+  // Construct polyline
   std::cout << "Constructing line" << std::endl;
   int n = yarn.yarns[0].points.size();
   Eigen::MatrixXf P(n, 3);
@@ -27,8 +31,10 @@ int main(int argc, char *argv[]) {
     P(i, 2) = yarn.yarns[0].points[i][2];
   }
 
+  std::cout << "Found: " << std::to_string(n) << " control points." << std::endl;
+
   // Feed to the simulator
-  std::cout << "Simulating" << std::endl;
+  std::cout << "Initializing Simulator" << std::endl;
   simulator::Simulator simulator(P, simulator::SimulatorParams::Default());
   simulator.step();
 

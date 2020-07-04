@@ -2,6 +2,7 @@
 
 #include "SimulatorParams.h"
 
+#include <iostream>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
@@ -67,6 +68,7 @@ static const float MASS_CONTRIBUTION[4][4] =
 };
 
 void Simulator::constructMassMatrix() {
+	std::cout << "Constructing Mass Matrix" << std::endl;
 	M = Eigen::SparseMatrix<float>(3 * m, 3 * m);
 	
 	// Iterate though each segment
@@ -88,6 +90,7 @@ void Simulator::constructMassMatrix() {
 			}
 		}
 	}
+	//std::cout << M << std::endl;
 }
 
 
@@ -114,6 +117,8 @@ Simulator::Simulator(Eigen::MatrixXf q_, SimulatorParams params_) : params(param
 
 	// Construct Mass Matrix
 	constructMassMatrix();
+
+	std::cout << "Simulator Initialized" << std::endl;
 }
 
 Eigen::MatrixXf Simulator::getControlPoints() const {
