@@ -65,7 +65,8 @@ void Viewer::plot(Eigen::MatrixXf points) {
   Eigen::MatrixXf vertices;
   Eigen::MatrixXi triangles;
 
-  circleSweep(points, 0.3, vertices, triangles, 8);
+  // TODO: don't hard-code radius
+  circleSweep(points, 0.1, vertices, triangles, 8);
 
   viewer.data().set_mesh(vertices.cast<double>(), triangles);
 
