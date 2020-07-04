@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Eigen/Core>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 #include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
 #include <imgui/imgui.h>
