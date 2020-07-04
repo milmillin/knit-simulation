@@ -80,12 +80,12 @@ void circleSweep(const Eigen::MatrixXf path, const float radius,
   for (int i = 1; i < nPoints; i++) {
     for (int j = 0; j < stride; j++) {
       triangles(index, 0) = (i-1)*stride + j;
-      triangles(index, 1) = (i-1)*stride + (j + 1) % stride;
-      triangles(index, 2) = i*stride + j;
+      triangles(index, 1) = i*stride + j;
+      triangles(index, 2) = (i-1)*stride + (j + 1) % stride;
       index++;
       triangles(index, 0) = i*stride + j;
-      triangles(index, 1) = (i-1)*stride + (j + 1) % stride;
-      triangles(index, 2) = i*stride + (j + 1) % stride;
+      triangles(index, 1) = i*stride + (j + 1) % stride;
+      triangles(index, 2) = (i-1)*stride + (j + 1) % stride;
       index++;
     }
   }
