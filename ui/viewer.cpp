@@ -1,4 +1,5 @@
 #include "./viewer.h"
+#include "sweep.h"
 
 namespace UI {
 
@@ -61,12 +62,18 @@ void Viewer::launch() {
 }
 
 void Viewer::plot(Eigen::MatrixXf points) {
+  Eigen::MatrixXf vertices;
+  Eigen::MatrixXi triangles;
+
+  circleSweep(points, 0.3, vertices, triangles, 8);
+
+  viewer.data().set_mesh(vertices.cast<double>(), triangles);
+
   Eigen::MatrixXi E(points.rows() - 1, 2);
   for (int i = 0; i < points.rows() - 1; i++) {
     E(i, 0) = i;
     E(i, 1) = i + 1;
   }
-
   viewer.data().set_edges(points.cast<double>(),
       E, Eigen::RowVector3d(1, 1, 1));
 }
