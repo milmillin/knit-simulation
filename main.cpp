@@ -23,12 +23,6 @@ int main(int argc, char *argv[]) {
     P(i, 2) = yarn.yarns[0].points[i][2];
   }
 
-  Eigen::MatrixXi E(n - 1, 2);
-  for (int i = 0; i < n - 1; i++) {
-    E(i, 0) = i;
-    E(i, 1) = i + 1;
-  }
-
   // Feed to the simulator
   simulator::Simulator simulator(P, simulator::SimulatorParams::Default());
   simulator.step();
