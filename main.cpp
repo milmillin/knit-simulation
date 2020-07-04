@@ -1,3 +1,5 @@
+#include <Eigen/Core>
+
 #include "file_format/yarns.h"
 #include "simulator/Simulator.h"
 #include "simulator/SimulatorParams.h"
@@ -6,6 +8,7 @@
 int main(int argc, char *argv[]) {
 
   // Load .yarns file
+  std::cout << "Loading model" << std::endl;
   file_format::Yarns yarn;
   try {
     yarn = file_format::Yarns::load("../helloworld.yarns");
@@ -14,7 +17,8 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  // Construct polyline
+  // Construct polyling
+  std::cout << "Constructing line" << std::endl;
   int n = yarn.yarns[0].points.size();
   Eigen::MatrixXf P(n, 3);
   for (int i = 0; i < n; i++) {
@@ -24,10 +28,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Feed to the simulator
+  std::cout << "Simulating" << std::endl;
   simulator::Simulator simulator(P, simulator::SimulatorParams::Default());
   simulator.step();
 
   // Launch viewer
+  std::cout << "Launching viewer" << std::endl;
   UI::Viewer viewer;
   viewer.plot(simulator.getControlPoints());
   viewer.launch();
