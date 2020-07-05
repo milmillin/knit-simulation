@@ -34,6 +34,9 @@ private:
   Eigen::MatrixXf f;
 
   void constructMassMatrix();
+  void fastProjection();
+
+  static float constraint(const Eigen::MatrixXf &q);
 public:
   // Constructs a new Simulator
   //

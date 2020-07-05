@@ -1,10 +1,12 @@
 #include "Simulator.h"
 
 #include "SimulatorParams.h"
+#include "Helper.h"
 
 #include <iostream>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
 
 namespace simulator {
 
@@ -74,12 +76,15 @@ void Simulator::constructMassMatrix() {
 	// Iterate though each segment
 	int N = m - 3;
 	
+	float totalLength = 0;
 	float mUnit = params.m;
 	for (int i = 0; i < N; i++) {
-		// TODO: Calculate arclength of segment[i]
-		float length = 1;
+		// Calculate arclength of segment[i].
+		// Note that the length is fixed throughout the simulation.
+		float length = catmullRomArcLength(q, i * 3);
+		totalLength += length;
 
-		// Iterate through combination of control points to find mass contribution
+		// Iterate through combination of control points to find mass contribution.
 		for (int j = 0; j < 4; j++) {
 			for (int k = j; k < 4; k++) {
 				// M[(i+j)*3][(i+k)*3] = mUnit * l[i] * integrate(bj(s), bk(s), (s, 0, 1))
@@ -90,9 +95,53 @@ void Simulator::constructMassMatrix() {
 			}
 		}
 	}
-	//std::cout << M << std::endl;
+
+	std::cout << "Total Length: " << totalLength << std::endl;
+
+	std::cout << "Calculating Mass Matrix Inverse" << std::endl;
+	Eigen::SimplicialCholesky<Eigen::SparseMatrix<float>> solver;
+	solver.compute(M);
+	if (solver.info() != Eigen::Success) {
+		std::cout << "Decomposition Failed" << std::endl;
+		return;
+	}
+
+	Eigen::SparseMatrix<float> I(M.rows(), M.cols());
+	I.setIdentity();
+
+	MInverse = solver.solve(I);
+	if (solver.info() != Eigen::Success) {
+		std::cout << "Solve Failed" << std::endl;
+		return;
+	}
 }
 
+//////////////////////////////////////////////
+//
+// Fast Projection
+//
+
+float Simulator::constraint(const Eigen::MatrixXf& q)
+{
+	return 0.0f;
+}
+
+void Simulator::fastProjection() {
+	int j = 0;							// current projection iteration
+	float h = params.h;			// timestep
+	static const float eps = 1e-8;
+
+	// TODO: check sign of f
+	Eigen::MatrixXf qj = q + h * qD - (h * h) * (MInverse * (gradE + gradD - f));
+
+	while (constraint(qj) > eps) {
+		// TODO:
+	}
+
+	// Update velocity and position;
+	qD = (qj - q) / h;
+	q = qj;
+}
 
 //////////////////////////////////////////////
 //
@@ -127,6 +176,8 @@ Eigen::MatrixXf Simulator::getControlPoints() const {
 
 void Simulator::step() {
 	//TODO:
+	// update gradE, gradD, f
+	fastProjection();
 }
 
 };  // namespace simulator
