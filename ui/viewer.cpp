@@ -64,7 +64,7 @@ void Viewer::launch() {
   viewer.launch();
 }
 
-void Viewer::plot(Eigen::MatrixXf points) {
+void Viewer::plot(Eigen::MatrixXf points, std::unordered_set<int> checkpoints) {
   Eigen::MatrixXf vertices;
   Eigen::MatrixXi triangles;
 
@@ -80,6 +80,10 @@ void Viewer::plot(Eigen::MatrixXf points) {
   }
   viewer.data().set_edges(points.cast<double>(),
       E, Eigen::RowVector3d(1, 1, 1));
+  
+  for (int checkpoint : checkpoints) {
+    viewer.data().add_label(points.row(checkpoint).cast<double>(), "checkpoint");
+  }
 }
 
 } // namespace UI

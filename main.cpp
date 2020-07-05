@@ -1,4 +1,5 @@
 #include <Eigen/Core>
+#include <unordered_set>
 
 #include "file_format/yarns.h"
 #include "simulator/Simulator.h"
@@ -32,15 +33,21 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "Found: " << std::to_string(n) << " control points." << std::endl;
+  
+  std::unordered_set<int> checkpoints;
+  for (auto checkpoint : yarn.yarns[0].checkpoints) {
+    checkpoints.insert(checkpoint.point);
+  }
+  std::cout << "Found:" << checkpoints.size() << " checkpoints" << std::endl;
 
   // Feed to the simulator
   std::cout << "Initializing Simulator" << std::endl;
   simulator::Simulator simulator(P, simulator::SimulatorParams::Default());
-  simulator.step();
+  // simulator.step();
 
   // Launch viewer
   std::cout << "Launching viewer" << std::endl;
   UI::Viewer viewer;
-  viewer.plot(simulator.getControlPoints());
+  viewer.plot(simulator.getControlPoints(), checkpoints);
   viewer.launch();
 }
