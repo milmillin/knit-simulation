@@ -7,6 +7,9 @@ void Viewer::launch() {
   igl::opengl::glfw::imgui::ImGuiMenu menu;
   viewer.plugins.push_back(&menu);
 
+  // Start trackball mode (allow panning)
+  viewer.core().set_rotation_type(igl::opengl::ViewerCore::ROTATION_TYPE_TRACKBALL);
+
   double doubleVariable = 0.1;
 
   // TODO: Warning: this part is not complete and contains bugs.
