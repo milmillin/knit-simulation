@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "yarns.h"
+#include "./yarns.h"
 
 namespace file_format {
 
@@ -36,7 +36,8 @@ static_assert(sizeof(CheckpointInfo) == 12, "CheckpointInfo is packed");
 // param magic: a magic string to identify the section
 // param data: an array to save the result
 template< typename T >
-static void read_section(std::istream &in, std::string magic, std::vector< T > *data_) {
+static void read_section(std::istream &in, std::string magic,
+        std::vector< T > *data_) {
     assert(magic.size() == 4);
     assert(data_);
     auto &data = *data_;
@@ -48,18 +49,23 @@ static void read_section(std::istream &in, std::string magic, std::vector< T > *
     static_assert(sizeof(header) == 8, "header is packed");
 
     if (!in.read(reinterpret_cast< char * >(&header), sizeof(header))) {
-        throw std::runtime_error("Failed to read header for '" + magic + "' chunk.");
+        throw std::runtime_error("Failed to read header for '"
+          + magic + "' chunk.");
     }
     if (std::string(header.magic, 4) != magic) {
-        throw std::runtime_error("Expected '" + magic + "' chunk, got '" + std::string(header.magic, 4) + "'.");
+        throw std::runtime_error("Expected '" + magic +
+          "' chunk, got '" + std::string(header.magic, 4) + "'.");
     }
     if (header.size % sizeof(T) != 0) {
-        throw std::runtime_error("Size of '" + magic + "' chunk not divisible by " + std::to_string(sizeof(T)) +".");
+        throw std::runtime_error("Size of '" + magic +
+          "' chunk not divisible by " + std::to_string(sizeof(T)) +".");
     }
 
     data.resize(header.size / sizeof(T));
     if (!in.read(reinterpret_cast< char * >(data.data()), data.size()*sizeof(T))) {
-        throw std::runtime_error("Failed to read " + std::to_string(data.size()) + " elements (" + std::to_string(header.size) + " bytes) from '" + magic + "' chunk.");
+        throw std::runtime_error("Failed to read " + std::to_string(data.size())
+          + " elements (" + std::to_string(header.size)
+          + " bytes) from '" + magic + "' chunk.");
     }
 }
 
@@ -70,7 +76,8 @@ static void read_section(std::istream &in, std::string magic, std::vector< T > *
 // param magic: a magic string to identify the section
 // param data: an array of data to save
 template< typename T >
-static void write_section(std::ostream &out, std::string magic, std::vector< T > const &data) {
+static void write_section(std::ostream &out, std::string magic,
+        std::vector< T > const &data) {
     assert(magic.size() == 4);
     uint32_t size = sizeof(T) * data.size();
     out.write(magic.c_str(), 4);

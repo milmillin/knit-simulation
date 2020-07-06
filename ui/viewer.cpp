@@ -1,5 +1,6 @@
-#include "viewer.h"
-#include "sweep.h"
+#include "./viewer.h"
+
+#include "./sweep.h"
 #include "../simulator/SimulatorParams.h"
 #include "../file_format/yarns.h"
 
@@ -34,7 +35,7 @@ void Viewer::refresh() {
   // TODO: don't hard-code radius
   Eigen::MatrixXf vertices;
   Eigen::MatrixXi triangles;
-  circleSweep(points, 0.1, vertices, triangles, 8);
+  circleSweep(points, 0.1, 8, &vertices, &triangles);
   this->data().set_mesh(vertices.cast<double>(), triangles);
 
   // Draw line
