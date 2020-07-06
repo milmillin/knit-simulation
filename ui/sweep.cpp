@@ -36,8 +36,9 @@ void circleSweep(const Eigen::MatrixXf path, const float radius,
     return;
   }
 
-  vertex = Eigen::MatrixXf(nPoints * stride + 2, 3);
-  triangles = Eigen::MatrixXi((nPoints - 1) * stride * 2, 3);
+  // Allocate memory
+  vertices->resize(nPoints * stride + 2, 3);
+  triangles->resize(nPoints * stride * 2, 3);
 
   glm::vec3 startPoint = POINT_FROM_ROW(path, 0);
   glm::vec3 nextPoint = POINT_FROM_ROW(path, 1);
@@ -93,14 +94,17 @@ void circleSweep(const Eigen::MatrixXf path, const float radius,
     }
   }
 
-  // for (int j = 0; j < stride; j++) {
-  //     triangles(index, 0) = j;
-  //     triangles(index, 1) = (j + 1) % stride;
-  //     triangles(index, 2) = nPoints*stride*2;
-  //     index++;
-  //     triangles(index, 0) = (nPoints - 1) * stride + j;
-  //     triangles(index, 1) = (nPoints - 1) * stride + (j + 1) % stride;
-  //     triangles(index, 2) = nPoints*stride*2 + 1;
-  //     index++;
-  // }
+  // Create faces for the end of tube
+  for (int j = 0; j < stride; j++) {
+    // Starting end
+    (*triangles)(index, 0) = j;
+    (*triangles)(index, 1) = (j + 1) % stride;
+    (*triangles)(index, 2) = nPoints*stride;
+    index++;
+    // Termnating end
+    (*triangles)(index, 0) = (nPoints - 1) * stride + (j + 1) % stride;
+    (*triangles)(index, 1) = (nPoints - 1) * stride + j;
+    (*triangles)(index, 2) = nPoints*stride + 1;
+    index++;
+  }
 }
