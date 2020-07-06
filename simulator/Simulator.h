@@ -1,6 +1,7 @@
 #pragma once
 
-#include "SimulatorParams.h"
+#include "./SimulatorParams.h"
+#include "../file_format/yarnRepr.h"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -16,6 +17,7 @@ namespace simulator {
 class Simulator {
 private:
   size_t m;
+  file_format::YarnRepr yarns;
   Eigen::MatrixXf q;
   SimulatorParams params;
   Eigen::SparseMatrix<float> M;
@@ -45,10 +47,10 @@ public:
   //
   // q_ : The #m x 3 matrix containing initial control points.
   // params_ : Simulation paramters
-  Simulator(Eigen::MatrixXf q_, SimulatorParams params_);
+  Simulator(file_format::YarnRepr yarns, SimulatorParams params_);
 
-  // Returns #m x 3 matrix containing the current control points.
-  Eigen::MatrixXf getControlPoints() const;
+  // Returns current yarns
+  const file_format::YarnRepr &getYarns() const { return this->yarns; };
 
   // Simulates next timestep.
   void step();

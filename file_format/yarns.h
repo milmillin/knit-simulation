@@ -6,7 +6,8 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-namespace file_format{
+namespace file_format {
+namespace Yarns {
 
 struct Checkpoint {
     uint32_t point;
@@ -41,4 +42,5 @@ public:
     std::vector< Unit > units;
 };
 
-}; // namespace file_format
+}  // namespace Yarns
+}  // namespace file_format

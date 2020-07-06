@@ -7,6 +7,7 @@
 #include "./yarns.h"
 
 namespace file_format {
+namespace Yarns {
 
 // Internal structures used for yarns file format:
 struct YarnInfo {
@@ -224,5 +225,5 @@ void Yarns::save(std::string const &filename) const {
 
 }
 
-}; // namespace file_format
-
+}  // namespace Yarns
+}  // namespace file_format

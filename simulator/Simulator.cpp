@@ -1,7 +1,8 @@
 #include "Simulator.h"
 
-#include "SimulatorParams.h"
-#include "Helper.h"
+#include "./SimulatorParams.h"
+#include "./Helper.h"
+#include "../file_format/yarnRepr.h"
 
 #include <iostream>
 #include <Eigen/Core>
@@ -148,13 +149,15 @@ void Simulator::fastProjection() {
 // Simulator implementation
 //
 
-Simulator::Simulator(Eigen::MatrixXf q_, SimulatorParams params_) : params(params_) {
-	assert(q_.cols() == 3);
-
-	m = q_.rows();
+Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : params(params_) {
+	this->yarns = yarns;
+	if (yarns.yarns.size() > 0) {
+		q = yarns.yarns[0].points;
+	}
+	m = q.rows();
 
 	// Resize to vector 3m x 1
-	q = flatten(q_);
+	q = flatten(q);
 	// q.resize(3 * m, 1); won't work because Column-major
 
 
@@ -168,10 +171,6 @@ Simulator::Simulator(Eigen::MatrixXf q_, SimulatorParams params_) : params(param
 	constructMassMatrix();
 
 	std::cout << "Simulator Initialized" << std::endl;
-}
-
-Eigen::MatrixXf Simulator::getControlPoints() const {
-	return inflate(q, 3);
 }
 
 void Simulator::step() {
