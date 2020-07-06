@@ -20,6 +20,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   int launch(bool resizable = true, bool fullscreen = false, const std::string &name = "libigl viewer", int width = 0, int height = 0);
   void refresh();
   void loadYarn(std::string filename);
+  void step() { _simulator.step(); }
 
  private:
   std::unique_ptr<Menu> _menu;

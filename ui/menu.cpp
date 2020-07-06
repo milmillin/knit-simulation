@@ -117,7 +117,7 @@ namespace UI {
       // Add simulator menu
       if (ImGui::CollapsingHeader("Simulator", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::Button("Step", ImVec2(-1,0))) {
-          std::cout << "Step button clicked" << std::endl;
+          reinterpret_cast<Viewer*>(viewer)->step();
         }
       }
     };

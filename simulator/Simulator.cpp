@@ -175,6 +175,7 @@ Eigen::MatrixXf Simulator::getControlPoints() const {
 }
 
 void Simulator::step() {
+	std::cout << "Step" << std::endl;
 	//TODO:
 	// update gradE, gradD, f
 	fastProjection();
