@@ -3,6 +3,7 @@
 #include "./sweep.h"
 #include "../simulator/SimulatorParams.h"
 #include "../file_format/yarns.h"
+#include "../file_format/yarnRepr.h"
 
 namespace UI {
 
@@ -17,6 +18,11 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
   // Disable wireframe display
   this->data().show_lines = 0;
 
+  // Set background color
+  this->core().background_color.data()[0] = 0;
+  this->core().background_color.data()[1] = 0;
+  this->core().background_color.data()[2] = 0;
+
   // Load yarns
   refresh();
 
@@ -25,56 +31,57 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 }
 
 void Viewer::refresh() {
-  // Clear old mesh
-  this->data().clear();
 
   // Get yarn shape
-  Eigen::MatrixXf points = _simulator.getControlPoints();
+  const file_format::YarnRepr yarns = _simulator.getYarns();
 
-  // Create mesh
-  // TODO: don't hard-code radius
-  Eigen::MatrixXf vertices;
-  Eigen::MatrixXi triangles;
-  circleSweep(points, 0.1, 8, &vertices, &triangles);
-  this->data().set_mesh(vertices.cast<double>(), triangles);
+  for (int i = 0; i < yarns.yarns.size(); i++) {
+    // Clear old mesh
+    this->selected_data_index = i;
+    this->data().clear();
 
-  // Draw line
-  if (points.rows() >= 2) {
-    Eigen::MatrixXi E(points.rows() - 1, 2);
-    for (int i = 0; i < points.rows() - 1; i++) {
-      E(i, 0) = i;
-      E(i, 1) = i + 1;
+    auto &yarn = yarns.yarns[i];
+
+    // Create mesh
+    Eigen::MatrixXf vertices;
+    Eigen::MatrixXi triangles;
+    circleSweep(yarn.points, yarn.radius, 8, &vertices, &triangles);
+    this->data().set_mesh(vertices.cast<double>(), triangles);
+
+    // Set color
+    Eigen::MatrixXd color(1, 3);
+    color(0, 0) = yarn.color.r;
+    color(0, 1) = yarn.color.g;
+    color(0, 2) = yarn.color.b;
+    this->data().set_colormap(color);
+
+    // Draw center line
+    if (yarn.points.rows() >= 2) {
+      Eigen::MatrixXi E(yarn.points.rows() - 1, 2);
+      for (int i = 0; i < yarn.points.rows() - 1; i++) {
+        E(i, 0) = i;
+        E(i, 1) = i + 1;
+      }
+      this->data().set_edges(yarn.points.cast<double>(),
+          E, Eigen::RowVector3d(1, 1, 1));
     }
-    this->data().set_edges(points.cast<double>(),
-        E, Eigen::RowVector3d(1, 1, 1));
   }
 }
 
 void Viewer::loadYarn(std::string filename) {
   // Load .yarns file
   std::cout << "Loading model: " << filename << std::endl;
-  file_format::Yarns yarn;
+  file_format::Yarns::Yarns yarns;
   try {
-    yarn = file_format::Yarns::load(filename);
+    yarns = file_format::Yarns::Yarns::load(filename);
   } catch (const std::runtime_error& e) {
     std::cout << "Failed to load " << filename << std::endl;
     std::cout << e.what() << std::endl;
   }
 
-  // Construct polyline
-  std::cout << "Constructing line" << std::endl;
-  int n = yarn.yarns[0].points.size();
-  Eigen::MatrixXf P(n, 3);
-  for (int i = 0; i < n; i++) {
-    P(i, 0) = yarn.yarns[0].points[i][0];
-    P(i, 1) = yarn.yarns[0].points[i][1];
-    P(i, 2) = yarn.yarns[0].points[i][2];
-  }
-
-  std::cout << "Found: " << std::to_string(n) << " control points." << std::endl;
-
   // Update simulator
-  _simulator = simulator::Simulator(P, simulator::SimulatorParams::Default());
+  _simulator = simulator::Simulator(file_format::YarnRepr(yarns),
+    simulator::SimulatorParams::Default());
   this->refresh();
 }
 
