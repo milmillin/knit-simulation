@@ -5,11 +5,10 @@
 #include <memory>
 
 #include <Eigen/Core>
-#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
-#include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
 #include <imgui/imgui.h>
 
 #include "menu.h"
+#include "../simulator/Simulator.h"
 
 namespace UI {
 
@@ -17,12 +16,14 @@ class Menu;
 
 class Viewer : igl::opengl::glfw::Viewer {
  public:
+  Viewer() {};
   int launch(bool resizable = true, bool fullscreen = false, const std::string &name = "libigl viewer", int width = 0, int height = 0);
-  void plot(Eigen::MatrixXf points, std::unordered_set<int> checkpoints);
+  void refresh();
   void loadYarn(std::string filename);
 
  private:
-  std::unique_ptr<Menu> menu;
+  std::unique_ptr<Menu> _menu;
+  simulator::Simulator _simulator;
 };
 
 } // namespace UI
