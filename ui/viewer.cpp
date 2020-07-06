@@ -21,14 +21,16 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 }
 
 void Viewer::refresh() {
-  Eigen::MatrixXf vertices;
-  Eigen::MatrixXi triangles;
+  // Clear old mesh
+  this->data().clear();
 
   // Get yarn shape
   Eigen::MatrixXf points = _simulator.getControlPoints();
 
   // Create mesh
   // TODO: don't hard-code radius
+  Eigen::MatrixXf vertices;
+  Eigen::MatrixXi triangles;
   circleSweep(points, 0.1, vertices, triangles, 8);
   this->data().set_mesh(vertices.cast<double>(), triangles);
 
