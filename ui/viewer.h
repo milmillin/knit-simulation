@@ -1,19 +1,31 @@
 #pragma once
 
 #include <Eigen/Core>
-#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
-#include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
 #include <imgui/imgui.h>
+
+#include <unordered_set>
+#include <string>
+#include <memory>
+
+#include "./menu.h"
+#include "../simulator/Simulator.h"
 
 namespace UI {
 
-class Viewer {
+class Menu;
+
+class Viewer : igl::opengl::glfw::Viewer {
  public:
-  void launch();
-  void plot(Eigen::MatrixXf points);
+  Viewer() {}
+  int launch(bool resizable = true, bool fullscreen = false,
+    const std::string &name = "libigl viewer", int width = 0, int height = 0);
+  void refresh();
+  void loadYarn(std::string filename);
+  void step() { _simulator.step(); }
 
  private:
-  igl::opengl::glfw::Viewer viewer;
+  std::unique_ptr<Menu> _menu;
+  simulator::Simulator _simulator;
 };
 
-} // namespace UI
+}  // namespace UI

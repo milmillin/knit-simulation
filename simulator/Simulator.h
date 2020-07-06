@@ -38,7 +38,10 @@ private:
 
   static float constraint(const Eigen::MatrixXf &q);
 public:
-  // Constructs a new Simulator
+  // Empty constructor
+  Simulator() : q(0, 1) {};
+
+  // Constructs a new simulator with control points
   //
   // q_ : The #m x 3 matrix containing initial control points.
   // params_ : Simulation paramters

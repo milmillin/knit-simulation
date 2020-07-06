@@ -34,6 +34,7 @@
 build/*
 /out/build/x64-Debug
 /.vs
+/.vscode
 /glm
 /libigl
 /CMakeSettings.json

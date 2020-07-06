@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 project(knit-simulator)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_BUILD_TYPE Debug)
 
 # libigl
 option(LIBIGL_WITH_OPENGL            "Use OpenGL"         ON)
