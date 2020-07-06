@@ -13,6 +13,9 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
   // Start trackball mode (allow panning)
   this->core().set_rotation_type(igl::opengl::ViewerCore::ROTATION_TYPE_TRACKBALL);
 
+  // Disable wireframe display
+  this->data().show_lines = 0;
+
   // Load yarns
   refresh();
 
