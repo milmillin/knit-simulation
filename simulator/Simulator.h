@@ -2,9 +2,11 @@
 
 #include "./SimulatorParams.h"
 #include "../file_format/yarnRepr.h"
+#include "./macros.h"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
+#include <vector>
 
 namespace simulator {
 
@@ -19,6 +21,7 @@ private:
   size_t m;
   file_format::YarnRepr yarns;
   Eigen::MatrixXf q;
+  std::vector<float> segmentLength;
   SimulatorParams params;
   Eigen::SparseMatrix<float> M;
   Eigen::SparseMatrix<float> MInverse;
@@ -35,7 +38,13 @@ private:
   // external force
   Eigen::MatrixXf f;
 
+  void calculateSegmentLength();
+
   void constructMassMatrix();
+
+  void calculateBendingEnergyGradient();
+  void calculateBendingEnergyGradientImpl(int index);
+
   void fastProjection();
 
   static float constraint(const Eigen::MatrixXf &q);

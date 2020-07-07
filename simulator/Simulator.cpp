@@ -50,6 +50,26 @@ Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col) {
 
 //////////////////////////////////////////////
 //
+// Segment Length
+//
+
+void Simulator::calculateSegmentLength() {
+	int N = m - 3;
+	segmentLength = std::vector<float>(N);
+
+	float totalLength = 0;
+	for (int i = 0; i < N; i++) {
+		// Calculate arclength of segment[i].
+		// Note that the length is fixed throughout the simulation.
+		segmentLength[i] = catmullRomArcLength(q, i * 3);
+		totalLength += segmentLength[i];
+	}
+
+	std::cout << "Total Length: " << totalLength << std::endl;
+}
+
+//////////////////////////////////////////////
+//
 // Mass Matrix
 //
 
@@ -77,27 +97,19 @@ void Simulator::constructMassMatrix() {
 	// Iterate though each segment
 	int N = m - 3;
 	
-	float totalLength = 0;
 	float mUnit = params.m;
 	for (int i = 0; i < N; i++) {
-		// Calculate arclength of segment[i].
-		// Note that the length is fixed throughout the simulation.
-		float length = catmullRomArcLength(q, i * 3);
-		totalLength += length;
-
 		// Iterate through combination of control points to find mass contribution.
 		for (int j = 0; j < 4; j++) {
 			for (int k = j; k < 4; k++) {
 				// M[(i+j)*3][(i+k)*3] = mUnit * l[i] * integrate(bj(s), bk(s), (s, 0, 1))
-				float contribution = mUnit * length * MASS_CONTRIBUTION[j][k];
+				float contribution = mUnit * segmentLength[i] * MASS_CONTRIBUTION[j][k];
 				M.coeffRef((i + j) * 3, (i + k) * 3) += contribution;
 				M.coeffRef((i + j) * 3 + 1, (i + k) * 3 + 1) += contribution;
 				M.coeffRef((i + j) * 3 + 2, (i + k) * 3 + 2) += contribution;
 			}
 		}
 	}
-
-	std::cout << "Total Length: " << totalLength << std::endl;
 
 	std::cout << "Calculating Mass Matrix Inverse" << std::endl;
 	Eigen::SimplicialCholesky<Eigen::SparseMatrix<float>> solver;
@@ -116,6 +128,7 @@ void Simulator::constructMassMatrix() {
 		return;
 	}
 }
+
 
 //////////////////////////////////////////////
 //
@@ -167,6 +180,9 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 	gradD = Eigen::MatrixXf::Zero(3 * m, 1);
 	f = Eigen::MatrixXf::Zero(3 * m, 1);
 
+	// Calculate Segment Length;
+	calculateSegmentLength();
+
 	// Construct Mass Matrix
 	constructMassMatrix();
 
@@ -175,8 +191,12 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 
 void Simulator::step() {
 	std::cout << "Step" << std::endl;
+
+	gradE = Eigen::MatrixXf::Zero(3 * m, 1);
+	gradD = Eigen::MatrixXf::Zero(3 * m, 1);
 	//TODO:
 	// update gradE, gradD, f
+
 	fastProjection();
 }
 
