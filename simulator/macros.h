@@ -15,21 +15,21 @@
   const float& pz4 = q((index) + 11);
 
 #define DECLARE_BASIS \
-  float b1 = s * (-1.0 / 2.0) + s * s - (s * s * s) / 2.0; \
-  float b2 = (s * s) * (-5.0 / 2.0) + (s * s * s) * (3.0 / 2.0) + 1.0; \
-  float b3 = s / 2.0 + (s * s) * 2.0 - (s * s * s) * (3.0 / 2.0); \
-  float b4 (s * s) * (-1.0 / 2.0) + (s * s * s) / 2.0;
+  float b1 = s * (-1.0f / 2.0f) + s * s - (s * s * s) / 2.0f; \
+  float b2 = (s * s) * (-5.0f / 2.0f) + (s * s * s) * (3.0f / 2.0f) + 1.0f; \
+  float b3 = s / 2.0f + (s * s) * 2.0f - (s * s * s) * (3.0f / 2.0f); \
+  float b4 (s * s) * (-1.0f / 2.0f) + (s * s * s) / 2.0f;
 
 #define DECLARE_BASIS_D \
-  float bD1 = s * 2.0 - (s * s) * (3.0 / 2.0) - 1.0 / 2.0; \
-  float bD2 = s * -5.0 + (s * s) * (9.0 / 2.0); \
-  float bD3 = s * 4.0 - (s * s) * (9.0 / 2.0) + 1.0 / 2.0; \
-  float bD4 = -s + (s * s) * (3.0 / 2.0);
+  float bD1 = s * 2.0f - (s * s) * (3.0f / 2.0f) - 1.0f / 2.0f; \
+  float bD2 = s * -5.0f + (s * s) * (9.0f / 2.0f); \
+  float bD3 = s * 4.0f - (s * s) * (9.0f / 2.0f) + 1.0f / 2.0f; \
+  float bD4 = -s + (s * s) * (3.0f / 2.0f);
 
 #define DECLARE_BASIS_DD \
-  float bDD1 = s * -3.0 + 2.0; \
-  float bDD2 = s * 9.0 - 5.0; \
-  float bDD3 = s * -9.0 + 4.0; \
-  float bDD4 = s * 3.0 - 1.0;
+  float bDD1 = s * -3.0f + 2.0f; \
+  float bDD2 = s * 9.0f - 5.0f; \
+  float bDD3 = s * -9.0f + 4.0f; \
+  float bDD4 = s * 3.0f - 1.0f;
 
 
