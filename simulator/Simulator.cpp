@@ -129,6 +129,19 @@ void Simulator::constructMassMatrix() {
 	}
 }
 
+//////////////////////////////////////////////
+//
+// Energy Gradient
+//
+
+void Simulator::calculateEnergyGradient() {
+  int N = m - 3;
+  for (int i = 0; i < N; i++) {
+    calculateBendingEnergyGradient(i);
+		calculateLengthEnergyGradient(i);
+  }
+}
+
 
 //////////////////////////////////////////////
 //

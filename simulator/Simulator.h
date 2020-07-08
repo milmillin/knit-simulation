@@ -42,8 +42,9 @@ private:
 
   void constructMassMatrix();
 
-  void calculateBendingEnergyGradient();
-  void calculateBendingEnergyGradientImpl(int index);
+  void calculateEnergyGradient();
+  void calculateBendingEnergyGradient(int i);
+  void calculateLengthEnergyGradient(int i);
 
   void fastProjection();
 
