@@ -42,9 +42,11 @@ private:
 
   void constructMassMatrix();
 
-  void calculateEnergyGradient();
+  void calculateGradient();
   void calculateBendingEnergyGradient(int i);
   void calculateLengthEnergyGradient(int i);
+
+  void calculateGlobalDampingGradient(int i);
 
   void fastProjection();
 

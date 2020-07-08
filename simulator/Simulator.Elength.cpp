@@ -10,9 +10,10 @@ namespace simulator {
 
 void Simulator::calculateLengthEnergyGradient(int i) {
   int index = i * 3;
-  DECLARE_POINTS(q, index);
+  DECLARE_POINTS(index);
 
-  float coefficient = params.kLen * segmentLength[i];
+  float coefficient = params.kLen;
+  float L = segmentLength[i];
 
   // Bending Energy: px1
   gradE(index + 0) += coefficient * integrate([&](float s)->float {

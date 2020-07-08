@@ -10,7 +10,7 @@ namespace simulator {
 
 void Simulator::calculateBendingEnergyGradient(int i) {
   int index = i * 3;
-  DECLARE_POINTS(q, index);
+  DECLARE_POINTS(index);
 
   float coefficient = params.kBend * segmentLength[i];
 

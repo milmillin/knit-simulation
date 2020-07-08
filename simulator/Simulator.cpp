@@ -134,11 +134,15 @@ void Simulator::constructMassMatrix() {
 // Energy Gradient
 //
 
-void Simulator::calculateEnergyGradient() {
+void Simulator::calculateGradient() {
   int N = m - 3;
   for (int i = 0; i < N; i++) {
+		// Energy
     calculateBendingEnergyGradient(i);
 		calculateLengthEnergyGradient(i);
+
+		// Damping
+		calculateGlobalDampingGradient(i);
   }
 }
 
