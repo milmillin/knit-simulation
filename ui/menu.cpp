@@ -117,6 +117,7 @@ namespace UI {
       if (ImGui::CollapsingHeader("Simulator", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::Button("Step", ImVec2(-1, 0))) {
           reinterpret_cast<Viewer*>(viewer)->step();
+          needRefresh = true;
         }
       }
 
