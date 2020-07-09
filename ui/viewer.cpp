@@ -85,7 +85,7 @@ void Viewer::loadYarn(std::string filename) {
   }
 
   // Update simulator
-  _simulator = simulator::Simulator(file_format::YarnRepr(yarns),
+  _simulator = simulator::DiscreteSimulator(file_format::YarnRepr(yarns),
     simulator::SimulatorParams::Default());
   this->refresh();
 }

@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "./menu.h"
-#include "../simulator/Simulator.h"
+#include "../simulator/DiscreteSimulator.h"
 
 namespace UI {
 
@@ -30,7 +30,7 @@ class Viewer : igl::opengl::glfw::Viewer {
 
  private:
   std::unique_ptr<Menu> _menu;
-  simulator::Simulator _simulator;
+  simulator::DiscreteSimulator _simulator;
 };
 
 }  // namespace UI
