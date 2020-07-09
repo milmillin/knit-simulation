@@ -152,11 +152,6 @@ void Simulator::calculateGradient() {
 // Fast Projection
 //
 
-float Simulator::constraint(const Eigen::MatrixXf& q)
-{
-	return 0.0f;
-}
-
 void Simulator::fastProjection() {
 	int j = 0;							// current projection iteration
 	float h = params.h;			// timestep
@@ -165,7 +160,7 @@ void Simulator::fastProjection() {
 	// TODO: check sign of f
 	Eigen::MatrixXf qj = q + h * qD - (h * h) * (MInverse * (gradE + gradD - f));
 
-	while (constraint(qj) > eps) {
+	while (constraints.calculate(qj) > eps) {
 		// TODO:
 	}
 
@@ -179,12 +174,15 @@ void Simulator::fastProjection() {
 // Simulator implementation
 //
 
-Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : params(params_) {
+Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : params(params_), constraints(0) {
 	this->yarns = yarns;
 	if (yarns.yarns.size() > 0) {
 		q = yarns.yarns[0].points;
 	}
 	m = q.rows();
+
+	// Initialize constraints
+	constraints = Constraints(m);
 
 	// Resize to vector 3m x 1
 	q = flatten(q);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "./SimulatorParams.h"
+#include "./Constraints.h"
 #include "../file_format/yarnRepr.h"
 #include "./macros.h"
 
@@ -18,15 +19,22 @@ namespace simulator {
 // segment[i] is governed by q[i], q[i + 1], q[i + 2], q[i + 3].
 class Simulator {
 private:
+  // simulator attributes
   size_t m;
   file_format::YarnRepr yarns;
-  Eigen::MatrixXf q;
-  std::vector<float> segmentLength;
   SimulatorParams params;
+
+  // position of control points
+  Eigen::MatrixXf q;
+
+  // segment length
+  std::vector<float> segmentLength;
+
+  // mass matrix
   Eigen::SparseMatrix<float> M;
   Eigen::SparseMatrix<float> MInverse;
 
-  // first-derivative of q
+  // first-derivative of q w.r.t. time
   Eigen::MatrixXf qD;
 
   // gradient of positional energy
@@ -37,6 +45,9 @@ private:
 
   // external force
   Eigen::MatrixXf f;
+
+  // constraints
+  Constraints constraints;
 
   void calculateSegmentLength();
 
@@ -49,11 +60,9 @@ private:
   void calculateGlobalDampingGradient(int i);
 
   void fastProjection();
-
-  static float constraint(const Eigen::MatrixXf &q);
 public:
   // Empty constructor
-  Simulator() : q(0, 1) {};
+  Simulator() : q(0, 1), constraints(0) {};
 
   // Constructs a new simulator with control points
   //
@@ -66,6 +75,9 @@ public:
 
   // Simulates next timestep.
   void step();
+
+  // Gets a reference to constraint container
+  Constraints& getConstraints() { return constraints; }
 };
 
 }; // namespace simulator
