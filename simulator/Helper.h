@@ -15,4 +15,11 @@ float integrate(const std::function<float(float)>& f, float a, float b);
 // index : index of x-coord of the first control point in q
 float catmullRomArcLength(const Eigen::MatrixXf& q, int index);
 
+// Sample a Catmul-Rom curve
+//
+// points: one row for each point coordinate
+// samplePerSegment: number of samples for each segment
+// Return: samples (one row for each point coordinate)
+Eigen::MatrixXf catmullRomSequenceSample(Eigen::MatrixXf points, int samplePerSegment);
+
 }; // namespace simulator

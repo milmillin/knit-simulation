@@ -32,4 +32,12 @@
   float bDD3 = s * -9.0f + 4.0f; \
   float bDD4 = s * 3.0f - 1.0f;
 
+// Get a point from a row in the matrix
+#define POINT_FROM_ROW(matrix, index) \
+  glm::vec3(matrix((index), 0), matrix((index), 1), matrix((index), 2))
 
+// Set a row in the matrix with a point
+#define ROW_FROM_POINT(matrix, index, point) \
+  (matrix)((index), 0) = point.x; \
+  (matrix)((index), 1) = point.y; \
+  (matrix)((index), 2) = point.z;
