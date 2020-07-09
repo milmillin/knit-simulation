@@ -4,6 +4,7 @@
 #include "../simulator/SimulatorParams.h"
 #include "../file_format/yarns.h"
 #include "../file_format/yarnRepr.h"
+#include "../simulator/Helper.h"
 
 namespace UI {
 
@@ -40,12 +41,16 @@ void Viewer::refresh() {
     this->selected_data_index = i;
     this->data().clear();
 
+    // Get curve
     auto &yarn = yarns.yarns[i];
 
-    // Create mesh
+    // Use Catmull-Rom to smooth the curve
+    Eigen::MatrixXf points = simulator::catmullRomSequenceSample(yarn.points, curveSamples);
+
+    // Create mesh for tube
     Eigen::MatrixXf vertices;
     Eigen::MatrixXi triangles;
-    circleSweep(yarn.points, yarn.radius, 8, &vertices, &triangles);
+    circleSweep(points, yarn.radius, circleSamples, &vertices, &triangles);
     this->data().set_mesh(vertices.cast<double>(), triangles);
 
     // Set color

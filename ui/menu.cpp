@@ -17,6 +17,8 @@ namespace UI {
     this->callback_draw_viewer_menu = [&]() {
       // Based on 'ImGuiMenu::draw_viewer_menu'
 
+      bool needRefresh = false;
+
       // Mesh
       if (ImGui::CollapsingHeader("Yarn", ImGuiTreeNodeFlags_DefaultOpen)) {
         float w = ImGui::GetContentRegionAvailWidth();
@@ -92,6 +94,16 @@ namespace UI {
             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel);
         ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
         ImGui::DragFloat("Shininess", &(viewer->data().shininess), 0.05f, 0.0f, 100.0f);
+        if (ImGui::DragInt("Cross-section samples",
+            &(reinterpret_cast<Viewer*>(viewer)->circleSamples),
+            1, 4, 10)) {
+          needRefresh = true;
+        }
+        if (ImGui::DragInt("Curve samples",
+            &(reinterpret_cast<Viewer*>(viewer)->curveSamples),
+            1, 1, 10)) {
+          needRefresh = true;
+        }
         ImGui::PopItemWidth();
       }
 
@@ -105,7 +117,13 @@ namespace UI {
       if (ImGui::CollapsingHeader("Simulator", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::Button("Step", ImVec2(-1, 0))) {
           reinterpret_cast<Viewer*>(viewer)->step();
+          needRefresh = true;
         }
+      }
+
+      // Refresh the mesh when config changes
+      if (needRefresh) {
+        reinterpret_cast<Viewer*>(viewer)->refresh();
       }
     };
   }
