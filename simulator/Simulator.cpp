@@ -71,7 +71,17 @@ void Simulator::calculateSegmentLength() {
 	for (int i = 0; i < N; i++) {
 		// Calculate arclength of segment[i].
 		// Note that the length is fixed throughout the simulation.
-		segmentLength[i] = catmullRomArcLength(q, i * 3);
+
+		int index = i * 3;
+		DECLARE_POINTS(index)
+
+		segmentLength[i] = integrate([&](float s)->float {
+			DECLARE_BASIS_D
+			return sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4, 2) +
+				pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4, 2) +
+				pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4, 2));
+			}, 0, 1);
+
 		totalLength += segmentLength[i];
 	}
 
