@@ -24,6 +24,7 @@ class DiscreteSimulator {
 
   void applyGravity();
   void applyGroundVelocityFilter();
+  void applyContactForce();
   SimulatorParams params;
  private:
   Eigen::MatrixXf dQ;

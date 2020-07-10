@@ -1,5 +1,7 @@
 #include "DiscreteSimulator.h"
 
+#include "macros.h"
+
 namespace simulator {
 
 DiscreteSimulator::DiscreteSimulator() {
@@ -23,6 +25,7 @@ void DiscreteSimulator::step() {
     // Calculate acceleration
     ddQ.setZero();
     applyGravity();
+    applyContactForce();
 
     // Calculate velocity
     dQ += ddQ * params.h;
@@ -45,6 +48,29 @@ void DiscreteSimulator::applyGroundVelocityFilter() {
       dQ(i, 0) *= params.groundFiction;
       dQ(i, 1) = 0;
       dQ(i, 2) *= params.groundFiction;
+    }
+  }
+}
+
+void DiscreteSimulator::applyContactForce() {
+  auto &Q = yarns.yarns[0].points;
+
+  for (int i = 0; i < Q.rows(); i++) {
+    for (int j = i + 1; j < Q.rows(); j++) {
+      glm::vec3 p1 = POINT_FROM_ROW(Q, i);
+      glm::vec3 p2 = POINT_FROM_ROW(Q, j);
+      glm::vec3 direction = p2 - p1;
+      float distance = glm::length(direction);
+      if (distance < 2 * yarns.yarns[0].radius) {
+        distance = distance / 2 / yarns.yarns[0].radius;
+        float force = 1 / distance / distance + distance * distance  - 2;
+        force *= params.kContact;
+        direction = glm::normalize(direction);
+        p2 += direction * force;
+        p1 -= direction * force;
+        ROW_FROM_POINT(ddQ, i, p1);
+        ROW_FROM_POINT(ddQ, j, p2);
+      }
     }
   }
 }
