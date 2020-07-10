@@ -117,6 +117,13 @@ void Simulator::constructMassMatrix() {
 				M.coeffRef((i + j) * 3, (i + k) * 3) += contribution;
 				M.coeffRef((i + j) * 3 + 1, (i + k) * 3 + 1) += contribution;
 				M.coeffRef((i + j) * 3 + 2, (i + k) * 3 + 2) += contribution;
+
+				// transpose
+				if (j != k) {
+          M.coeffRef((i + k) * 3, (i + j) * 3) += contribution;
+          M.coeffRef((i + k) * 3 + 1, (i + j) * 3 + 1) += contribution;
+          M.coeffRef((i + k) * 3 + 2, (i + j) * 3 + 2) += contribution;
+				}
 			}
 		}
 	}
