@@ -49,6 +49,10 @@ private:
   // constraints
   Constraints constraints;
 
+  // debug
+  int stepCnt;
+  void writeToFile() const;
+
   void calculateSegmentLength();
 
   void constructMassMatrix();
@@ -71,7 +75,7 @@ public:
   Simulator(file_format::YarnRepr yarns, SimulatorParams params_);
 
   // Returns current yarns
-  const file_format::YarnRepr &getYarns() const { return this->yarns; };
+  const file_format::YarnRepr& getYarns() const { return this->yarns; };
 
   // Simulates next timestep.
   void step();

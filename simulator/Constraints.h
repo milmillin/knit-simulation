@@ -44,7 +44,11 @@ public:
 
   // Evaluates the constraints at q
   // Returns the maximum of absolute of each constraint
-  float calculate(const Eigen::MatrixXf& q) const;
+  float calculateMax(const Eigen::MatrixXf& q) const;
+
+  // Evaluates the constraints at q
+  // Returns the matrix of size c x 1
+  Eigen::MatrixXf calculate(const Eigen::MatrixXf& q) const;
 };
 
 } // namespace simulator

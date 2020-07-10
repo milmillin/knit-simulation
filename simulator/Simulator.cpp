@@ -6,8 +6,10 @@
 
 #include <iostream>
 #include <Eigen/Core>
+#include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include <fstream>
 
 namespace simulator {
 
@@ -17,9 +19,17 @@ namespace simulator {
 // Helper Functions
 //
 
+const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
+void writeMatrix(std::string filename, const Eigen::MatrixXf& q) {
+	std::ofstream f;
+	f.open(filename);
+	f << q.format(CSVFormat) << "\n";
+	f.close();
+}
+
 // Reshapes #m x 3 matrix into a vector of (3 * #m) rows.
 // Returns a new matrix.
-Eigen::MatrixXf flatten(const Eigen::MatrixXf &v) {
+Eigen::MatrixXf flatten(const Eigen::MatrixXf& v) {
 	Eigen::MatrixXf res(v.rows() * v.cols(), 1);
 	int r = v.rows();
 	int c = v.cols();
@@ -93,10 +103,10 @@ static const float MASS_CONTRIBUTION[4][4] =
 void Simulator::constructMassMatrix() {
 	std::cout << "Constructing Mass Matrix" << std::endl;
 	M = Eigen::SparseMatrix<float>(3 * m, 3 * m);
-	
+
 	// Iterate though each segment
 	int N = m - 3;
-	
+
 	float mUnit = params.m;
 	for (int i = 0; i < N; i++) {
 		// Iterate through combination of control points to find mass contribution.
@@ -135,15 +145,15 @@ void Simulator::constructMassMatrix() {
 //
 
 void Simulator::calculateGradient() {
-  int N = m - 3;
-  for (int i = 0; i < N; i++) {
+	int N = m - 3;
+	for (int i = 0; i < N; i++) {
 		// Energy
-    calculateBendingEnergyGradient(i);
+		//calculateBendingEnergyGradient(i);
 		calculateLengthEnergyGradient(i);
 
 		// Damping
-		calculateGlobalDampingGradient(i);
-  }
+		//calculateGlobalDampingGradient(i);
+	}
 }
 
 
@@ -153,15 +163,22 @@ void Simulator::calculateGradient() {
 //
 
 void Simulator::fastProjection() {
-	int j = 0;							// current projection iteration
 	float h = params.h;			// timestep
 	static const float eps = 1e-8;
 
 	// TODO: check sign of f
+
+	// Unconstrained step
 	Eigen::MatrixXf qj = q + h * qD - (h * h) * (MInverse * (gradE + gradD - f));
 
-	while (constraints.calculate(qj) > eps) {
-		// TODO:
+	// Projection
+	while (constraints.calculateMax(qj) > eps) {
+		Eigen::MatrixXf jC = constraints.getJacobian(qj);
+		Eigen::MatrixXf tmp = jC * MInverse * jC.transpose();
+
+		Eigen::MatrixXf lambda = tmp.inverse() * (constraints.calculate(qj) / (h * h));
+		Eigen::MatrixXf qjD = (-h * h) * MInverse * jC.transpose() * lambda;
+		qj += qjD;
 	}
 
 	// Update velocity and position;
@@ -174,7 +191,7 @@ void Simulator::fastProjection() {
 // Simulator implementation
 //
 
-Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : params(params_), constraints(0) {
+Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : params(params_), constraints(0), stepCnt(0) {
 	this->yarns = yarns;
 	if (yarns.yarns.size() > 0) {
 		q = yarns.yarns[0].points;
@@ -201,18 +218,40 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 	// Construct Mass Matrix
 	constructMassMatrix();
 
+	writeMatrix("mass.csv", Eigen::MatrixXf(M));
+	writeMatrix("massInverse.csv", Eigen::MatrixXf(MInverse));
+
+	writeToFile();
+
 	std::cout << "Simulator Initialized" << std::endl;
+}
+
+
+void Simulator::writeToFile() const {
+	writeMatrix("q-" + std::to_string(stepCnt) + ".csv", q);
+	writeMatrix("qD-" + std::to_string(stepCnt) + ".csv", qD);
+	writeMatrix("gradE-" + std::to_string(stepCnt) + ".csv", gradE);
 }
 
 void Simulator::step() {
 	std::cout << "Step" << std::endl;
 
-	gradE = Eigen::MatrixXf::Zero(3 * m, 1);
-	gradD = Eigen::MatrixXf::Zero(3 * m, 1);
-	//TODO:
+	gradE.setZero();
+	gradD.setZero();
+
 	// update gradE, gradD, f
+	calculateGradient();
 
 	fastProjection();
+
+	// save to YarnRepr
+	// supports one yarn for now
+	yarns.yarns[0].points = inflate(q, 3);
+
+	stepCnt++;
+	writeToFile();
+
+	std::cout << ">> Done Step" << std::endl;
 }
 
 };  // namespace simulator

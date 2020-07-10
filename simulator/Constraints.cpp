@@ -76,10 +76,18 @@ Eigen::MatrixXf Constraints::getJacobian(const Eigen::MatrixXf& q) const {
   return J;
 }
 
-float Constraints::calculate(const Eigen::MatrixXf& q) const {
+float Constraints::calculateMax(const Eigen::MatrixXf& q) const {
   float res = 0;
   for (auto& constraint : C) {
     res = std::max(res, fabs(constraint(q)));
+  }
+  return res;
+}
+
+Eigen::MatrixXf Constraints::calculate(const Eigen::MatrixXf& q) const {
+  Eigen::MatrixXf res(C.size(), 1);
+  for (int i = 0; i < (int)C.size(); i++) {
+    res(i) = C[i](q);
   }
   return res;
 }
