@@ -21,16 +21,16 @@ class Viewer : igl::opengl::glfw::Viewer {
     const std::string &name = "GRAIL Knit Simulator", int width = 0, int height = 0);
   void refresh();
   void loadYarn(std::string filename);
-  void step() { _simulator.step(); }
+  inline void step() { simulator.step(); }
 
   // Number of samples for yarn cross-section (circle)
   int circleSamples = 8;
   // Number of samples for Catmull-Rom curve
   int curveSamples = 1;
+  simulator::DiscreteSimulator simulator;
 
  private:
   std::unique_ptr<Menu> _menu;
-  simulator::DiscreteSimulator _simulator;
 };
 
 }  // namespace UI

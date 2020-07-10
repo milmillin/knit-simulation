@@ -17,31 +17,34 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
 }
 
 void DiscreteSimulator::step() {
-  constexpr float timeStep = 0.1;
   auto &Q = yarns.yarns[0].points;
 
-  // Calculate acceleration
-  ddQ.setZero();
-  applyGravity();
+  for (int i = 0; i < params.steps; i++) {
+    // Calculate acceleration
+    ddQ.setZero();
+    applyGravity();
 
-  // Calculate velocity
-  dQ += ddQ * timeStep;
-  applyGroundVelocityFilter();
+    // Calculate velocity
+    dQ += ddQ * params.h;
+    applyGroundVelocityFilter();
 
-  // Calculate position
-  Q += dQ * timeStep;
+    // Calculate position
+    Q += dQ * params.h;
+  }
 }
 
 void DiscreteSimulator::applyGravity() {
   auto &Q = yarns.yarns[0].points;
-	ddQ += Eigen::Vector3f(0, -9.8, 0).transpose().replicate(Q.rows(), 1);
+	ddQ += Eigen::Vector3f(0, -params.gravity, 0).transpose().replicate(Q.rows(), 1);
 }
 
 void DiscreteSimulator::applyGroundVelocityFilter() {
   auto &Q = yarns.yarns[0].points;
   for (int i = 0; i < Q.rows(); i++) {
-    if (Q(i, 1) < -5 && dQ(i, 1) < 0) {
+    if (Q(i, 1) < params.groundHeight && dQ(i, 1) < 0) {
+      dQ(i, 0) *= params.groundFiction;
       dQ(i, 1) = 0;
+      dQ(i, 2) *= params.groundFiction;
     }
   }
 }

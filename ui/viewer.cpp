@@ -34,7 +34,7 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 void Viewer::refresh() {
 
   // Get yarn shape
-  const file_format::YarnRepr yarns = _simulator.getYarns();
+  const file_format::YarnRepr yarns = simulator.getYarns();
 
   for (int i = 0; i < yarns.yarns.size(); i++) {
     // Clear old mesh
@@ -85,7 +85,7 @@ void Viewer::loadYarn(std::string filename) {
   }
 
   // Update simulator
-  _simulator = simulator::DiscreteSimulator(file_format::YarnRepr(yarns),
+  simulator = simulator::DiscreteSimulator(file_format::YarnRepr(yarns),
     simulator::SimulatorParams::Default());
   this->refresh();
 }

@@ -18,6 +18,7 @@ namespace UI {
       // Based on 'ImGuiMenu::draw_viewer_menu'
 
       bool needRefresh = false;
+      Viewer *yarnViewer = reinterpret_cast<Viewer*>(viewer);
 
       // Mesh
       if (ImGui::CollapsingHeader("Yarn", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -95,12 +96,12 @@ namespace UI {
         ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
         ImGui::DragFloat("Shininess", &(viewer->data().shininess), 0.05f, 0.0f, 100.0f);
         if (ImGui::DragInt("Cross-section samples",
-            &(reinterpret_cast<Viewer*>(viewer)->circleSamples),
+            &(yarnViewer->circleSamples),
             1, 4, 10)) {
           needRefresh = true;
         }
         if (ImGui::DragInt("Curve samples",
-            &(reinterpret_cast<Viewer*>(viewer)->curveSamples),
+            &(yarnViewer->curveSamples),
             1, 1, 10)) {
           needRefresh = true;
         }
@@ -115,10 +116,22 @@ namespace UI {
 
       // Add simulator menu
       if (ImGui::CollapsingHeader("Simulator", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::InputInt("steps", &(yarnViewer->simulator.params.steps),
+          10, 100);
         if (ImGui::Button("Step", ImVec2(-1, 0))) {
           reinterpret_cast<Viewer*>(viewer)->step();
           needRefresh = true;
         }
+        ImGui::InputFloat("Time resolution", &(yarnViewer->simulator.params.h),
+          0.00001, 0.001, "%.5f");
+        ImGui::InputFloat("Gravity", &(yarnViewer->simulator.params.gravity),
+          0.1, 1);
+        ImGui::InputFloat("Ground height", &(yarnViewer->simulator.params.groundHeight),
+          0.01, 0.1, "%.2f");
+        ImGui::InputFloat("Ground fiction", &(yarnViewer->simulator.params.groundFiction),
+          0.01, 0.1, "%.2f");
+        ImGui::InputFloat("Contact force", &(yarnViewer->simulator.params.kContact),
+          100, 10, "%.1f");
       }
 
       // Refresh the mesh when config changes

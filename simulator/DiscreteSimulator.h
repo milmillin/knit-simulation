@@ -24,11 +24,11 @@ class DiscreteSimulator {
 
   void applyGravity();
   void applyGroundVelocityFilter();
+  SimulatorParams params;
  private:
   Eigen::MatrixXf dQ;
   Eigen::MatrixXf ddQ;
   file_format::YarnRepr yarns;
-  SimulatorParams params;
 };
 
 } // namespace simulatr 

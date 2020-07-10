@@ -4,33 +4,31 @@ namespace simulator {
 
 // SimulatorParams contains all parameters for Simulator
 struct SimulatorParams {
-  float r;
-  float m;
-  float kLen;
-  float kBend;
-  float kGlobal;
-  float kContact;
-  float kDt;
-  float kDn;
-  float aSmall;
-  float aLarge;
-  float h;
+  float r = 0.125f;
+  float m = 0.006f;
+  float kLen= 10000.f;
+  float kBend = 0.005f;
+  float kGlobal = 1.5f;
+  // Contact force coefficient
+  float kContact = 3250.f;
+  float kDt = 0.003f;
+  float kDn = 0.03f;
+  float aSmall = 0.3f;
+  float aLarge = 0.3f;
+  // Time delta for each step (time resolution)
+  float h = 0.001f;
+  // Number of steps to run for each button click
+  int steps = 100;
+  // Gravity acceleration
+  float gravity = 9.8f;
+  // y coordinate of the ground
+  float groundHeight = -5.f;
+  // Ground fiction
+  float groundFiction = 0.5f;
 
   static SimulatorParams Default() {
-    return SimulatorParams
-    {
-      0.125f,
-      0.006f,
-      10000.f,
-      0.005f,
-      1.5f,
-      3250.f,
-      0.003f,
-      0.03f,
-      0.3f,
-      0.3f,
-      1.f / 11800
-    };
+    SimulatorParams param;
+    return param;
   }
 };
 
