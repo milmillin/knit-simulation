@@ -1,7 +1,8 @@
+#include <vector>
+#include <Eigen/Core>
+
 #include "../file_format/yarnRepr.h"
 #include "./SimulatorParams.h"
-
-#include <Eigen/Core>
 
 namespace simulator {
 
@@ -25,11 +26,13 @@ class DiscreteSimulator {
   void applyGravity();
   void applyGroundVelocityFilter();
   void applyContactForce();
+  void applyLengthConstrain();
   SimulatorParams params;
  private:
   Eigen::MatrixXf dQ;
   Eigen::MatrixXf ddQ;
   file_format::YarnRepr yarns;
+  std::vector<float> restLength;
 };
 
 } // namespace simulatr 

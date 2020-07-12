@@ -132,6 +132,8 @@ namespace UI {
           0.01, 0.1, "%.2f");
         ImGui::InputFloat("Contact force", &(yarnViewer->simulator.params.kContact),
           100, 10, "%.1f");
+        ImGui::InputFloat("Length force", &(yarnViewer->simulator.params.kLen),
+          100, 10, "%.1f");
       }
 
       // Refresh the mesh when config changes

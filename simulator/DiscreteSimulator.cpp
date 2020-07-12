@@ -16,6 +16,12 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
   dQ = Eigen::MatrixXf(Q.rows(), 3);
   dQ.setZero();
   ddQ = Eigen::MatrixXf(Q.rows(), 3);
+
+  for (int i = 0; i < Q.rows() - 1; i++) {
+    glm::vec3 p1 = POINT_FROM_ROW(Q, i);
+    glm::vec3 p2 = POINT_FROM_ROW(Q, i + 1);
+    restLength.push_back(glm::length(p2 - p1));
+  }
 }
 
 void DiscreteSimulator::step() {
@@ -26,6 +32,7 @@ void DiscreteSimulator::step() {
     ddQ.setZero();
     applyGravity();
     applyContactForce();
+    applyLengthConstrain();
 
     // Calculate velocity
     dQ += ddQ * params.h;
@@ -71,6 +78,26 @@ void DiscreteSimulator::applyContactForce() {
         ADD_TO_ROW(ddQ, i, f1);
         ADD_TO_ROW(ddQ, i, f2);
       }
+    }
+  }
+}
+
+void DiscreteSimulator::applyLengthConstrain() {
+  auto &Q = yarns.yarns[0].points;
+
+  for (int i = 0; i < Q.rows() - 1; i++) {
+    glm::vec3 p1 = POINT_FROM_ROW(Q, i);
+    glm::vec3 p2 = POINT_FROM_ROW(Q, i + 1);
+    glm::vec3 direction = p2 - p1;
+    float offset = glm::length(direction) - restLength[i];
+    direction = glm::normalize(direction);
+    glm::vec3 force = 0.5f * params.kLen * offset * offset * direction;
+    if (offset < restLength[i]) {
+      SUBTRACT_FROM_ROW(ddQ, i, force);
+      ADD_TO_ROW(ddQ, i + 1, force);
+    } else {
+      SUBTRACT_FROM_ROW(ddQ, i + 1, force);
+      ADD_TO_ROW(ddQ, i, force);
     }
   }
 }
