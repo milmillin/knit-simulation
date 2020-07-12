@@ -66,10 +66,10 @@ void DiscreteSimulator::applyContactForce() {
         float force = 1 / distance / distance + distance * distance  - 2;
         force *= params.kContact;
         direction = glm::normalize(direction);
-        p2 += direction * force;
-        p1 -= direction * force;
-        ROW_FROM_POINT(ddQ, i, p1);
-        ROW_FROM_POINT(ddQ, j, p2);
+        glm::vec3 f2 = direction * force;
+        glm::vec3 f1 = direction * force;
+        ADD_TO_ROW(ddQ, i, f1);
+        ADD_TO_ROW(ddQ, i, f2);
       }
     }
   }
