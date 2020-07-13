@@ -36,9 +36,13 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
     restLength.push_back(glm::length(p2 - p1));
   }
 
-  const int nConstrain = /* pinControlPoints.size() + */restLength.size();
+  const int nConstrain = pinControlPoints.size() + restLength.size();
   constrain = Eigen::VectorXf(nConstrain, 1);
   dConstrain = Eigen::SparseMatrix<float>(nConstrain, 3 * Q.rows());
+
+  for (int pinPoint : pinControlPoints) {
+    pinControlPointsPosition.push_back(POINT_FROM_ROW(Q, pinPoint));
+  }
 }
 
 void DiscreteSimulator::step() {
@@ -148,6 +152,18 @@ void DiscreteSimulator::applyLengthConstrain() {
 }
 
 void DiscreteSimulator::applyPinConstrain() {
+  auto &Q = yarns.yarns[0].points;
+
+  for (int i = 0; i < pinControlPoints.size(); i++) {
+    int constrainIndex = restLength.size() + i;
+    glm::vec3 p = POINT_FROM_ROW(Q, pinControlPoints[i]);
+    constrain(constrainIndex) = glm::length2(p - pinControlPointsPosition[i]);
+
+    glm::vec3 gradient = (p - pinControlPointsPosition[i]) * 2.0f;
+    dConstrain.coeffRef(constrainIndex, pinControlPoints[i]*3 + 0) -= gradient.x;
+    dConstrain.coeffRef(constrainIndex, pinControlPoints[i]*3 + 1) -= gradient.y;
+    dConstrain.coeffRef(constrainIndex, pinControlPoints[i]*3 + 2) -= gradient.z;
+  }
 }
 
 }  // namespace Simulator

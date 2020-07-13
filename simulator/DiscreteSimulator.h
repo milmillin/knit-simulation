@@ -39,6 +39,7 @@ class DiscreteSimulator {
   std::vector<float> restLength;
   std::vector<float> pinControlPoints;
   Eigen::VectorXf constrain;
+  std::vector<glm::vec3> pinControlPointsPosition;
   Eigen::SparseMatrix<float> dConstrain;
 };
 
