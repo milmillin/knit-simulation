@@ -36,9 +36,21 @@ void Viewer::refresh() {
   // Get yarn shape
   const file_format::YarnRepr yarns = simulator.getYarns();
 
+  this->selected_data_index = 0;
+  Eigen::MatrixXf groundPoints(4, 3);
+  groundPoints << 10, simulator.params.groundHeight, 10,
+    10, simulator.params.groundHeight, -10,
+    -10, simulator.params.groundHeight, -10,
+    -10, simulator.params.groundHeight, 10;
+  Eigen::MatrixXi groundTrianges(2, 3);
+  groundTrianges << 2, 0, 1,
+    3, 0, 2;
+  this->data().set_mesh(groundPoints.cast<double>(), groundTrianges);
+  this->data_list.push_back(igl::opengl::ViewerData());
+
   for (int i = 0; i < yarns.yarns.size(); i++) {
     // Clear old mesh
-    this->selected_data_index = i;
+    this->selected_data_index = i + 1;
     this->data().clear();
 
     // Get curve
