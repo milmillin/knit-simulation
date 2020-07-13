@@ -87,6 +87,7 @@ void DiscreteSimulator::applyGroundVelocityFilter() {
       dQ(i, 0) *= params.groundFiction;
       dQ(i, 1) = 0;
       dQ(i, 2) *= params.groundFiction;
+      Q(i, 1) = params.groundHeight;
     }
   }
 }
