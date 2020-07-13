@@ -4,6 +4,9 @@ namespace simulator {
 
 // SimulatorParams contains all parameters for Simulator
 struct SimulatorParams {
+  // Debug mode
+  bool debug = false;
+
   float r = 0.125f;
   float m = 0.006f;
   float kLen= 10000.f;
@@ -25,6 +28,12 @@ struct SimulatorParams {
   float groundHeight = -5.f;
   // Ground fiction
   float groundFiction = 0.5f;
+
+  // === Fast projection ===
+  // maximum iteration
+  int fastProjMaxIter = 20;
+  // Early termination when error is small
+  float fastProjErrorCutoff = 1e-6;
 
   static SimulatorParams Default() {
     SimulatorParams param;

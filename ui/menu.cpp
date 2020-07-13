@@ -16,7 +16,6 @@ namespace UI {
 
     this->callback_draw_viewer_menu = [&]() {
       // Based on 'ImGuiMenu::draw_viewer_menu'
-
       bool needRefresh = false;
       Viewer *yarnViewer = reinterpret_cast<Viewer*>(viewer);
 
@@ -114,27 +113,48 @@ namespace UI {
         make_checkbox("Fill", viewer->data().show_faces);
       }
 
-      // Add simulator menu
-      if (ImGui::CollapsingHeader("Simulator", ImGuiTreeNodeFlags_DefaultOpen)) {
+      // === Simulator menu ===
+      ImGui::Begin("Simulator", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+      if (ImGui::CollapsingHeader("Step##Menu", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::PushItemWidth(100);
+        ImGui::InputFloat("Time resolution", &(yarnViewer->simulator.params.h),
+          0.00001, 0.001, "%.5f");
         ImGui::InputInt("steps", &(yarnViewer->simulator.params.steps),
           10, 100);
+        ImGui::PopItemWidth();
+        ImGui::Checkbox("Debug mode", &(yarnViewer->simulator.params.debug));
+
         if (ImGui::Button("Step", ImVec2(-1, 0))) {
           reinterpret_cast<Viewer*>(viewer)->step();
           needRefresh = true;
         }
-        ImGui::InputFloat("Time resolution", &(yarnViewer->simulator.params.h),
-          0.00001, 0.001, "%.5f");
+      }
+
+      if (ImGui::CollapsingHeader("Fast projection", 0)) {
+        ImGui::PushItemWidth(100);
+        ImGui::InputFloat("Target Error", &(yarnViewer->simulator.params.fastProjErrorCutoff),
+          1e-6, 1e-3, "%.7f");
+        ImGui::InputInt("Max iterations", &(yarnViewer->simulator.params.fastProjMaxIter));
+        ImGui::PopItemWidth();
+      }
+
+      if (ImGui::CollapsingHeader("Constants", 0)) {
+        ImGui::PushItemWidth(100);
         ImGui::InputFloat("Gravity", &(yarnViewer->simulator.params.gravity),
           0.1, 1);
-        ImGui::InputFloat("Ground height", &(yarnViewer->simulator.params.groundHeight),
-          0.01, 0.1, "%.2f");
+        if (ImGui::InputFloat("Ground height", &(yarnViewer->simulator.params.groundHeight),
+            0.01, 0.1, "%.2f")) {
+          needRefresh = true;
+        }
         ImGui::InputFloat("Ground fiction", &(yarnViewer->simulator.params.groundFiction),
           0.01, 0.1, "%.2f");
         ImGui::InputFloat("Contact force", &(yarnViewer->simulator.params.kContact),
           100, 10, "%.1f");
         ImGui::InputFloat("Length force", &(yarnViewer->simulator.params.kLen),
           100, 10, "%.1f");
+        ImGui::PopItemWidth();
       }
+      ImGui::End();
 
       // Refresh the mesh when config changes
       if (needRefresh) {

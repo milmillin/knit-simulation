@@ -109,7 +109,7 @@ void DiscreteSimulator::applyContactForce() {
 void DiscreteSimulator::fastProjection() {
   auto &Q = yarns.yarns[0].points;
 
-  int nIteration = 10;
+  int nIteration = 0;
   do {
     dConstrain.setZero();
     applyLengthConstrain();
@@ -123,13 +123,14 @@ void DiscreteSimulator::fastProjection() {
 
     for (int i = 0; i < deltaX.rows(); i++) {
       Q(i/3, i%3) += deltaX(i);
-      std::cout << deltaX(i) << " ";
-      if (i % 3 == 2) {
-        std::cout << std::endl;
-      }
     }
-    std::cout << "projection " << constrain.norm() << std::endl;
-  } while (constrain.norm() > 1e-5 && nIteration < 10);
+
+    if (params.debug) {
+      std::cout << "Iteration: " << nIteration << \
+      " Constrain error: "<< constrain.norm() << std::endl;
+    }
+  } while (constrain.norm() / constrain.rows() > params.fastProjErrorCutoff
+    && nIteration < params.fastProjMaxIter);
 }
 
 void DiscreteSimulator::applyLengthConstrain() {
