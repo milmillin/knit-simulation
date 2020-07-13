@@ -27,12 +27,15 @@ class DiscreteSimulator {
   void applyGroundVelocityFilter();
   void applyContactForce();
   void applyLengthConstrain();
+  void applyPinForce();
+  void applyDamping();
   SimulatorParams params;
  private:
   Eigen::MatrixXf dQ;
   Eigen::MatrixXf ddQ;
   file_format::YarnRepr yarns;
   std::vector<float> restLength;
+  std::vector<float> pinControlPoints;
 };
 
 } // namespace simulatr 

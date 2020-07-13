@@ -2,6 +2,8 @@
 
 #include "macros.h"
 
+#include <iostream>
+
 namespace simulator {
 
 DiscreteSimulator::DiscreteSimulator() {
@@ -12,7 +14,15 @@ DiscreteSimulator::DiscreteSimulator() {
 DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParams params) {
   this->yarns = yarns;
   this->params = params;
-  auto &Q = yarns.yarns[0].points;
+
+  auto &Q = this->yarns.yarns[0].points;
+
+  pinControlPoints.push_back(0);
+
+  Eigen::MatrixXf newMatrix(10, 3);
+  newMatrix = Q.block(0, 0, 20, 3);
+  Q = newMatrix;
+
   dQ = Eigen::MatrixXf(Q.rows(), 3);
   dQ.setZero();
   ddQ = Eigen::MatrixXf(Q.rows(), 3);
@@ -33,10 +43,12 @@ void DiscreteSimulator::step() {
     applyGravity();
     applyContactForce();
     applyLengthConstrain();
+    applyPinForce();
 
     // Calculate velocity
     dQ += ddQ * params.h;
     applyGroundVelocityFilter();
+    applyDamping();
 
     // Calculate position
     Q += dQ * params.h;
@@ -72,6 +84,7 @@ void DiscreteSimulator::applyContactForce() {
         distance = distance / 2 / yarns.yarns[0].radius;
         float force = 1 / distance / distance + distance * distance  - 2;
         force *= params.kContact;
+        std::cout << force << std::endl;
         direction = glm::normalize(direction);
         glm::vec3 f2 = direction * force;
         glm::vec3 f1 = direction * force;
@@ -100,6 +113,16 @@ void DiscreteSimulator::applyLengthConstrain() {
       ADD_TO_ROW(ddQ, i, force);
     }
   }
+}
+
+void DiscreteSimulator::applyPinForce() {
+  for (int i = 0; i < pinControlPoints.size(); i++) {
+    ROW_FROM_POINT(dQ, i, glm::vec3(0, 0, 0));
+  }
+}
+
+void DiscreteSimulator::applyDamping() {
+  ddQ *= exp(-params.h);
 }
 
 }  // namespace Simulator
