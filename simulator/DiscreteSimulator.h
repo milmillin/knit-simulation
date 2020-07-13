@@ -30,7 +30,7 @@ class DiscreteSimulator {
   void applyLengthConstrain();
   void applyPinConstrain();
   void fastProjection();
-  void applyDamping();
+  void applyGlobalDamping();
   SimulatorParams params;
  private:
   Eigen::MatrixXf dQ;

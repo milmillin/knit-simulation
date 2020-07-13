@@ -152,6 +152,8 @@ namespace UI {
           100, 10, "%.1f");
         ImGui::InputFloat("Length force", &(yarnViewer->simulator.params.kLen),
           100, 10, "%.1f");
+        ImGui::InputFloat("Global damping", &(yarnViewer->simulator.params.kGlobal),
+          0.1, 1, "%.1f");
         ImGui::PopItemWidth();
       }
       ImGui::End();

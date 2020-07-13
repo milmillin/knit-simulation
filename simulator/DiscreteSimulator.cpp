@@ -57,7 +57,7 @@ void DiscreteSimulator::step() {
     // Calculate velocity
     dQ += ddQ * params.h;
     applyGroundVelocityFilter();
-    // applyDamping();
+    applyGlobalDamping();
 
     // Calculate position
     Q += dQ * params.h;
@@ -165,6 +165,10 @@ void DiscreteSimulator::applyPinConstrain() {
     dConstrain.coeffRef(constrainIndex, pinControlPoints[i]*3 + 1) -= gradient.y;
     dConstrain.coeffRef(constrainIndex, pinControlPoints[i]*3 + 2) -= gradient.z;
   }
+}
+
+void DiscreteSimulator::applyGlobalDamping() {
+  dQ *= exp(-params.kGlobal * params.h);
 }
 
 }  // namespace Simulator
