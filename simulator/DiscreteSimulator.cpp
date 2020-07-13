@@ -95,12 +95,10 @@ void DiscreteSimulator::applyContactForce() {
         distance = distance / 2 / yarns.yarns[0].radius;
         float force = 1 / distance / distance + distance * distance  - 2;
         force *= params.kContact;
-        std::cout << force << std::endl;
         direction = glm::normalize(direction);
-        glm::vec3 f2 = direction * force;
-        glm::vec3 f1 = direction * force;
-        ADD_TO_ROW(ddQ, i, f1);
-        ADD_TO_ROW(ddQ, i, f2);
+        glm::vec3 f = direction * force;
+        ADD_TO_ROW(ddQ, i + 1, f);
+        SUBTRACT_FROM_ROW(ddQ, i, f);
       }
     }
   }
