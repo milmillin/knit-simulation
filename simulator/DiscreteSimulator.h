@@ -1,5 +1,6 @@
 #include <vector>
 #include <Eigen/Core>
+#include <Eigen/Sparse>
 
 #include "../file_format/yarnRepr.h"
 #include "./SimulatorParams.h"
@@ -27,7 +28,8 @@ class DiscreteSimulator {
   void applyGroundVelocityFilter();
   void applyContactForce();
   void applyLengthConstrain();
-  void applyPinForce();
+  void applyPinConstrain();
+  void fastProjection();
   void applyDamping();
   SimulatorParams params;
  private:
@@ -36,6 +38,8 @@ class DiscreteSimulator {
   file_format::YarnRepr yarns;
   std::vector<float> restLength;
   std::vector<float> pinControlPoints;
+  Eigen::VectorXf constrain;
+  Eigen::SparseMatrix<float> dConstrain;
 };
 
 } // namespace simulatr 

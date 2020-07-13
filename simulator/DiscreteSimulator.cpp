@@ -4,6 +4,9 @@
 
 #include <iostream>
 
+#include<Eigen/SparseLU>
+#include<glm/gtx/norm.hpp>
+
 namespace simulator {
 
 DiscreteSimulator::DiscreteSimulator() {
@@ -32,6 +35,10 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
     glm::vec3 p2 = POINT_FROM_ROW(Q, i + 1);
     restLength.push_back(glm::length(p2 - p1));
   }
+
+  const int nConstrain = /* pinControlPoints.size() + */restLength.size();
+  constrain = Eigen::VectorXf(nConstrain, 1);
+  dConstrain = Eigen::SparseMatrix<float>(nConstrain, 3 * Q.rows());
 }
 
 void DiscreteSimulator::step() {
@@ -42,16 +49,16 @@ void DiscreteSimulator::step() {
     ddQ.setZero();
     applyGravity();
     applyContactForce();
-    applyLengthConstrain();
-    applyPinForce();
 
     // Calculate velocity
     dQ += ddQ * params.h;
     applyGroundVelocityFilter();
-    applyDamping();
+    // applyDamping();
 
     // Calculate position
     Q += dQ * params.h;
+
+    fastProjection();
   }
 }
 
@@ -95,34 +102,52 @@ void DiscreteSimulator::applyContactForce() {
   }
 }
 
+void DiscreteSimulator::fastProjection() {
+  auto &Q = yarns.yarns[0].points;
+
+  int nIteration = 10;
+  do {
+    dConstrain.setZero();
+    applyLengthConstrain();
+    applyPinConstrain();
+
+    Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
+    solver.compute(dConstrain * dConstrain.transpose());
+    Eigen::VectorXf lambda = solver.solve(constrain);
+
+    Eigen::VectorXf deltaX = dConstrain.transpose() * lambda;
+
+    for (int i = 0; i < deltaX.rows(); i++) {
+      Q(i/3, i%3) += deltaX(i);
+      std::cout << deltaX(i) << " ";
+      if (i % 3 == 2) {
+        std::cout << std::endl;
+      }
+    }
+    std::cout << "projection " << constrain.norm() << std::endl;
+  } while (constrain.norm() > 1e-5 && nIteration < 10);
+}
+
 void DiscreteSimulator::applyLengthConstrain() {
   auto &Q = yarns.yarns[0].points;
 
   for (int i = 0; i < Q.rows() - 1; i++) {
     glm::vec3 p1 = POINT_FROM_ROW(Q, i);
     glm::vec3 p2 = POINT_FROM_ROW(Q, i + 1);
-    glm::vec3 direction = p2 - p1;
-    float offset = glm::length(direction) - restLength[i];
-    direction = glm::normalize(direction);
-    glm::vec3 force = 0.5f * params.kLen * offset * offset * direction;
-    if (offset < restLength[i]) {
-      SUBTRACT_FROM_ROW(ddQ, i, force);
-      ADD_TO_ROW(ddQ, i + 1, force);
-    } else {
-      SUBTRACT_FROM_ROW(ddQ, i + 1, force);
-      ADD_TO_ROW(ddQ, i, force);
-    }
+    glm::vec3 direction = p1 - p2;
+    constrain(i) = glm::length2(direction) / restLength[i] - restLength[i];
+
+    glm::vec3 gradient = 2 / restLength[i] * direction;
+    dConstrain.coeffRef(i, i*3 + 0) -= gradient.x;
+    dConstrain.coeffRef(i, i*3 + 1) -= gradient.y;
+    dConstrain.coeffRef(i, i*3 + 2) -= gradient.z;
+    dConstrain.coeffRef(i, (i+1)*3 + 0) += gradient.x;
+    dConstrain.coeffRef(i, (i+1)*3 + 1) += gradient.y;
+    dConstrain.coeffRef(i, (i+1)*3 + 2) += gradient.z;
   }
 }
 
-void DiscreteSimulator::applyPinForce() {
-  for (int i = 0; i < pinControlPoints.size(); i++) {
-    ROW_FROM_POINT(dQ, i, glm::vec3(0, 0, 0));
-  }
-}
-
-void DiscreteSimulator::applyDamping() {
-  ddQ *= exp(-params.h);
+void DiscreteSimulator::applyPinConstrain() {
 }
 
 }  // namespace Simulator
