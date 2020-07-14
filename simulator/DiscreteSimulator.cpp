@@ -135,8 +135,20 @@ void DiscreteSimulator::fastProjection() {
 
     // Solve for lambda
     Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
+
     solver.compute(dConstrain * dConstrain.transpose());
+    if (solver.info() != Eigen::Success) {
+      std::cerr << "Warning: failed to solve constrain at iteration "
+        << nIteration << ". Stopping constrain fitting early." << std::endl;
+      break;
+    }
+
     Eigen::VectorXf lambda = solver.solve(constrain);
+    if (solver.info() != Eigen::Success) {
+      std::cerr << "Warning: failed to solve constrain at iteration "
+        << nIteration << ". Stopping constrain fitting early." << std::endl;
+      break;
+    }
 
     // Evaluate position change
     Eigen::VectorXf deltaX = dConstrain.transpose() * lambda;
