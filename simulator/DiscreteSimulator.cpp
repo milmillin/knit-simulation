@@ -1,6 +1,7 @@
 #include "DiscreteSimulator.h"
 
 #include "macros.h"
+#include "Helper.h"
 
 #include <iostream>
 
@@ -94,34 +95,49 @@ void DiscreteSimulator::applyGroundVelocityFilter() {
   }
 }
 
+#define SAMPLES 8
+
+static glm::vec3 f(glm::vec3 gradient, float l, float r) {
+  return -4 * r * r / l / l / l / l * gradient + 0.25f / r / r * gradient;
+}
+
 void DiscreteSimulator::applyContactForce() {
   auto &Q = yarns.yarns[0].points;
+  float radius = yarns.yarns[0].radius;
 
-  for (int i = 0; i < Q.rows(); i++) {
-    for (int j = i + 1; j < Q.rows(); j++) {
-      // Check contact
-      glm::vec3 p1 = POINT_FROM_ROW(Q, i);
-      glm::vec3 p2 = POINT_FROM_ROW(Q, j);
-      glm::vec3 direction = p2 - p1;
-      float distance = glm::length(direction);
-      if (distance < 2 * yarns.yarns[0].radius) {
-        // Relative distance
-        distance = distance / 2 / yarns.yarns[0].radius;
+  for (int i = 0; i < Q.rows() - 4; i++) {
+    for (int j = 0; j < Q.rows() - 4; j++) {
+      if (abs(i - j) <= 1) {
+        continue;
+      }
 
-        // Calculate force magnitude
-        float force = 1 / distance / distance + distance * distance  - 2;
-        force *= params.kContact;
+      float ds = 1.0f / SAMPLES;
+      for (int m = 0; m < SAMPLES; m++) {
+        float s1 = (float) m / SAMPLES;
+        for (int n = 0; n < SAMPLES; n++) {
+          float s2 = (float) n / SAMPLES;
+          glm::vec3 p1 = catmullRomSample(Q, i, s1);
+          glm::vec3 p2 = catmullRomSample(Q, j, s2);
+          glm::vec3 dir = p2 - p1;
+          float length = glm::length(dir);
 
-        // Calculate force
-        direction = glm::normalize(direction);
-        glm::vec3 f = direction * force;
+          if (length < 2 * radius) {
+            // std::cout << "Collision" <<i <<" " << j<< std::endl;
+            glm::vec3 f0 = params.kContact * ds * ds * f(2 * simulator::b1(s1) * dir, length, radius);
+            glm::vec3 f1 = params.kContact * ds * ds * f(2 * simulator::b2(s1) * dir, length, radius);
+            glm::vec3 f2 = params.kContact * ds * ds * f(2 * simulator::b3(s1) * dir, length, radius);
+            glm::vec3 f3 = params.kContact * ds * ds * f(2 * simulator::b4(s1) * dir, length, radius);
 
-        // Apply force
-        ADD_TO_ROW(ddQ, i + 1, f);
-        SUBTRACT_FROM_ROW(ddQ, i, f);
+            ADD_TO_ROW(ddQ, i + 0, f0);
+            ADD_TO_ROW(ddQ, i + 1, f1);
+            ADD_TO_ROW(ddQ, i + 2, f2);
+            ADD_TO_ROW(ddQ, i + 3, f3);
+          }
+        }
       }
     }
   }
+  // std::cout << std::endl;
 }
 
 void DiscreteSimulator::fastProjection() {

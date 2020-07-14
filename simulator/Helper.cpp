@@ -51,18 +51,13 @@ float simulator::catmullRomArcLength(const Eigen::MatrixXf& q, int index)
 }
 
 
-// Catmull-Rom coefficient
-static inline float b1(float s) {
-  return -s / 2 + s * s - s * s * s / 2;
-}
-static inline float b2(float s) {
-  return 1 - s * s * 5 / 2 + s * s * s * 3 / 2;
-}
-static inline float b3(float s) {
-  return s / 2 + 2 * s * s - s * s * s * 3 / 2;
-}
-static inline float b4(float s) {
-  return -s * s / 2 + s * s * s / 2;
+glm::vec3 simulator::catmullRomSample(const Eigen::MatrixXf &controlPoints, int index, float s) {
+  glm::vec3 c0 = POINT_FROM_ROW(controlPoints, index);
+  glm::vec3 c1 = POINT_FROM_ROW(controlPoints, index + 1);
+  glm::vec3 c2 = POINT_FROM_ROW(controlPoints, index + 2);
+  glm::vec3 c3 = POINT_FROM_ROW(controlPoints, index + 3);
+
+  return simulator::b1(s) * c0 + simulator::b2(s) * c1 + simulator::b3(s) * c2 + simulator::b4(s) * c3;
 }
 
 // Generate samples on a catmull-rom curve
@@ -83,7 +78,7 @@ static inline void catmullRowSample
 
   for (int i = 0; i < nSamples; i++) {
     float s = (float) i / nSamples;
-    auto c = b1(s) * c0 + b2(s) * c1 + b3(s) * c2 + b4(s) * c3;
+    auto c = simulator::catmullRomSample(controlPoints, controlStartRow, s);
     ROW_FROM_POINT(*samples, samplesStartRow, c);
     samplesStartRow++;
   }
