@@ -7,25 +7,21 @@
 namespace simulator {
 
 class Constraints {
-private:
+public:
   struct Entry {
     int index;
     std::function<float(const Eigen::MatrixXf&)> f;
   };
 
-  // number of control points
-  size_t m;
-  
-  // list of constraints
-  std::vector<std::function<float(const Eigen::MatrixXf&)>> C;
-
-  // list of jacobian derivatives
-  std::vector<std::vector<Entry>> CD;
-
-public:
   // Construct a constraint container with m control points.
   // To be called by Simulator only.
   Constraints(size_t m_) : m(m_) { }
+
+  // Adds constraint
+  // f: constrain function of q
+  // fD: d(f)/d(q(index)) for every index with non-zero value
+  void addConstraint(std::function<float(const Eigen::MatrixXf&)> f,
+    std::vector<Entry> fD);
 
   // Pins i-th control point to <x, y, z>.
   // i in [0, m - 1].
@@ -49,6 +45,17 @@ public:
   // Evaluates the constraints at q
   // Returns the matrix of size c x 1
   Eigen::MatrixXf calculate(const Eigen::MatrixXf& q) const;
+
+private:
+  // number of control points
+  size_t m;
+  
+  // list of constraints
+  std::vector<std::function<float(const Eigen::MatrixXf&)>> C;
+
+  // list of jacobian derivatives
+  std::vector<std::vector<Entry>> CD;
+
 };
 
 } // namespace simulator

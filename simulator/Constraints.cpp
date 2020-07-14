@@ -2,6 +2,12 @@
 
 namespace simulator {
 
+void Constraints::addConstraint(std::function<float(const Eigen::MatrixXf&)> f,
+  std::vector<Entry> fd) {
+  C.push_back(f);
+  CD.push_back(fd);
+}
+
 void Constraints::addPinConstrain(int i, float x, float y, float z) {
   // TODO: not sure if this really works
 

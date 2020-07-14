@@ -53,7 +53,10 @@ private:
   int stepCnt;
   void writeToFile() const;
 
+  std::ostream& log() const;
+
   void calculateSegmentLength();
+  void addSegmentLengthConstraint();
 
   void constructMassMatrix();
 
