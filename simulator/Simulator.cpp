@@ -73,10 +73,10 @@ void Simulator::calculateSegmentLength() {
 		// Note that the length is fixed throughout the simulation.
 
 		int index = i * 3;
-		DECLARE_POINTS(index)
+		DECLARE_POINTS(p, index)
 
 		segmentLength[i] = integrate([&](float s)->float {
-			DECLARE_BASIS_D
+			DECLARE_BASIS_D(b, s);
 			return sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4, 2) +
 				pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4, 2) +
 				pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4, 2));
@@ -92,9 +92,9 @@ void Simulator::addSegmentLengthConstraint() {
 		float curSegmentLength = segmentLength[i];
 
     auto constraint = [=](const Eigen::MatrixXf& q)->float {
-      DECLARE_POINTS(index)
+      DECLARE_POINTS(p, index)
       float currentLength = integrate([&](float s)->float {
-        DECLARE_BASIS_D
+        DECLARE_BASIS_D(b, s);
         return sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4, 2) +
           pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4, 2) +
           pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4, 2));
@@ -106,9 +106,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // px1
         index,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD1 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -117,9 +117,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // py1
         index + 1,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD1 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -128,9 +128,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // pz1
         index + 2,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD1 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -139,9 +139,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // px2
         index + 3,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD2 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -150,9 +150,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // py2
         index + 4,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD2 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -161,9 +161,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // pz2
         index + 5,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD2 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -172,9 +172,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // px3
         index + 6,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD3 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -183,9 +183,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // py3
         index + 7,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD3 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -194,9 +194,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // pz3
         index + 8,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD3 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -205,9 +205,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // px4
         index + 9,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+						DECLARE_BASIS_D(b, s);
             return bD4 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -216,9 +216,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // py4
         index + 10,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+            DECLARE_BASIS_D(b, s);
             return bD4 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -227,9 +227,9 @@ void Simulator::addSegmentLengthConstraint() {
       Constraints::Entry {    // pz4
         index + 11,
         [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(index)
+          DECLARE_POINTS(p, index)
           float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D
+						DECLARE_BASIS_D(b, s);
             return bD4 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4);
           }, 0, 1);
           return -lengthD / curSegmentLength;
@@ -315,14 +315,33 @@ void Simulator::constructMassMatrix() {
 //
 
 void Simulator::calculateGradient() {
+	log() << "Calculating Gradient" << std::endl;
 	int N = m - 3;
-	for (int i = 0; i < N; i++) {
-		// Energy
-		//calculateBendingEnergyGradient(i);
-		calculateLengthEnergyGradient(i);
 
-		// Damping
-		//calculateGlobalDampingGradient(i);
+	// Energy
+	log() << "- Length Energy" << std::endl;
+	for (int i = 0; i < N; i++) {
+		calculateLengthEnergyGradient(i);
+	}
+
+	log() << "- Bending Energy" << std::endl;
+	for (int i = 0; i < N; i++) {
+		calculateBendingEnergyGradient(i);
+	}
+
+	for (int i = 0; i < N; i++) {
+		if (i % 20 == 0) {
+      log() << "- Collision Energy (" << i << "/" << N << ")" << std::endl;
+		}
+		for (int j = i + 1; j < N; j++) {
+			calculateCollisionEnergyGradient(i, j);
+		}
+	}
+
+  // Damping
+	log() << "- Global Damping" << std::endl;
+	for (int i = 0; i < N; i++) {
+		calculateGlobalDampingGradient(i);
 	}
 }
 
@@ -333,6 +352,7 @@ void Simulator::calculateGradient() {
 //
 
 void Simulator::fastProjection() {
+	log() << "Fast Projection" << std::endl;
 	float h = params.h;			// timestep
 	static const float eps = 1e-5;
 
@@ -344,7 +364,7 @@ void Simulator::fastProjection() {
 	int iter = 0;
 	float cValue;
 	while ((cValue = constraints.calculateMax(qj)) > eps) {
-		log() << "Fast projection iteration: " << iter << ", constraint: " << cValue << std::endl;
+		log() << "- iter: " << iter << ", constraint: " << cValue << std::endl;
 
 		Eigen::MatrixXf jC = constraints.getJacobian(qj);
 		Eigen::MatrixXf tmp = jC * MInverse * jC.transpose();
@@ -355,7 +375,7 @@ void Simulator::fastProjection() {
 
 		iter++;
 	}
-  log() << "Fast projection iteration: " << iter << ", constraint: " << cValue << std::endl;
+  log() << "- iter: " << iter << ", constraint: " << cValue << std::endl;
 
 	// Update velocity and position;
 	qD = (qj - q) / h;
@@ -374,6 +394,7 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 		q = yarns.yarns[0].points;
 	}
 	m = q.rows();
+	history.push_back(q);
 
 	// Initialize constraints
 	constraints = Constraints(m);
@@ -412,7 +433,8 @@ void Simulator::writeToFile() const {
 }
 
 void Simulator::step() {
-	log() << "Step" << std::endl;
+	stepCnt++;
+	log() << "Step (" << stepCnt << ")" << std::endl;
 
 	gradE.setZero();
 	gradD.setZero();
@@ -424,12 +446,12 @@ void Simulator::step() {
 
 	// save to YarnRepr
 	// supports one yarn for now
-	yarns.yarns[0].points = inflate(q, 3);
+	// yarns.yarns[0].points = inflate(q, 3);
+	history.push_back(inflate(q, 3));
 
-	stepCnt++;
 	writeToFile();
 
-	log() << "Done Step" << std::endl;
+	log() << "Done Step (" << stepCnt << ")" << std::endl;
 }
 
 std::ostream& Simulator::log() const {

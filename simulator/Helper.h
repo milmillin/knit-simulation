@@ -6,8 +6,10 @@ namespace simulator {
 
 constexpr float SIMPSON_EPS = 1e-6;
 
-// Performs Simpson's Integration of function f over [a, b]
-float integrate(const std::function<float(float)>& f, float a, float b);
+// Performs adaptive Simpson's integration of function f over [a, b]
+// 
+// subdivide : minimum subdivision
+float integrate(const std::function<float(float)>& f, float a, float b, int subdivide = 1);
 
 // Calculates Arc length of a Catmull-Rom Spline defined by 4 control points.
 // 

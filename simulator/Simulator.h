@@ -23,6 +23,10 @@ private:
   size_t m;
   file_format::YarnRepr yarns;
   SimulatorParams params;
+  int stepCnt;
+
+  // list of points
+  std::vector<Eigen::MatrixXf> history;
 
   // position of control points
   Eigen::MatrixXf q;
@@ -50,7 +54,6 @@ private:
   Constraints constraints;
 
   // debug
-  int stepCnt;
   void writeToFile() const;
 
   std::ostream& log() const;
@@ -63,6 +66,7 @@ private:
   void calculateGradient();
   void calculateBendingEnergyGradient(int i);
   void calculateLengthEnergyGradient(int i);
+  void calculateCollisionEnergyGradient(int i, int j);
 
   void calculateGlobalDampingGradient(int i);
 

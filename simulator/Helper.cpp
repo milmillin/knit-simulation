@@ -19,9 +19,16 @@ static float integrateImpl(const std::function<float(float)>& f, float a, float 
   return integrateImpl(f, a, m, l) + integrateImpl(f, m, b, r);
 }
 
-float simulator::integrate(const std::function<float(float)>& f, float a, float b)
+float simulator::integrate(const std::function<float(float)>& f, float a, float b, int subdivide)
 {
-  return integrateImpl(f, a, b, simpson(f, a, b));
+  float step = (b - a) / subdivide;
+  float result = 0;
+  for (int i = 0; i < step; i++) {
+    float lo = a + (i * step);
+    float hi = a + ((i + 1) * step);
+    result += integrateImpl(f, lo, hi, simpson(f, lo, hi));
+  }
+  return result;
 }
 
 // Helper function for `catmullRowSample`
