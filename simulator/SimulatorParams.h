@@ -15,6 +15,7 @@ struct SimulatorParams {
   float aSmall;
   float aLarge;
   float h;
+  float cInit;
 
   static SimulatorParams Default() {
     return SimulatorParams
@@ -29,7 +30,8 @@ struct SimulatorParams {
       0.03f,
       0.3f,
       0.3f,
-      1.f / 11800
+      1.f / 11800,
+      0.935f
     };
   }
 };

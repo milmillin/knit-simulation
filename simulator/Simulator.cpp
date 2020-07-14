@@ -65,8 +65,12 @@ Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col) {
 //
 
 void Simulator::calculateSegmentLength() {
+	log() << "Calculating Segment Length" << std::endl;
 	int N = m - 3;
 	segmentLength = std::vector<float>(N);
+	
+	// Compress yarns
+	float coeff = params.cInit;
 
 	for (int i = 0; i < N; i++) {
 		// Calculate arclength of segment[i].
@@ -75,7 +79,7 @@ void Simulator::calculateSegmentLength() {
 		int index = i * 3;
 		DECLARE_POINTS(p, index)
 
-		segmentLength[i] = integrate([&](float s)->float {
+		segmentLength[i] = coeff * integrate([&](float s)->float {
 			DECLARE_BASIS_D(b, s);
 			return sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4, 2) +
 				pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4, 2) +
@@ -329,6 +333,7 @@ void Simulator::calculateGradient() {
 		calculateBendingEnergyGradient(i);
 	}
 
+	/*
 	for (int i = 0; i < N; i++) {
 		if (i % 20 == 0) {
       log() << "- Collision Energy (" << i << "/" << N << ")" << std::endl;
@@ -337,6 +342,7 @@ void Simulator::calculateGradient() {
 			calculateCollisionEnergyGradient(i, j);
 		}
 	}
+	*/
 
   // Damping
 	log() << "- Global Damping" << std::endl;
@@ -389,12 +395,12 @@ void Simulator::fastProjection() {
 
 Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : params(params_), constraints(0), stepCnt(0) {
 	log() << "Initializing Simulator" << std::endl;
-	this->yarns = yarns;
+	// this->yarns = yarns;
 	if (yarns.yarns.size() > 0) {
 		q = yarns.yarns[0].points;
 	}
 	m = q.rows();
-	history.push_back(q);
+	history.push_back(yarns);
 
 	// Initialize constraints
 	constraints = Constraints(m);
@@ -447,7 +453,8 @@ void Simulator::step() {
 	// save to YarnRepr
 	// supports one yarn for now
 	// yarns.yarns[0].points = inflate(q, 3);
-	history.push_back(inflate(q, 3));
+	history.push_back(history.back().createAlike());
+	history.back().yarns[0].points = inflate(q, 3);
 
 	writeToFile();
 

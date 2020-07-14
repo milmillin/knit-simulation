@@ -23,10 +23,16 @@ class Viewer : igl::opengl::glfw::Viewer {
   void loadYarn(std::string filename);
   void step() { _simulator.step(); }
 
+  bool viewNext();
+  bool viewPrev();
+  int numStep() { return _simulator.numStep(); }
+
   // Number of samples for yarn cross-section (circle)
   int circleSamples = 8;
   // Number of samples for Catmull-Rom curve
-  int curveSamples = 1;
+  int curveSamples = 4;
+
+  int currentStep = 0;
 
  private:
   std::unique_ptr<Menu> _menu;

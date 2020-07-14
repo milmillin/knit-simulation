@@ -21,12 +21,12 @@ class Simulator {
 private:
   // simulator attributes
   size_t m;
-  file_format::YarnRepr yarns;
+  // file_format::YarnRepr yarns;
   SimulatorParams params;
   int stepCnt;
 
-  // list of points
-  std::vector<Eigen::MatrixXf> history;
+  // YarnRepr for each step
+  std::vector<file_format::YarnRepr> history;
 
   // position of control points
   Eigen::MatrixXf q;
@@ -82,10 +82,14 @@ public:
   Simulator(file_format::YarnRepr yarns, SimulatorParams params_);
 
   // Returns current yarns
-  const file_format::YarnRepr& getYarns() const { return this->yarns; };
+  const file_format::YarnRepr& getYarns(int i) const { return history[i]; }
 
   // Simulates next timestep.
   void step();
+
+  // Returns the number of steps.
+  // Returns 1 when `step()` has not been called.
+  int numStep() const { return (int)history.size(); }
 
   // Gets a reference to constraint container
   Constraints& getConstraints() { return constraints; }

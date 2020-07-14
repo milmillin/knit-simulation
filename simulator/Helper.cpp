@@ -5,28 +5,55 @@
 
 #include "macros.h"
 
-static float simpson(const std::function<float(float)>& f, float a, float b) {
-  return (f(a) + 4 * f((a + b) / 2) + f(b))* (b - a) / 4;
+//static float simpson(const std::function<float(float)>& f, float a, float b) {
+  //return (f(a) + 4 * f((a + b) / 2) + f(b))* (b - a) / 4;
+//}
+
+static inline float simpson(float fa, float fm, float fb, float a, float b) {
+  return (fa + 4 * fm + fb) * (b - a) / 4;
 }
 
-static float integrateImpl(const std::function<float(float)>& f, float a, float b, float tot) {
+static float integrateImpl(const std::function<float(float)>& f, float a, float b, float fa, float fm, float fb, int dep) {
   float m = (a + b) / 2;
-  float l = simpson(f, a, m);
-  float r = simpson(f, m, b);
-  if (fabs(l + r - tot) < simulator::SIMPSON_EPS) {
+  float am = (a + m) / 2;
+  float mb = (m + b) / 2;
+
+  float fam = f(am);
+  float fmb = f(mb);
+
+  float l = simpson(fa, fam, fm, a, m);
+  float r = simpson(fm, fmb, fb, m, b);
+  float tot = simpson(fa, fm, fb, a, b);
+
+  if (fabs(l + r - tot) < simulator::SIMPSON_EPS || dep == 0) {
     return l + r;
   }
-  return integrateImpl(f, a, m, l) + integrateImpl(f, m, b, r);
+  return integrateImpl(f, a, m, fa, fam, fm, dep - 1) + integrateImpl(f, m, b, fm, fmb, fb, dep - 1);
 }
 
-float simulator::integrate(const std::function<float(float)>& f, float a, float b, int subdivide)
+float simulator::integrate(const std::function<float(float)>& f, float a, float b, int subdivide, int maxDepth)
 {
   float step = (b - a) / subdivide;
   float result = 0;
+
+  float lo;
+  float hi;
+  float mid;
+  float flo = f(a);
+  float fhi;
+  float fmid;
+
   for (int i = 0; i < step; i++) {
-    float lo = a + (i * step);
-    float hi = a + ((i + 1) * step);
-    result += integrateImpl(f, lo, hi, simpson(f, lo, hi));
+    lo = a + (i * step);
+    hi = a + ((i + 1) * step);
+    mid = (lo + hi) / 2;
+
+    fmid = f(mid);
+    fhi = f(hi);
+
+    result += integrateImpl(f, lo, hi, flo, fmid, fhi, maxDepth);
+
+    flo = fhi;
   }
   return result;
 }

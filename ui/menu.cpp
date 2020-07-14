@@ -17,6 +17,7 @@ namespace UI {
     this->callback_draw_viewer_menu = [&]() {
       // Based on 'ImGuiMenu::draw_viewer_menu'
 
+      Viewer* myviewer = reinterpret_cast<Viewer*>(viewer);
       bool needRefresh = false;
 
       // Mesh
@@ -113,10 +114,25 @@ namespace UI {
         make_checkbox("Fill", viewer->data().show_faces);
       }
 
+
       // Add simulator menu
       if (ImGui::CollapsingHeader("Simulator", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::Button("Step", ImVec2(-1, 0))) {
-          reinterpret_cast<Viewer*>(viewer)->step();
+          myviewer->step();
+          myviewer->viewNext();
+          needRefresh = true;
+        }
+        ImGui::Separator();
+        ImGui::Text("Viewing %d of %d\n", myviewer->currentStep + 1, myviewer->numStep());
+
+        if (ImGui::Button("View Prev", ImVec2(-1, 0))) {
+          needRefresh = needRefresh || myviewer->viewPrev();
+        }
+        if (ImGui::Button("View Next", ImVec2(-1, 0))) {
+          needRefresh = needRefresh || myviewer->viewNext();
+        }
+        if (ImGui::Button("View First", ImVec2(-1, 0))) {
+          myviewer->currentStep = 0;
           needRefresh = true;
         }
       }
