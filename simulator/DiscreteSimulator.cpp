@@ -68,10 +68,13 @@ void DiscreteSimulator::step() {
     applyGlobalDamping();
 
     // Calculate position
+    Eigen::MatrixXf originalQ = Q;
     Q += dQ * params.h;
 
-    // Apply constrain
+    // Apply constrains to position
     fastProjection();
+    // Also update the velocity after applying the constrains
+    dQ = (Q - originalQ) / params.h;
   }
 }
 
