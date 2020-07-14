@@ -50,12 +50,22 @@ float simulator::catmullRomArcLength(const Eigen::MatrixXf& q, int index)
     }, 0, 1);
 }
 
-// Helper function for `catmullRowSample`
-static inline glm::vec3 bezierTerm(float t0, float t1, float t, glm::vec3& p0, glm::vec3& p1) {
-  return (t1 - t) / (t1 - t0) * p0 + (t - t0) / (t1 - t0) * p1;
+
+// Catmull-Rom coefficient
+static inline float b1(float s) {
+  return -s / 2 + s * s - s * s * s / 2;
+}
+static inline float b2(float s) {
+  return 1 - s * s * 5 / 2 + s * s * s * 3 / 2;
+}
+static inline float b3(float s) {
+  return s / 2 + 2 * s * s - s * s * s * 3 / 2;
+}
+static inline float b4(float s) {
+  return -s * s / 2 + s * s * s / 2;
 }
 
-// Generate samples on a catmull-row curve
+// Generate samples on a catmull-rom curve
 // Helper function for `catmullRomSequenceSample`
 //
 // controlPoints: one row per control points
@@ -66,27 +76,14 @@ static inline glm::vec3 bezierTerm(float t0, float t1, float t, glm::vec3& p0, g
 static inline void catmullRowSample
     (const Eigen::MatrixXf &controlPoints, int controlStartRow, int nSamples,
     Eigen::MatrixXf *samples, int samplesStartRow) {
-  glm::vec3 p0 = POINT_FROM_ROW(controlPoints, controlStartRow);
-  glm::vec3 p1 = POINT_FROM_ROW(controlPoints, controlStartRow + 1);
-  glm::vec3 p2 = POINT_FROM_ROW(controlPoints, controlStartRow + 2);
-  glm::vec3 p3 = POINT_FROM_ROW(controlPoints, controlStartRow + 3);
-
-  constexpr float t0 = 0;
-  float t1 = t0 + glm::sqrt(glm::length(p1 - p0));
-  float t2 = t1 + glm::sqrt(glm::length(p2 - p1));
-  float t3 = t2 + glm::sqrt(glm::length(p3 - p2));
+  glm::vec3 c0 = POINT_FROM_ROW(controlPoints, controlStartRow);
+  glm::vec3 c1 = POINT_FROM_ROW(controlPoints, controlStartRow + 1);
+  glm::vec3 c2 = POINT_FROM_ROW(controlPoints, controlStartRow + 2);
+  glm::vec3 c3 = POINT_FROM_ROW(controlPoints, controlStartRow + 3);
 
   for (int i = 0; i < nSamples; i++) {
-    float t = t1 + (float)i / nSamples * (t2 - t1);
-
-    auto a1 = bezierTerm(t0, t1, t, p0, p1);
-    auto a2 = bezierTerm(t1, t2, t, p1, p2);
-    auto a3 = bezierTerm(t2, t3, t, p2, p3);
-
-    auto b1 = bezierTerm(t0, t2, t, a1, a2);
-    auto b2 = bezierTerm(t1, t3, t, a2, a3);
-
-    auto c = bezierTerm(t1, t2, t, b1, b2);
+    float s = (float) i / nSamples;
+    auto c = b1(s) * c0 + b2(s) * c1 + b3(s) * c2 + b4(s) * c3;
     ROW_FROM_POINT(*samples, samplesStartRow, c);
     samplesStartRow++;
   }
