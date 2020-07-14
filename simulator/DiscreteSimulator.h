@@ -33,14 +33,30 @@ class DiscreteSimulator {
   void applyGlobalDamping();
   SimulatorParams params;
  private:
+  // Velocity
   Eigen::MatrixXf dQ;
+  // Acceleration
   Eigen::MatrixXf ddQ;
+  // Position and meta-data
   file_format::YarnRepr yarns;
+  // Rest Length for each segment
   std::vector<float> restLength;
-  std::vector<float> pinControlPoints;
-  Eigen::VectorXf constrain;
+
+  // === Constrains ===
+  // Index of control points to be fixed
+  std::vector<int> pinControlPoints;
+  // Location of control points to be fixed
   std::vector<glm::vec3> pinControlPointsPosition;
+  // Value of constrain function (one row per constrain)
+  Eigen::VectorXf constrain;
+  // Gradient of constrain function (one row per constrain and one colomn per coordiate)
+  // The i^th axis of j^th point is stored in the colomn `i * nPoints + j`
   Eigen::SparseMatrix<float> dConstrain;
+  // Next available constrain id
+  int nextConstrainID = 0;
+
+  inline int pointIndex(int pointID, int axis);
+  inline int nConstrain();
 };
 
 } // namespace simulatr 
