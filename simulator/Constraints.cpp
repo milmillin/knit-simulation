@@ -69,13 +69,13 @@ void Constraints::addGlueConstrain(int i, int j) {
   }
 }
 
-Eigen::MatrixXf Constraints::getJacobian(const Eigen::MatrixXf& q) const {
+Eigen::SparseMatrix<float> Constraints::getJacobian(const Eigen::MatrixXf& q) const {
   int c = (int)C.size();
-	Eigen::MatrixXf J = Eigen::MatrixXf::Zero(c, 3 * m);
+	Eigen::SparseMatrix<float> J = Eigen::SparseMatrix<float>(c, 3 * m);
 
   for (int i = 0; i < c; i++) {
     for (int j = 0; j < CD[i].size(); j++) {
-      J(i, CD[i][j].index) += CD[i][j].f(q);
+      J.coeffRef(i, CD[i][j].index) += CD[i][j].f(q);
     }
   }
 

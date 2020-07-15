@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
 #include <vector>
 #include <functional>
 
@@ -36,7 +38,7 @@ public:
   // Gets Jacobian matrix of size c x (3 * m)
   // where c is the number of constraints
   // evaluated at q.
-  Eigen::MatrixXf getJacobian(const Eigen::MatrixXf& q) const;
+  Eigen::SparseMatrix<float> getJacobian(const Eigen::MatrixXf& q) const;
 
   // Evaluates the constraints at q
   // Returns the maximum of absolute of each constraint

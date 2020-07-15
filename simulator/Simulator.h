@@ -21,7 +21,7 @@ class Simulator {
 private:
   // simulator attributes
   size_t m;
-  // file_format::YarnRepr yarns;
+  file_format::YarnRepr yarns;
   SimulatorParams params;
   int stepCnt;
 
@@ -43,6 +43,9 @@ private:
 
   // gradient of positional energy
   Eigen::MatrixXf gradE;
+
+  // DEBUG: contact energy
+  Eigen::MatrixXf contactE;
 
   // gradient of damping energy
   Eigen::MatrixXf gradD;

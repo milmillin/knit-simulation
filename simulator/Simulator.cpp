@@ -11,6 +11,8 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <iomanip>
+#include <algorithm>
 
 namespace simulator {
 
@@ -296,7 +298,7 @@ void Simulator::constructMassMatrix() {
 	}
 
 	log() << "Calculating Mass Matrix Inverse" << std::endl;
-	Eigen::SimplicialCholesky<Eigen::SparseMatrix<float>> solver;
+	Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
 	solver.compute(M);
 	if (solver.info() != Eigen::Success) {
 		log() << "Decomposition Failed" << std::endl;
@@ -335,10 +337,10 @@ void Simulator::calculateGradient() {
 
 	/*
 	for (int i = 0; i < N; i++) {
-		if (i % 20 == 0) {
+		if (i % 10 == 0) {
       log() << "- Collision Energy (" << i << "/" << N << ")" << std::endl;
 		}
-		for (int j = i + 1; j < N; j++) {
+		for (int j = i + 2; j < N; j++) {
 			calculateCollisionEnergyGradient(i, j);
 		}
 	}
@@ -357,6 +359,10 @@ void Simulator::calculateGradient() {
 // Fast Projection
 //
 
+float maxCoeff(const Eigen::MatrixXf& m) {
+	return std::max(fabs(m.maxCoeff()), fabs(m.minCoeff()));
+}
+
 void Simulator::fastProjection() {
 	log() << "Fast Projection" << std::endl;
 	float h = params.h;			// timestep
@@ -368,14 +374,27 @@ void Simulator::fastProjection() {
 
 	// Projection
 	int iter = 0;
+	Eigen::MatrixXf constraint;
 	float cValue;
-	while ((cValue = constraints.calculateMax(qj)) > eps) {
+	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 100) {
 		log() << "- iter: " << iter << ", constraint: " << cValue << std::endl;
 
-		Eigen::MatrixXf jC = constraints.getJacobian(qj);
-		Eigen::MatrixXf tmp = jC * MInverse * jC.transpose();
+		Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
 
-		Eigen::MatrixXf lambda = tmp.inverse() * (constraints.calculate(qj) / (h * h));
+		Eigen::SparseMatrix<float> jC = constraints.getJacobian(qj);
+
+		solver.compute((h * h) * jC * MInverse * jC.transpose());
+		if (solver.info() != Eigen::Success) {
+			log() << "--- solve failed. STOPPING" << std::endl;
+			break;
+		}
+
+		Eigen::MatrixXf lambda = solver.solve(constraint);
+		if (solver.info() != Eigen::Success) {
+			log() << "--- solve failed. STOPPING" << std::endl;
+			break;
+		}
+
 		Eigen::MatrixXf qjD = (-h * h) * MInverse * jC.transpose() * lambda;
 		qj += qjD;
 
@@ -395,7 +414,7 @@ void Simulator::fastProjection() {
 
 Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : params(params_), constraints(0), stepCnt(0) {
 	log() << "Initializing Simulator" << std::endl;
-	// this->yarns = yarns;
+	this->yarns = yarns;
 	if (yarns.yarns.size() > 0) {
 		q = yarns.yarns[0].points;
 	}
@@ -436,6 +455,7 @@ void Simulator::writeToFile() const {
 	writeMatrix("q-" + std::to_string(stepCnt) + ".csv", q);
 	writeMatrix("qD-" + std::to_string(stepCnt) + ".csv", qD);
 	writeMatrix("gradE-" + std::to_string(stepCnt) + ".csv", gradE);
+	//writeMatrix("contactE-" + std::to_string(stepCnt) + ".csv", contactE);
 }
 
 void Simulator::step() {
@@ -444,6 +464,59 @@ void Simulator::step() {
 
 	gradE.setZero();
 	gradD.setZero();
+
+	/*
+	int subdivide = 4;
+	contactE = Eigen::MatrixXf(subdivide, subdivide);
+
+	float ss = 1.f / subdivide;
+
+	DECLARE_POINTS(pi, 126);
+	DECLARE_POINTS(pj, 339);
+
+	float r = params.r;
+  float constR = 4.0f * r * r;
+	std::cout << "constR: " << constR << std::endl;
+
+	for (int i = 0; i < subdivide; i++) {
+		float si = i * ss;
+		DECLARE_BASIS(bi, si);
+		for (int j = 0; j < subdivide; j++) {
+			float sj = j * ss;
+			DECLARE_BASIS(bj, sj);
+			float pix = bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4;
+			float piy = bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4;
+			float piz = bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4;
+
+			float pjx = bj1 * pjx1 + bj2 * pjx2 + bj3 * pjx3 + bj4 * pjx4;
+			float pjy = bj1 * pjy1 + bj2 * pjy2 + bj3 * pjy3 + bj4 * pjy4;
+			float pjz = bj1 * pjz1 + bj2 * pjz2 + bj3 * pjz3 + bj4 * pjz4;
+
+      float norm = pow(pix - pjx, 2)
+				+ pow(piy - pjy, 2)
+				+ pow(piz - pjz, 2);
+
+			contactE(i, j) = norm;
+			std::cout << "si: " << si << " sj: " << sj << " (" << pix << "," << piy << "," << piz << ") <--> ("
+				<< pjx << "," << pjy << "," << pjz << ") = " << norm << "\n";
+		}
+	}
+	std::cout << std::endl;
+
+  float test = integrate([=](float si)->float {
+    DECLARE_BASIS(bi, si);
+    return integrate([=](float sj)->float {
+      DECLARE_BASIS(bj, sj);
+      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
+			std::cout << si << "," << sj << "  " << norm << std::endl;
+      if (norm >= constR) return 0;
+			return norm;
+      // float normD = bi1 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * 2.0;
+      // return -constR * normD / (norm * norm) + normD / constR;
+      }, 0, 1, subdivide);
+    }, 0, 1, subdivide);
+	std::cout << "test: " << test << std::endl;
+	*/
 
 	// update gradE, gradD, f
 	calculateGradient();

@@ -43,7 +43,7 @@ float simulator::integrate(const std::function<float(float)>& f, float a, float 
   float fhi;
   float fmid;
 
-  for (int i = 0; i < step; i++) {
+  for (int i = 0; i < subdivide; i++) {
     lo = a + (i * step);
     hi = a + ((i + 1) * step);
     mid = (lo + hi) / 2;

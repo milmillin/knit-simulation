@@ -9,7 +9,7 @@ constexpr float SIMPSON_EPS = 1e-5;
 // Performs adaptive Simpson's integration of function f over [a, b]
 // 
 // subdivide : minimum subdivision
-float integrate(const std::function<float(float)>& f, float a, float b, int subdivide = 1, int maxDepth = 16);
+float integrate(const std::function<float(float)>& f, float a, float b, int subdivide = 1, int maxDepth = 5);
 
 // Calculates Arc length of a Catmull-Rom Spline defined by 4 control points.
 // 
