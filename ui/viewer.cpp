@@ -31,46 +31,64 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
   return igl::opengl::glfw::Viewer::launch(resizable, fullscreen, name, width, height);
 }
 
+void Viewer::clearCache() {
+  _cache.clear();
+}
+
 void Viewer::refresh() {
+  auto it = _cache.find(currentStep);
 
-  // Get yarn shape
-  const file_format::YarnRepr& yarns = _simulator.getYarns(currentStep);
+  data().clear();
 
-  for (int i = 0; i < yarns.yarns.size(); i++) {
-    // Clear old mesh
-    this->selected_data_index = i;
-    this->data().clear();
+  if (it != _cache.end()) {
+    data().set_mesh(it->second.vertices, it->second.triangles);
+  } else {
+    // Get yarn shape
+    const file_format::YarnRepr& yarns = _simulator.getYarns(currentStep);
 
-    // Get curve
-    auto &yarn = yarns.yarns[i];
+    for (int i = 0; i < yarns.yarns.size(); i++) {
+      // Clear old mesh
+      this->selected_data_index = i;
+      this->data().clear();
 
-    // Use Catmull-Rom to smooth the curve
-    Eigen::MatrixXf points = simulator::catmullRomSequenceSample(yarn.points, curveSamples);
+      // Get curve
+      auto& yarn = yarns.yarns[i];
 
-    // Create mesh for tube
-    Eigen::MatrixXf vertices;
-    Eigen::MatrixXi triangles;
-    circleSweep(points, yarn.radius, circleSamples, &vertices, &triangles);
-    this->data().set_mesh(vertices.cast<double>(), triangles);
+      // Use Catmull-Rom to smooth the curve
+      Eigen::MatrixXf points = simulator::catmullRomSequenceSample(yarn.points, curveSamples);
 
-    // Set color
-    Eigen::MatrixXd color(1, 3);
-    color(0, 0) = yarn.color.r;
-    color(0, 1) = yarn.color.g;
-    color(0, 2) = yarn.color.b;
-    this->data().set_colormap(color);
+      // Create mesh for tube
+      Eigen::MatrixXf vertices;
+      Eigen::MatrixXi triangles;
+      circleSweep(points, yarn.radius, circleSamples, &vertices, &triangles);
 
-    // Draw center line
-    if (yarn.points.rows() >= 2) {
-      Eigen::MatrixXi E(yarn.points.rows() - 1, 2);
-      for (int i = 0; i < yarn.points.rows() - 1; i++) {
-        E(i, 0) = i;
-        E(i, 1) = i + 1;
-      }
-      this->data().set_edges(yarn.points.cast<double>(),
-          E, Eigen::RowVector3d(1, 1, 1));
+      _cache[currentStep] = Geometry{ vertices.cast<double>(), triangles };
+
+      this->data().set_mesh(vertices.cast<double>(), triangles);
+
+
     }
   }
+
+  const file_format::Yarn& yarn = _simulator.getYarns(currentStep).yarns[0];
+
+  // Draw center line
+  if (yarn.points.rows() >= 2) {
+    Eigen::MatrixXi E(yarn.points.rows() - 1, 2);
+    for (int i = 0; i < yarn.points.rows() - 1; i++) {
+      E(i, 0) = i;
+      E(i, 1) = i + 1;
+    }
+    this->data().set_edges(yarn.points.cast<double>(),
+      E, Eigen::RowVector3d(1, 1, 1));
+  }
+
+  // Set color
+  Eigen::MatrixXd color(1, 3);
+  color(0, 0) = yarn.color.r;
+  color(0, 1) = yarn.color.g;
+  color(0, 2) = yarn.color.b;
+  this->data().set_colormap(color);
 }
 
 void Viewer::loadYarn(std::string filename) {
@@ -87,6 +105,7 @@ void Viewer::loadYarn(std::string filename) {
   // Update simulator
   _simulator = simulator::Simulator(file_format::YarnRepr(yarns),
     simulator::SimulatorParams::Default());
+  clearCache();
   this->refresh();
 }
 

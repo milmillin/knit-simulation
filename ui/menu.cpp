@@ -19,6 +19,7 @@ namespace UI {
 
       Viewer* myviewer = reinterpret_cast<Viewer*>(viewer);
       bool needRefresh = false;
+      bool invalidateCache = false;
 
       // Mesh
       if (ImGui::CollapsingHeader("Yarn", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -104,6 +105,7 @@ namespace UI {
             &(reinterpret_cast<Viewer*>(viewer)->curveSamples),
             1, 1, 10)) {
           needRefresh = true;
+          invalidateCache = true;
         }
         ImGui::PopItemWidth();
       }
@@ -138,8 +140,11 @@ namespace UI {
       }
 
       // Refresh the mesh when config changes
+      if (invalidateCache) {
+        myviewer->clearCache();
+      }
       if (needRefresh) {
-        reinterpret_cast<Viewer*>(viewer)->refresh();
+        myviewer->refresh();
       }
     };
   }
