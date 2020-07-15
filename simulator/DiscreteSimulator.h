@@ -4,6 +4,7 @@
 
 #include "../file_format/yarnRepr.h"
 #include "./SimulatorParams.h"
+#include "./AABB.h"
 
 namespace simulator {
 
@@ -57,6 +58,8 @@ class DiscreteSimulator {
 
   inline int pointIndex(int pointID, int axis);
   inline int nConstrain();
+
+  aabb::Tree collisionTree;
 };
 
 } // namespace simulatr 

@@ -2,6 +2,7 @@
 
 #include "macros.h"
 #include "Helper.h"
+#include "./AABB.h"
 
 #include <iostream>
 
@@ -51,6 +52,15 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
   for (int pinPoint : pinControlPoints) {
     pinControlPointsPosition.push_back(POINT_FROM_ROW(Q, pinPoint));
   }
+
+  // Initialize AABB tree
+  collisionTree = aabb::Tree(3, 0.05, Q.rows() - 4, true);
+  std::vector<double> lowerBound;
+  std::vector<double> upperBound;
+  for (int i = 0; i < Q.rows() - 4; i++) {
+    catmullRomBoundingBox(Q, i, &lowerBound, &upperBound, yarns.yarns[0].radius);
+    collisionTree.insertParticle((unsigned)i, lowerBound, upperBound);
+  }
 }
 
 void DiscreteSimulator::step() {
@@ -75,6 +85,14 @@ void DiscreteSimulator::step() {
     fastProjection();
     // Also update the velocity after applying the constrains
     dQ = (Q - originalQ) / params.h;
+
+    // Update AABB tree
+    std::vector<double> lowerBound;
+    std::vector<double> upperBound;
+    for (int i = 0; i < Q.rows() - 4; i++) {
+      catmullRomBoundingBox(Q, i, &lowerBound, &upperBound, yarns.yarns[0].radius);
+      collisionTree.updateParticle((unsigned)i, lowerBound, upperBound);
+    }
   }
 }
 
@@ -106,7 +124,8 @@ void DiscreteSimulator::applyContactForce() {
   float radius = yarns.yarns[0].radius;
 
   for (int i = 0; i < Q.rows() - 4; i++) {
-    for (int j = 0; j < Q.rows() - 4; j++) {
+    auto intersections = collisionTree.query(i);
+    for (int j : intersections) {
       if (abs(i - j) <= 1) {
         continue;
       }

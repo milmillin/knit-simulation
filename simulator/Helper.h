@@ -2,6 +2,8 @@
 #include <functional>
 #include <Eigen/Core>
 
+#include <vector>
+
 #include <glm/glm.hpp>
 
 namespace simulator {
@@ -42,5 +44,8 @@ glm::vec3 catmullRomSample(const Eigen::MatrixXf &controlPoints, int index, floa
 // samplePerSegment: number of samples for each segment
 // Return: samples (one row for each point coordinate)
 Eigen::MatrixXf catmullRomSequenceSample(Eigen::MatrixXf points, int samplePerSegment);
+
+void catmullRomBoundingBox(const Eigen::MatrixXf &controlPoints, int index,
+  std::vector<double> *lowerBound, std::vector<double> *upperBound, float radius);
 
 }; // namespace simulator

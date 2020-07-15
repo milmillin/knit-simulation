@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
+#include <vector>
+
 #include "macros.h"
 
 static float simpson(const std::function<float(float)>& f, float a, float b) {
@@ -95,4 +97,20 @@ Eigen::MatrixXf simulator::catmullRomSequenceSample(Eigen::MatrixXf points, int 
   ROW_FROM_POINT(result, result.rows() - 1, lastPoint);
 
   return result;
+}
+
+// See https://pomax.github.io/bezierinfo/#catmullconv
+void simulator::catmullRomBoundingBox(const Eigen::MatrixXf &points, int index,
+    std::vector<double> *lowerBound, std::vector<double> *upperBound, float radius) {
+  Eigen::MatrixXf bezierControlPoints(4, 3);
+  bezierControlPoints.row(0) = points.row(index + 1);
+  bezierControlPoints.row(1) = points.row(index + 1) + (points.row(index + 2) - points.row(index + 0)) / 3;
+  bezierControlPoints.row(2) = points.row(index + 2) - (points.row(index + 3) - points.row(index + 1)) / 3;
+  bezierControlPoints.row(3) = points.row(index + 2);
+  lowerBound->resize(3);
+  upperBound->resize(3);
+  for (int i = 0; i < 3; i++) {
+    (*lowerBound)[i] = bezierControlPoints.col(i).minCoeff() - radius;
+    (*upperBound)[i] = bezierControlPoints.col(i).maxCoeff() + radius;
+  }
 }
