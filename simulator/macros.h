@@ -28,6 +28,13 @@
   const float& p##yD4 = qD((index) + 10); \
   const float& p##zD4 = qD((index) + 11);
 
+#define DECLARE_POINTS2(p, index) \
+  const Eigen::Vector3f p##1 = q.block<3, 1>((index), 0); \
+  const Eigen::Vector3f p##2 = q.block<3, 1>((index) + 3, 0); \
+  const Eigen::Vector3f p##3 = q.block<3, 1>((index) + 6, 0); \
+  const Eigen::Vector3f p##4 = q.block<3, 1>((index) + 9, 0);
+
+
 #define DECLARE_BASIS(b, s) \
   float b##1 = s * (-1.0f / 2.0f) + s * s - (s * s * s) / 2.0f; \
   float b##2 = (s * s) * (-5.0f / 2.0f) + (s * s * s) * (3.0f / 2.0f) + 1.0f; \

@@ -4,6 +4,7 @@
 #include "./Constraints.h"
 #include "../file_format/yarnRepr.h"
 #include "./macros.h"
+#include "./ParallelWorker.h"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -28,6 +29,8 @@ private:
   int stepCnt;
   std::thread simulatorThread;
 
+  mutable std::mutex attrLock;
+
   // YarnRepr for each step
   std::vector<file_format::YarnRepr> history;
   mutable std::mutex historyLock;
@@ -47,6 +50,7 @@ private:
 
   // gradient of positional energy
   Eigen::MatrixXf gradE;
+  mutable std::mutex gradELock;
 
   // DEBUG: contact energy
   Eigen::MatrixXf contactE;
@@ -83,8 +87,16 @@ private:
   void simulatorLoop();
   void step();
   bool cancelToken = false;
+  bool paused_ = false;
   mutable std::mutex cancelTokenLock;
-  bool cancelled() const;
+  bool cancelled() const {
+    std::lock_guard<std::mutex> lock(cancelTokenLock);
+    return cancelToken;
+  }
+  bool paused() const {
+    std::lock_guard<std::mutex> lock(cancelTokenLock);
+    return paused_;
+  }
 public:
   // Empty constructor
   Simulator() : q(0, 1), constraints(0) {};
@@ -108,6 +120,17 @@ public:
   int numStep() const {
     std::lock_guard<std::mutex> lock(historyLock);
     return (int)history.size();
+  }
+
+  void togglePause() {
+    std::lock_guard<std::mutex> lock(cancelTokenLock);
+    paused_ = !paused_;
+    if (paused_) {
+      log() << "Simulator Paused" << std::endl;
+    }
+    else {
+      log() << "Simulator Resumed" << std::endl;
+    }
   }
 
   // Gets a reference to constraint container

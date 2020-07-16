@@ -8,311 +8,65 @@ namespace simulator {
 // Collision Energy
 //
 
-static constexpr int collisionSubdivide = 4;
-static constexpr int collisionMaxDepth = 0;
+static constexpr int SUBDIVIDE = 20;
 
-void Simulator::calculateCollisionEnergyGradient(int i, int j) {
-  int iIndex = i * 3;
-  int jIndex = j * 3;
+static inline Eigen::Vector3f fff(Eigen::Vector3f gradient, float norm2, float thresh2) {
+  return (-thresh2 / norm2 / norm2 + 1 / thresh2) * gradient;
+}
+
+void Simulator::calculateCollisionEnergyGradient(int ii, int jj) {
+  int iIndex = ii * 3;
+  int jIndex = jj * 3;
+
+  attrLock.lock();
+  DECLARE_POINTS2(pi, iIndex);
+  DECLARE_POINTS2(pj, jIndex);
 
   float r = yarns.yarns[0].radius;
-  float coefficient = params.kContact * segmentLength[i] * segmentLength[j];
-  float constR = 4.0f * r * r;
+  float coefficient = params.kContact * segmentLength[ii] * segmentLength[jj];
+  attrLock.unlock();
+
+  float thresh2 = 4.0f * r * r;
 
   // calculate only for j > i
   coefficient *= 2;
 
-  DECLARE_POINTS(pi, iIndex);
-  DECLARE_POINTS(pj, jIndex);
+  float step = 1.f / SUBDIVIDE;
+  float halfStep = step / 2;
 
-  // Collision Energy: pix1
-  gradE(iIndex + 0) += coefficient * integrate([=](float si)->float {
+  Eigen::MatrixXf gradEi = Eigen::MatrixXf::Zero(12, 1);
+  Eigen::MatrixXf gradEj = Eigen::MatrixXf::Zero(12, 1);
+
+  for (int i = 0; i < SUBDIVIDE; i++) {
+    float si = i * step + halfStep;
     DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
+    Eigen::Vector3f pi = bi1 * pi1 + bi2 * pi2 + bi3 * pi3 + bi4 * pi4;
+    for (int j = 0; j < SUBDIVIDE; j++) {
+      float sj = j * step + halfStep;
       DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi1 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
+      Eigen::Vector3f pj = bj1 * pj1 + bj2 * pj2 + bj3 * pj3 + bj4 * pj4;
 
-  // Collision Energy: piy1
-  gradE(iIndex + 1) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi1 * (bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
+      Eigen::Vector3f diff = pj - pi;
 
-  // Collision Energy: piz1
-  gradE(iIndex + 2) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi1 * (bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
+      float norm2 = diff.squaredNorm();
+      if (norm2 >= thresh2) continue;
 
-  // Collision Energy: pix2
-  gradE(iIndex + 3) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi2 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
+      gradEi.block<3, 1>(0, 0) += fff(-2 * bi1 * diff, norm2, thresh2);
+      gradEi.block<3, 1>(3, 0) += fff(-2 * bi2 * diff, norm2, thresh2);
+      gradEi.block<3, 1>(6, 0) += fff(-2 * bi3 * diff, norm2, thresh2);
+      gradEi.block<3, 1>(9, 0) += fff(-2 * bi4 * diff, norm2, thresh2);
 
-  // Collision Energy: piy2
-  gradE(iIndex + 4) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi2 * (bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: piz2
-  gradE(iIndex + 5) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi2 * (bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pix3
-  gradE(iIndex + 6) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi3 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: piy3
-  gradE(iIndex + 7) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi3 * (bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: piz3
-  gradE(iIndex + 8) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi3 * (bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pix4
-  gradE(iIndex + 9) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi4 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: piy4
-  gradE(iIndex + 10) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi4 * (bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: piz4
-  gradE(iIndex + 11) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bi4 * (bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4) * 2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjx1
-  gradE(jIndex + 0) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj1 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjy1
-  gradE(jIndex + 1) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj1 * (bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjz1
-  gradE(jIndex + 2) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj1 * (bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjx2
-  gradE(jIndex + 3) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj2 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjy2
-  gradE(jIndex + 4) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj2 * (bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjz2
-  gradE(jIndex + 5) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj2 * (bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjx3
-  gradE(jIndex + 6) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj3 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjy3
-  gradE(jIndex + 7) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj3 * (bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjz3
-  gradE(jIndex + 8) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj3 * (bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjx4
-  gradE(jIndex + 9) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj4 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjy4
-  gradE(jIndex + 10) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj4 * (bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
-  // Collision Energy: pjz4
-  gradE(jIndex + 11) += coefficient * integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-      if (norm >= constR) return 0;
-      float normD = bj4 * (bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4) * -2.0;
-      return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, collisionSubdivide, collisionMaxDepth);
-    }, 0, 1, collisionSubdivide, collisionMaxDepth);
-
+      gradEj.block<3, 1>(0, 0) += fff(2 * bj1 * diff, norm2, thresh2);
+      gradEj.block<3, 1>(3, 0) += fff(2 * bj2 * diff, norm2, thresh2);
+      gradEj.block<3, 1>(6, 0) += fff(2 * bj3 * diff, norm2, thresh2);
+      gradEj.block<3, 1>(9, 0) += fff(2 * bj4 * diff, norm2, thresh2);
+    }
+  }
+  {
+    std::lock_guard<std::mutex> lock(gradELock);
+    gradE.block<12, 1>(iIndex, 0) += coefficient * gradEi * step * step;
+    gradE.block<12, 1>(jIndex, 0) += coefficient * gradEj * step * step;
+  }
 }
 
 }  // namespace simulator

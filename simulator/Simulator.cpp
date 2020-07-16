@@ -335,13 +335,24 @@ void Simulator::calculateGradient() {
 		calculateBendingEnergyGradient(i);
 	}
 
-	for (int i = 0; i < N; i++) {
-		if (i % 10 == 0) {
-      log() << "- Collision Energy (" << i << "/" << N << ")" << std::endl;
-		}
-		for (int j = i + 2; j < N; j++) {
-			calculateCollisionEnergyGradient(i, j);
-		}
+	log() << "- Collision Energy" << std::endl;
+	{
+		ParallelWorker worker([this]()->bool { return cancelled(); });
+
+    for (int i = 0; i < N; i++) {
+      //for (int j = i + 2; j < N; j++) {
+				//worker.addWork([this, i, j]() {
+					//calculateCollisionEnergyGradient(i, j);
+					//});
+      //}
+			worker.addWork([this, i, N]() {
+				for (int j = i + 2; j < N; j++) {
+					calculateCollisionEnergyGradient(i, j);
+				}
+				});
+    }
+
+		worker.run();
 	}
 
   // Damping
@@ -461,17 +472,17 @@ Simulator::~Simulator() {
 	log() << "Simulator Destroyed" << std::endl;
 }
 
-bool Simulator::cancelled() const {
-	std::lock_guard<std::mutex> lock(cancelTokenLock);
-	return cancelToken;
-}
-
 void Simulator::simulatorLoop() {
 	while (true) {
 		if (cancelled()) {
 			break;
 		}
-		step();
+		if (!paused()) {
+      step();
+		}
+		else {
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
 	}
 }
 

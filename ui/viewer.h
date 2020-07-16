@@ -23,11 +23,10 @@ class Viewer : igl::opengl::glfw::Viewer {
   void refresh();
   void clearCache();
   void loadYarn(std::string filename);
-  // void step() { _simulator.step(); }
 
   bool viewNext();
   bool viewPrev();
-  int numStep() { return _simulator->numStep(); }
+  simulator::Simulator* simulator() const { return _simulator.get(); }
 
   // Number of samples for yarn cross-section (circle)
   int circleSamples = 8;

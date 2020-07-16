@@ -126,7 +126,11 @@ namespace UI {
           needRefresh = true;
         }
         */
-        ImGui::Text("Viewing %d of %d\n", myviewer->currentStep + 1, myviewer->numStep());
+        if (ImGui::Button("Pause/Resume", ImVec2(-1, 0))) {
+          myviewer->simulator()->togglePause();
+        }
+
+        ImGui::Text("Viewing %d of %d\n", myviewer->currentStep + 1, myviewer->simulator()->numStep());
 
         if (ImGui::Button("View Prev", ImVec2(-1, 0))) {
           needRefresh = needRefresh || myviewer->viewPrev();
