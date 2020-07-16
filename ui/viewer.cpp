@@ -49,7 +49,7 @@ void Viewer::refresh() {
     for (int i = 0; i < yarns.yarns.size(); i++) {
       // Clear old mesh
       this->selected_data_index = i;
-      this->data().clear();
+      // this->data().clear();
 
       // Get curve
       auto& yarn = yarns.yarns[i];
@@ -105,6 +105,7 @@ void Viewer::loadYarn(std::string filename) {
   // Update simulator
   _simulator = simulator::Simulator(file_format::YarnRepr(yarns),
     simulator::SimulatorParams::Default());
+  currentStep = 0;
   clearCache();
   this->refresh();
 }

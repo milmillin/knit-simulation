@@ -335,7 +335,6 @@ void Simulator::calculateGradient() {
 		calculateBendingEnergyGradient(i);
 	}
 
-	/*
 	for (int i = 0; i < N; i++) {
 		if (i % 10 == 0) {
       log() << "- Collision Energy (" << i << "/" << N << ")" << std::endl;
@@ -344,7 +343,6 @@ void Simulator::calculateGradient() {
 			calculateCollisionEnergyGradient(i, j);
 		}
 	}
-	*/
 
   // Damping
 	log() << "- Global Damping" << std::endl;
@@ -376,7 +374,7 @@ void Simulator::fastProjection() {
 	int iter = 0;
 	Eigen::MatrixXf constraint;
 	float cValue;
-	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 100) {
+	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 10) {
 		log() << "- iter: " << iter << ", constraint: " << cValue << std::endl;
 
 		Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
@@ -428,7 +426,6 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 	q = flatten(q);
 	// q.resize(3 * m, 1); won't work because Column-major
 
-
 	// Initialize to zero
 	qD = Eigen::MatrixXf::Zero(3 * m, 1);
 	gradE = Eigen::MatrixXf::Zero(3 * m, 1);
@@ -442,8 +439,9 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 	// Construct Mass Matrix
 	constructMassMatrix();
 
-	// writeMatrix("mass.csv", Eigen::MatrixXf(M));
-	// writeMatrix("massInverse.csv", Eigen::MatrixXf(MInverse));
+	// Pin first and last control points
+	constraints.addPinConstrain(0, q(0), q(1), q(2));
+	constraints.addPinConstrain(m - 1, q((m - 1) * 3), q((m - 1) * 3 + 1), q((m - 1) * 3 + 2));
 
 	writeToFile();
 
@@ -464,59 +462,6 @@ void Simulator::step() {
 
 	gradE.setZero();
 	gradD.setZero();
-
-	/*
-	int subdivide = 4;
-	contactE = Eigen::MatrixXf(subdivide, subdivide);
-
-	float ss = 1.f / subdivide;
-
-	DECLARE_POINTS(pi, 126);
-	DECLARE_POINTS(pj, 339);
-
-	float r = params.r;
-  float constR = 4.0f * r * r;
-	std::cout << "constR: " << constR << std::endl;
-
-	for (int i = 0; i < subdivide; i++) {
-		float si = i * ss;
-		DECLARE_BASIS(bi, si);
-		for (int j = 0; j < subdivide; j++) {
-			float sj = j * ss;
-			DECLARE_BASIS(bj, sj);
-			float pix = bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4;
-			float piy = bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4;
-			float piz = bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4;
-
-			float pjx = bj1 * pjx1 + bj2 * pjx2 + bj3 * pjx3 + bj4 * pjx4;
-			float pjy = bj1 * pjy1 + bj2 * pjy2 + bj3 * pjy3 + bj4 * pjy4;
-			float pjz = bj1 * pjz1 + bj2 * pjz2 + bj3 * pjz3 + bj4 * pjz4;
-
-      float norm = pow(pix - pjx, 2)
-				+ pow(piy - pjy, 2)
-				+ pow(piz - pjz, 2);
-
-			contactE(i, j) = norm;
-			std::cout << "si: " << si << " sj: " << sj << " (" << pix << "," << piy << "," << piz << ") <--> ("
-				<< pjx << "," << pjy << "," << pjz << ") = " << norm << "\n";
-		}
-	}
-	std::cout << std::endl;
-
-  float test = integrate([=](float si)->float {
-    DECLARE_BASIS(bi, si);
-    return integrate([=](float sj)->float {
-      DECLARE_BASIS(bj, sj);
-      float norm = pow(bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4, 2.0) + pow(bi1 * piy1 + bi2 * piy2 + bi3 * piy3 + bi4 * piy4 - bj1 * pjy1 - bj2 * pjy2 - bj3 * pjy3 - bj4 * pjy4, 2.0) + pow(bi1 * piz1 + bi2 * piz2 + bi3 * piz3 + bi4 * piz4 - bj1 * pjz1 - bj2 * pjz2 - bj3 * pjz3 - bj4 * pjz4, 2.0);
-			std::cout << si << "," << sj << "  " << norm << std::endl;
-      if (norm >= constR) return 0;
-			return norm;
-      // float normD = bi1 * (bi1 * pix1 + bi2 * pix2 + bi3 * pix3 + bi4 * pix4 - bj1 * pjx1 - bj2 * pjx2 - bj3 * pjx3 - bj4 * pjx4) * 2.0;
-      // return -constR * normD / (norm * norm) + normD / constR;
-      }, 0, 1, subdivide);
-    }, 0, 1, subdivide);
-	std::cout << "test: " << test << std::endl;
-	*/
 
 	// update gradE, gradD, f
 	calculateGradient();
