@@ -90,6 +90,7 @@ namespace UI {
         }
         make_checkbox("Show overlay", viewer->data().show_overlay);
         make_checkbox("Show overlay depth", viewer->data().show_overlay_depth);
+        ImGui::Checkbox("Show control point labels", &(viewer->data().show_labels));
         ImGui::ColorEdit4("Background color", viewer->core().background_color.data(),
             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel);
         ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);

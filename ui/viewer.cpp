@@ -82,6 +82,13 @@ void Viewer::refresh() {
       this->data().set_edges(yarn.points.cast<double>(),
           E, Eigen::RowVector3d(1, 1, 1));
     }
+
+    std::vector<std::string> labels;
+    for (int i = 0; i < yarn.points.rows(); i++) {
+      labels.push_back(std::to_string(i));
+    }
+    this->data().set_labels(yarn.points.cast<double>(), labels);
+    this->data().label_color = Eigen::Vector4f(1, 1, 1, 1);
   }
 }
 
