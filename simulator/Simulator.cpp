@@ -445,9 +445,35 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 
 	writeToFile();
 
+	log() << "Starting Simulator Thread" << std::endl;
+
+	simulatorThread = std::thread(&Simulator::simulatorLoop, this);
+
 	log() << "Simulator Initialized" << std::endl;
 }
 
+Simulator::~Simulator() {
+	log() << "Waiting for the last step to complete" << std::endl;
+	cancelTokenLock.lock();
+	cancelToken = true;
+	cancelTokenLock.unlock();
+	simulatorThread.join();
+	log() << "Simulator Destroyed" << std::endl;
+}
+
+bool Simulator::cancelled() const {
+	std::lock_guard<std::mutex> lock(cancelTokenLock);
+	return cancelToken;
+}
+
+void Simulator::simulatorLoop() {
+	while (true) {
+		if (cancelled()) {
+			break;
+		}
+		step();
+	}
+}
 
 void Simulator::writeToFile() const {
 	writeMatrix("q-" + std::to_string(stepCnt) + ".csv", q);
@@ -471,6 +497,7 @@ void Simulator::step() {
 	// save to YarnRepr
 	// supports one yarn for now
 	// yarns.yarns[0].points = inflate(q, 3);
+	std::lock_guard<std::mutex> lock(historyLock);
 	history.push_back(history.back().createAlike());
 	history.back().yarns[0].points = inflate(q, 3);
 

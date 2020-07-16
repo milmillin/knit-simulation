@@ -119,12 +119,13 @@ namespace UI {
 
       // Add simulator menu
       if (ImGui::CollapsingHeader("Simulator", ImGuiTreeNodeFlags_DefaultOpen)) {
+        /*
         if (ImGui::Button("Step", ImVec2(-1, 0))) {
           myviewer->step();
           myviewer->viewNext();
           needRefresh = true;
         }
-        ImGui::Separator();
+        */
         ImGui::Text("Viewing %d of %d\n", myviewer->currentStep + 1, myviewer->numStep());
 
         if (ImGui::Button("View Prev", ImVec2(-1, 0))) {

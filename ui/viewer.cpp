@@ -37,22 +37,22 @@ void Viewer::clearCache() {
 
 void Viewer::refresh() {
   auto it = _cache.find(currentStep);
-
   data().clear();
+  const file_format::Yarn yarn = _simulator->getYarns(currentStep).yarns[0];
 
   if (it != _cache.end()) {
     data().set_mesh(it->second.vertices, it->second.triangles);
   } else {
     // Get yarn shape
-    const file_format::YarnRepr& yarns = _simulator.getYarns(currentStep);
+    // const file_format::YarnRepr& yarns = _simulator.getYarns(currentStep);
 
-    for (int i = 0; i < yarns.yarns.size(); i++) {
+    // for (int i = 0; i < yarns.yarns.size(); i++) {
       // Clear old mesh
-      this->selected_data_index = i;
+      //this->selected_data_index = i;
       // this->data().clear();
 
       // Get curve
-      auto& yarn = yarns.yarns[i];
+      // auto& yarn = yarns.yarns[i];
 
       // Use Catmull-Rom to smooth the curve
       Eigen::MatrixXf points = simulator::catmullRomSequenceSample(yarn.points, curveSamples);
@@ -65,12 +65,9 @@ void Viewer::refresh() {
       _cache[currentStep] = Geometry{ vertices.cast<double>(), triangles };
 
       this->data().set_mesh(vertices.cast<double>(), triangles);
-
-
-    }
+    //}
   }
 
-  const file_format::Yarn& yarn = _simulator.getYarns(currentStep).yarns[0];
 
   // Draw center line
   if (yarn.points.rows() >= 2) {
@@ -103,15 +100,15 @@ void Viewer::loadYarn(std::string filename) {
   }
 
   // Update simulator
-  _simulator = simulator::Simulator(file_format::YarnRepr(yarns),
-    simulator::SimulatorParams::Default());
+  _simulator.reset(new simulator::Simulator(file_format::YarnRepr(yarns),
+    simulator::SimulatorParams::Default()));
   currentStep = 0;
   clearCache();
   this->refresh();
 }
 
 bool Viewer::viewNext() {
-  if (currentStep + 1 < _simulator.numStep()) {
+  if (currentStep + 1 < _simulator->numStep()) {
     currentStep++;
     return true;
   }

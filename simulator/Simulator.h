@@ -8,6 +8,8 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <vector>
+#include <mutex>
+#include <thread>
 
 namespace simulator {
 
@@ -24,9 +26,11 @@ private:
   file_format::YarnRepr yarns;
   SimulatorParams params;
   int stepCnt;
+  std::thread simulatorThread;
 
   // YarnRepr for each step
   std::vector<file_format::YarnRepr> history;
+  mutable std::mutex historyLock;
 
   // position of control points
   Eigen::MatrixXf q;
@@ -74,6 +78,13 @@ private:
   void calculateGlobalDampingGradient(int i);
 
   void fastProjection();
+
+  // Simulates next timestep.
+  void simulatorLoop();
+  void step();
+  bool cancelToken = false;
+  mutable std::mutex cancelTokenLock;
+  bool cancelled() const;
 public:
   // Empty constructor
   Simulator() : q(0, 1), constraints(0) {};
@@ -84,15 +95,20 @@ public:
   // params_ : Simulation paramters
   Simulator(file_format::YarnRepr yarns, SimulatorParams params_);
 
-  // Returns current yarns
-  const file_format::YarnRepr& getYarns(int i) const { return history[i]; }
+  ~Simulator();
 
-  // Simulates next timestep.
-  void step();
+  // Returns current yarns
+  file_format::YarnRepr getYarns(int i) const {
+    std::lock_guard<std::mutex> lock(historyLock);
+    return history[i]; 
+  }
 
   // Returns the number of steps.
   // Returns 1 when `step()` has not been called.
-  int numStep() const { return (int)history.size(); }
+  int numStep() const {
+    std::lock_guard<std::mutex> lock(historyLock);
+    return (int)history.size();
+  }
 
   // Gets a reference to constraint container
   Constraints& getConstraints() { return constraints; }
