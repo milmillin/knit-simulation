@@ -83,7 +83,7 @@ private:
   void simulatorLoop();
   void step();
   bool cancelled_ = false;
-  bool paused_ = false;
+  bool paused_ = true;
 
   mutable std::mutex statusLock; 
   bool cancelled() const {

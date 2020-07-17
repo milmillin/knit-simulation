@@ -31,32 +31,6 @@ static float integrateImpl(const std::function<float(float)>& f, float a, float 
   return integrateImpl(f, a, m, fa, fam, fm, dep - 1) + integrateImpl(f, m, b, fm, fmb, fb, dep - 1);
 }
 
-float simulator::integrate(const std::function<float(float)>& f, float a, float b, int subdivide, int maxDepth)
-{
-  float step = (b - a) / subdivide;
-  float result = 0;
-
-  float lo;
-  float hi;
-  float mid;
-  float flo = f(a);
-  float fhi;
-  float fmid;
-
-  for (int i = 0; i < subdivide; i++) {
-    lo = a + (i * step);
-    hi = a + ((i + 1) * step);
-    mid = (lo + hi) / 2;
-
-    fmid = f(mid);
-    fhi = f(hi);
-
-    result += integrateImpl(f, lo, hi, flo, fmid, fhi, maxDepth);
-
-    flo = fhi;
-  }
-  return result;
-}
 
 // Helper function for `catmullRowSample`
 static inline glm::vec3 bezierTerm(float t0, float t1, float t, glm::vec3& p0, glm::vec3& p1) {

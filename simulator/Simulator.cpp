@@ -29,6 +29,7 @@ void Simulator::calculateSegmentLength() {
 	// Compress yarns
 	float coeff = params.cInit;
 
+	float totalLength = 0;
 	for (int i = 0; i < N; i++) {
 		// Calculate arclength of segment[i].
 		// Note that the length is fixed throughout the simulation.
@@ -36,165 +37,19 @@ void Simulator::calculateSegmentLength() {
 		int index = i * 3;
 		DECLARE_POINTS2(p, q, index);
 
-		segmentLength[i] = coeff * integrate([&](float s)->float {
+		totalLength += segmentLength[i] = coeff * integrate<float>([&](float s)->float {
 			DECLARE_BASIS_D2(bD, s);
 			return POINT_FROM_BASIS(p, bD).norm();
 			}, 0, 1);
 	}
+	log() << "Total Length: " << totalLength << std::endl;
 }
 
 void Simulator::addSegmentLengthConstraint() {
 	int N = m - 3;
 
 	for (int i = 0; i < N; i++) {
-		int index = i * 3;
-		float curSegmentLength = segmentLength[i];
-
-    auto constraint = [=](const Eigen::MatrixXf& q)->float {
-			DECLARE_POINTS2(p, q, index);
-      float currentLength = integrate([&](float s)->float {
-        DECLARE_BASIS_D2(bD, s);
-        return POINT_FROM_BASIS(p, bD).norm();
-        }, 0, 1);
-      return 1 - currentLength / curSegmentLength;
-    };
-
-		std::vector<Constraints::Entry> constraintD{
-      Constraints::Entry {    // px1
-        index,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD1 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // py1
-        index + 1,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD1 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // pz1
-        index + 2,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD1 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // px2
-        index + 3,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD2 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // py2
-        index + 4,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD2 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // pz2
-        index + 5,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD2 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // px3
-        index + 6,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD3 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // py3
-        index + 7,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD3 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // pz3
-        index + 8,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD3 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // px4
-        index + 9,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-						DECLARE_BASIS_D(b, s);
-            return bD4 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // py4
-        index + 10,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-            DECLARE_BASIS_D(b, s);
-            return bD4 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      },
-      Constraints::Entry {    // pz4
-        index + 11,
-        [=](const Eigen::MatrixXf& q)->float {
-          DECLARE_POINTS(p, index)
-          float lengthD = integrate([&](float s)->float {
-						DECLARE_BASIS_D(b, s);
-            return bD4 * 1.0 / sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4,2.0) + pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4,2.0) + pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4,2.0)) * (bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4);
-          }, 0, 1);
-          return -lengthD / curSegmentLength;
-        }
-      }
-    };
-
-		constraints.addConstraint(constraint, constraintD);
+		constraints.addLengthConstrain(i, segmentLength[i]);
 	}
 }
 
@@ -315,6 +170,7 @@ void Simulator::calculateGradient() {
 //
 
 float maxCoeff(const Eigen::MatrixXf& m) {
+	if (m.rows() == 0 || m.cols() == 0) return 0;
 	return std::max(fabs(m.maxCoeff()), fabs(m.minCoeff()));
 }
 
@@ -337,6 +193,8 @@ void Simulator::fastProjection() {
 		Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
 
 		Eigen::SparseMatrix<float> jC = constraints.getJacobian(qj);
+
+		//writeMatrix("jC-" + std::to_string(stepCnt) + "-" + std::to_string(cValue) + ".csv", Eigen::MatrixXf(jC));
 
 		solver.compute((h * h) * jC * MInverse * jC.transpose());
 		if (solver.info() != Eigen::Success) {
@@ -376,6 +234,8 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 	m = q.rows();
 	history.push_back(yarns);
 
+	log() << "Found " << m << " control points" << std::endl;
+
 	// Initialize constraints
 	constraints = Constraints(m);
 
@@ -396,8 +256,10 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 	constructMassMatrix();
 
 	// Pin first and last control points
-	constraints.addPinConstrain(0, q(0), q(1), q(2));
-	constraints.addPinConstrain(m - 1, q((m - 1) * 3), q((m - 1) * 3 + 1), q((m - 1) * 3 + 2));
+	constraints.addPinConstrain(0, q.block<3, 1>(0, 0));
+	constraints.addPinConstrain(m - 1, q.block<3, 1>(3 * (m - 1), 0));
+	//constraints.addGlueConstrain(0, 1);
+	//constraints.addGlueConstrain(m - 2, m - 1);
 
 	writeToFile();
 

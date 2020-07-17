@@ -6,13 +6,20 @@
 #include <vector>
 #include <functional>
 
+#include "macros.h"
+#include "Helper.h"
+
 namespace simulator {
 
 class Constraints {
 public:
+  using Referrer = std::function<float& (int)>;
+  using Func = std::function<float(const Eigen::MatrixXf&)>;
+  using JacobianFunc = std::function<void(const Eigen::MatrixXf&, const Referrer&)>;
+
   struct Entry {
-    int index;
-    std::function<float(const Eigen::MatrixXf&)> f;
+    Func f;
+    JacobianFunc fD;
   };
 
   // Construct a constraint container with m control points.
@@ -22,27 +29,23 @@ public:
   // Adds constraint
   // f: constrain function of q
   // fD: d(f)/d(q(index)) for every index with non-zero value
-  void addConstraint(std::function<float(const Eigen::MatrixXf&)> f,
-    std::vector<Entry> fD);
+  void addConstraint(Func f, JacobianFunc fD);
 
   // Pins i-th control point to <x, y, z>.
   // i in [0, m - 1].
-  // Adds 3 contraints.
-  void addPinConstrain(int i, float x, float y, float z);
+  void addPinConstrain(int i, Eigen::Vector3f point);
 
-  // Glues i-th and j-th control points together
-  // i, j in [0, m - 1]
-  // Adds 3 constraints.
+  // Glues i-th and j-th control points
   void addGlueConstrain(int i, int j);
+
+  // Applies length constrain of segment i to length.
+  // i in [0, m - 4]
+  void addLengthConstrain(int i, float length);
 
   // Gets Jacobian matrix of size c x (3 * m)
   // where c is the number of constraints
   // evaluated at q.
   Eigen::SparseMatrix<float> getJacobian(const Eigen::MatrixXf& q) const;
-
-  // Evaluates the constraints at q
-  // Returns the maximum of absolute of each constraint
-  float calculateMax(const Eigen::MatrixXf& q) const;
 
   // Evaluates the constraints at q
   // Returns the matrix of size c x 1
@@ -53,10 +56,7 @@ private:
   size_t m;
   
   // list of constraints
-  std::vector<std::function<float(const Eigen::MatrixXf&)>> C;
-
-  // list of jacobian derivatives
-  std::vector<std::vector<Entry>> CD;
+  std::vector<Entry> constraints;
 
 };
 

@@ -8,10 +8,28 @@ namespace simulator {
 
 constexpr float SIMPSON_EPS = 1e-5;
 
-// Performs adaptive Simpson's integration of function f over [a, b]
+// Performs Simpson's integration of function f over [a, b]
+// f will be called subdivide + 1 times
 // 
-// subdivide : minimum subdivision
-float integrate(const std::function<float(float)>& f, float a, float b, int subdivide = 1, int maxDepth = 5);
+// subdivide : number of subdivision
+template<typename T>
+T integrate(const std::function<T(float)>& f, float a, float b, int subdivide = 64)
+{
+  assert(subdivide % 2 == 0);
+  float step = (b - a) / subdivide;
+
+  T result = f(a) + f(b);
+
+  for (int i = 1; i < subdivide; i += 2) {
+    result += 4 * f(a + i * step);
+  }
+  
+  for (int i = 2; i < subdivide; i += 2) {
+    result += 2 * f(a + i * step);
+  }
+
+  return result * step / 3;
+}
 
 // Sample a Catmul-Rom curve
 //
