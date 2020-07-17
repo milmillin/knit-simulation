@@ -54,14 +54,21 @@
   float b##DD4 = s * 3.0f - 1.0f;
 
 #define DECLARE_BASIS2(b, s) \
-  const float b[4] { \
+  const float b[4] = { \
     (s) * (-1.0f / 2.0f) + (s) * (s) - ((s) * (s) * (s)) / 2.0f, \
     ((s) * (s)) * (-5.0f / 2.0f) + ((s) * (s) * (s)) * (3.0f / 2.0f) + 1.0f, \
     (s) / 2.0f + ((s) * (s)) * 2.0f - ((s) * (s) * (s)) * (3.0f / 2.0f), \
     ((s) * (s)) * (-1.0f / 2.0f) + ((s) * (s) * (s)) / 2.0f }
 
+#define DECLARE_BASIS_D2(b, s) \
+  const float b[4] = { \
+    (s) * 2.0f - ((s) * (s)) * (3.0f / 2.0f) - 1.0f / 2.0f, \
+    (s) * -5.0f + ((s) * (s)) * (9.0f / 2.0f), \
+    (s) * 4.0f - ((s) * (s)) * (9.0f / 2.0f) + 1.0f / 2.0f, \
+    -(s) + ((s) * (s)) * (3.0f / 2.0f) }
+
 #define POINT_FROM_BASIS(points, basis) \
-  basis[0] * points[0] + basis[1] * points[1] + basis[2] * points[2] + basis[3] * points[3]
+  (basis[0] * points[0] + basis[1] * points[1] + basis[2] * points[2] + basis[3] * points[3])
 
 // Get a point from a row in the matrix
 #define POINT_FROM_ROW(matrix, index) \

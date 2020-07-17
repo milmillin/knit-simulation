@@ -112,3 +112,37 @@ Eigen::MatrixXf simulator::catmullRomSequenceSample(Eigen::MatrixXf points, int 
 
   return result;
 }
+
+void simulator::writeMatrix(std::string filename, const Eigen::MatrixXf& q) {
+  std::ofstream f;
+	f.open(filename);
+	f << q.format(CSVFormat) << "\n";
+	f.close();
+}
+
+Eigen::MatrixXf simulator::flatten(const Eigen::MatrixXf& v) {
+	Eigen::MatrixXf res(v.rows() * v.cols(), 1);
+	int r = v.rows();
+	int c = v.cols();
+	for (int i = 0; i < r; i++) {
+		for (int j = 0; j < c; j++) {
+			res(i * c + j, 0) = v(i, j);
+		}
+	}
+	return res;
+}
+
+Eigen::MatrixXf simulator::inflate(const Eigen::MatrixXf& v, size_t col) {
+	assert(v.cols() == 1);
+	assert(v.rows() % col == 0);
+
+	int r = v.rows() / col;
+
+	Eigen::MatrixXf res(r, col);
+	for (int i = 0; i < r; i++) {
+		for (int j = 0; j < col; j++) {
+			res(i, j) = v(i * col + j, 0);
+		}
+	}
+	return res;
+}

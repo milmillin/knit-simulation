@@ -1,6 +1,8 @@
+#pragma once
 
 #include <functional>
 #include <Eigen/Core>
+#include <fstream>
 
 namespace simulator {
 
@@ -11,17 +13,23 @@ constexpr float SIMPSON_EPS = 1e-5;
 // subdivide : minimum subdivision
 float integrate(const std::function<float(float)>& f, float a, float b, int subdivide = 1, int maxDepth = 5);
 
-// Calculates Arc length of a Catmull-Rom Spline defined by 4 control points.
-// 
-// q : flattened coordinates #m x 1
-// index : index of x-coord of the first control point in q
-float catmullRomArcLength(const Eigen::MatrixXf& q, int index);
-
 // Sample a Catmul-Rom curve
 //
 // points: one row for each point coordinate
 // samplePerSegment: number of samples for each segment
 // Return: samples (one row for each point coordinate)
 Eigen::MatrixXf catmullRomSequenceSample(Eigen::MatrixXf points, int samplePerSegment);
+
+// Writes a matrix to a file in CSV format
+const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
+void writeMatrix(std::string filename, const Eigen::MatrixXf& q);
+
+// Reshapes #m x 3 matrix into a vector of (3 * #m) rows.
+// Returns a new matrix.
+Eigen::MatrixXf flatten(const Eigen::MatrixXf& v);
+
+// Reshapes a vector of (3 * #m) rows to a #m x 3 matrix.
+// Returns a new matrix.
+Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col = 3);
 
 }; // namespace simulator

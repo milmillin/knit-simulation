@@ -16,51 +16,6 @@
 
 namespace simulator {
 
-
-//////////////////////////////////////////////
-//
-// Helper Functions
-//
-
-const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
-void writeMatrix(std::string filename, const Eigen::MatrixXf& q) {
-	std::ofstream f;
-	f.open(filename);
-	f << q.format(CSVFormat) << "\n";
-	f.close();
-}
-
-// Reshapes #m x 3 matrix into a vector of (3 * #m) rows.
-// Returns a new matrix.
-Eigen::MatrixXf flatten(const Eigen::MatrixXf& v) {
-	Eigen::MatrixXf res(v.rows() * v.cols(), 1);
-	int r = v.rows();
-	int c = v.cols();
-	for (int i = 0; i < r; i++) {
-		for (int j = 0; j < c; j++) {
-			res(i * c + j, 0) = v(i, j);
-		}
-	}
-	return res;
-}
-
-// Reshapes a vector of (3 * #m) rows to a #m x 3 matrix.
-// Returns a new matrix.
-Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col) {
-	assert(v.cols() == 1);
-	assert(v.rows() % col == 0);
-
-	int r = v.rows() / col;
-
-	Eigen::MatrixXf res(r, col);
-	for (int i = 0; i < r; i++) {
-		for (int j = 0; j < col; j++) {
-			res(i, j) = v(i * col + j, 0);
-		}
-	}
-	return res;
-}
-
 //////////////////////////////////////////////
 //
 // Segment Length
@@ -79,13 +34,11 @@ void Simulator::calculateSegmentLength() {
 		// Note that the length is fixed throughout the simulation.
 
 		int index = i * 3;
-		DECLARE_POINTS(p, index)
+		DECLARE_POINTS2(p, q, index);
 
 		segmentLength[i] = coeff * integrate([&](float s)->float {
-			DECLARE_BASIS_D(b, s);
-			return sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4, 2) +
-				pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4, 2) +
-				pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4, 2));
+			DECLARE_BASIS_D2(bD, s);
+			return POINT_FROM_BASIS(p, bD).norm();
 			}, 0, 1);
 	}
 }
@@ -98,12 +51,10 @@ void Simulator::addSegmentLengthConstraint() {
 		float curSegmentLength = segmentLength[i];
 
     auto constraint = [=](const Eigen::MatrixXf& q)->float {
-      DECLARE_POINTS(p, index)
+			DECLARE_POINTS2(p, q, index);
       float currentLength = integrate([&](float s)->float {
-        DECLARE_BASIS_D(b, s);
-        return sqrt(pow(bD1 * px1 + bD2 * px2 + bD3 * px3 + bD4 * px4, 2) +
-          pow(bD1 * py1 + bD2 * py2 + bD3 * py3 + bD4 * py4, 2) +
-          pow(bD1 * pz1 + bD2 * pz2 + bD3 * pz3 + bD4 * pz4, 2));
+        DECLARE_BASIS_D2(bD, s);
+        return POINT_FROM_BASIS(p, bD).norm();
         }, 0, 1);
       return 1 - currentLength / curSegmentLength;
     };
@@ -430,7 +381,6 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 
 	// Resize to vector 3m x 1
 	q = flatten(q);
-	// q.resize(3 * m, 1); won't work because Column-major
 
 	// Initialize to zero
 	qD = Eigen::MatrixXf::Zero(3 * m, 1);
@@ -485,7 +435,6 @@ void Simulator::writeToFile() const {
 	writeMatrix("q-" + std::to_string(stepCnt) + ".csv", q);
 	writeMatrix("qD-" + std::to_string(stepCnt) + ".csv", qD);
 	writeMatrix("gradE-" + std::to_string(stepCnt) + ".csv", gradE);
-	//writeMatrix("contactE-" + std::to_string(stepCnt) + ".csv", contactE);
 }
 
 void Simulator::step() {
@@ -505,7 +454,7 @@ void Simulator::step() {
 	// yarns.yarns[0].points = inflate(q, 3);
 	std::lock_guard<std::mutex> lock(historyLock);
 	history.push_back(history.back().createAlike());
-	history.back().yarns[0].points = inflate(q, 3);
+	history.back().yarns[0].points = inflate(q);
 
 	writeToFile();
 
