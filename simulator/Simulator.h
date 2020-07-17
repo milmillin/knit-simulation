@@ -28,8 +28,7 @@ private:
   SimulatorParams params;
   int stepCnt;
   std::thread simulatorThread;
-
-  mutable std::mutex attrLock;
+  mutable std::mutex dataLock;
 
   // YarnRepr for each step
   std::vector<file_format::YarnRepr> history;
@@ -50,16 +49,14 @@ private:
 
   // gradient of positional energy
   Eigen::MatrixXf gradE;
-  mutable std::mutex gradELock;
-
-  // DEBUG: contact energy
-  Eigen::MatrixXf contactE;
 
   // gradient of damping energy
   Eigen::MatrixXf gradD;
 
   // external force
   Eigen::MatrixXf f;
+
+  mutable std::mutex gradLock;
 
   // constraints
   Constraints constraints;
@@ -77,24 +74,24 @@ private:
   void calculateGradient();
   void calculateBendingEnergyGradient(int i);
   void calculateLengthEnergyGradient(int i);
-  void calculateCollisionEnergyGradient(int i, int j);
+  void calculateCollisionGradient(int i, int j);
 
   void calculateGlobalDampingGradient(int i);
 
   void fastProjection();
 
-  // Simulates next timestep.
   void simulatorLoop();
   void step();
-  bool cancelToken = false;
+  bool cancelled_ = false;
   bool paused_ = false;
-  mutable std::mutex cancelTokenLock;
+
+  mutable std::mutex statusLock; 
   bool cancelled() const {
-    std::lock_guard<std::mutex> lock(cancelTokenLock);
-    return cancelToken;
+    std::lock_guard<std::mutex> lock(statusLock);
+    return cancelled_;
   }
   bool paused() const {
-    std::lock_guard<std::mutex> lock(cancelTokenLock);
+    std::lock_guard<std::mutex> lock(statusLock);
     return paused_;
   }
 public:
@@ -123,7 +120,7 @@ public:
   }
 
   void togglePause() {
-    std::lock_guard<std::mutex> lock(cancelTokenLock);
+    std::lock_guard<std::mutex> lock(statusLock);
     paused_ = !paused_;
     if (paused_) {
       log() << "Simulator Paused" << std::endl;

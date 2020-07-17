@@ -340,14 +340,9 @@ void Simulator::calculateGradient() {
 		ParallelWorker worker([this]()->bool { return cancelled(); });
 
     for (int i = 0; i < N; i++) {
-      //for (int j = i + 2; j < N; j++) {
-				//worker.addWork([this, i, j]() {
-					//calculateCollisionEnergyGradient(i, j);
-					//});
-      //}
 			worker.addWork([this, i, N]() {
 				for (int j = i + 2; j < N; j++) {
-					calculateCollisionEnergyGradient(i, j);
+					calculateCollisionGradient(i, j);
 				}
 				});
     }
@@ -465,9 +460,9 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : par
 
 Simulator::~Simulator() {
 	log() << "Waiting for the last step to complete" << std::endl;
-	cancelTokenLock.lock();
-	cancelToken = true;
-	cancelTokenLock.unlock();
+	statusLock.lock();
+	cancelled_ = true;
+	statusLock.unlock();
 	simulatorThread.join();
 	log() << "Simulator Destroyed" << std::endl;
 }
