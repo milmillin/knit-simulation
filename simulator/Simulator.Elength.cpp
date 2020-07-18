@@ -10,7 +10,6 @@ namespace simulator {
 
 void Simulator::calculateLengthEnergyGradient(int i) {
   int index = i * 3;
-  DECLARE_POINTS(p, index);
   DECLARE_POINTS2(p, q, index);
 
   float coefficient = params.kLen;
