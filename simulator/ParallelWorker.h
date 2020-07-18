@@ -32,9 +32,9 @@ public:
     reportInterval = m_workQueue.size() / 20;
     for (size_t i = 0; i < m_numThreads; ++i)
       m_threads.emplace_back(std::thread([this]() {
-      while (!blockingQueueEmpty() && !m_cancelled())
+      Proc workItem;
+      while (blockingPop(workItem) && !m_cancelled())
       {
-        Proc workItem = blockingPop();
         if (workItem) {
           workItem();
         }
@@ -57,19 +57,18 @@ private:
   std::function<bool(void)> m_cancelled;
   int reportInterval;
 
-  const Proc blockingPop() {
+  const bool blockingPop(Proc& res) {
     std::lock_guard<std::mutex> lock(m_queueLock);
     if (m_workQueue.size() % reportInterval == 0) {
       std::cout << "[ParallelWorker] " << m_workQueue.size() << " tasks remain" << std::endl;
     }
-    const Proc res = m_workQueue.front();
-    m_workQueue.pop();
-    return res;
-  }
 
-  bool blockingQueueEmpty() {
-    std::lock_guard<std::mutex> lock(m_queueLock);
-    return m_workQueue.empty();
+    if (!m_workQueue.empty()) {
+      res = m_workQueue.front();
+      m_workQueue.pop();
+      return true;
+    }
+    return false;
   }
 };
 
