@@ -17,7 +17,9 @@ namespace UI {
     this->callback_draw_viewer_menu = [&]() {
       // Based on 'ImGuiMenu::draw_viewer_menu'
       bool needRefresh = false;
+      bool invalidateCache = true;
       Viewer *yarnViewer = reinterpret_cast<Viewer*>(viewer);
+      simulator::SimulatorParams &params = yarnViewer->getParameters();
 
       // Mesh
       if (ImGui::CollapsingHeader("Yarn", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -104,6 +106,7 @@ namespace UI {
             &(yarnViewer->curveSamples),
             1, 1, 10)) {
           needRefresh = true;
+          invalidateCache = true;
         }
         ImGui::PopItemWidth();
       }
@@ -117,51 +120,53 @@ namespace UI {
       // === Simulator menu ===
       ImGui::Begin("Simulator", NULL, ImGuiWindowFlags_AlwaysAutoResize);
       if (ImGui::CollapsingHeader("Step##Menu", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::PushItemWidth(100);
-        ImGui::InputFloat("Time resolution", &(yarnViewer->simulator.params.h),
+        ImGui::PushItemWidth(200);
+        ImGui::Combo("Simulator class",
+                     reinterpret_cast<int*>(&yarnViewer->simulatorClass),
+                       "Simulator\0"
+                       "DescreteSimulator\0\0");
+        ImGui::Text("New class will be applied only after\nloading yarns again");
+        ImGui::InputFloat("Time resolution", &(params.h),
           0.00001, 0.001, "%.5f");
-        ImGui::InputInt("steps", &(yarnViewer->simulator.params.steps),
+        ImGui::InputInt("steps", &(params.steps),
           10, 100);
         ImGui::PopItemWidth();
-        ImGui::Checkbox("Debug mode", &(yarnViewer->simulator.params.debug));
+        ImGui::Checkbox("Debug mode", &(params.debug));
 
         if (ImGui::Button("Step", ImVec2(-1, 0))) {
-          reinterpret_cast<Viewer*>(viewer)->step();
+          yarnViewer->step();
           needRefresh = true;
         }
       }
 
       if (ImGui::CollapsingHeader("Fast projection", 0)) {
-        ImGui::PushItemWidth(100);
-        ImGui::InputFloat("Target Error", &(yarnViewer->simulator.params.fastProjErrorCutoff),
+        ImGui::PushItemWidth(200);
+        ImGui::InputFloat("Target Error", &(params.fastProjErrorCutoff),
           1e-6, 1e-3, "%.7f");
-        ImGui::InputInt("Max iterations", &(yarnViewer->simulator.params.fastProjMaxIter));
+        ImGui::InputInt("Max iterations", &(params.fastProjMaxIter));
         ImGui::PopItemWidth();
       }
 
       if (ImGui::CollapsingHeader("Constants", 0)) {
-        ImGui::PushItemWidth(100);
-        ImGui::InputFloat("Gravity", &(yarnViewer->simulator.params.gravity),
+        ImGui::PushItemWidth(200);
+        ImGui::InputFloat("Gravity", &(params.gravity),
           0.1, 1);
-        if (ImGui::InputFloat("Ground height", &(yarnViewer->simulator.params.groundHeight),
+        if (ImGui::InputFloat("Ground height", &(params.groundHeight),
             0.01, 0.1, "%.2f")) {
           needRefresh = true;
         }
-        ImGui::InputFloat("Ground fiction", &(yarnViewer->simulator.params.groundFiction),
+        ImGui::InputFloat("Ground fiction", &(params.groundFiction),
           0.01, 0.1, "%.2f");
-        ImGui::InputFloat("Contact force", &(yarnViewer->simulator.params.kContact),
+        ImGui::InputFloat("Contact force", &(params.kContact),
           100, 10, "%.1f");
-        ImGui::InputFloat("Length force", &(yarnViewer->simulator.params.kLen),
-          100, 10, "%.1f");
-        ImGui::InputFloat("Global damping", &(yarnViewer->simulator.params.kGlobal),
+        ImGui::InputFloat("Global damping", &(params.kGlobal),
           0.1, 1, "%.1f");
         ImGui::PopItemWidth();
       }
       ImGui::End();
 
-      // Refresh the mesh when config changes
       if (needRefresh) {
-        reinterpret_cast<Viewer*>(viewer)->refresh();
+        yarnViewer->refresh();
       }
     };
   }

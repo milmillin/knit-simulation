@@ -1,3 +1,5 @@
+#include "./BaseSimulator.h"
+
 #include <vector>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -8,7 +10,7 @@
 
 namespace simulator {
 
-class DiscreteSimulator {
+class DiscreteSimulator : public BaseSimulator {
  public:
   // Empty constructor
   DiscreteSimulator();
@@ -19,11 +21,8 @@ class DiscreteSimulator {
   // params_ : Simulation paramters
   DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParams params);
 
-  // Returns current yarns
-  const file_format::YarnRepr &getYarns() const { return this->yarns; };
-
   // Simulates next timestep.
-  void step();
+  void step() override;
 
   void applyGravity();
   void applyGroundVelocityFilter();
@@ -32,14 +31,12 @@ class DiscreteSimulator {
   void applyPinConstrain();
   void fastProjection();
   void applyGlobalDamping();
-  SimulatorParams params;
  private:
   // Velocity
   Eigen::MatrixXf dQ;
   // Acceleration
   Eigen::MatrixXf ddQ;
-  // Position and meta-data
-  file_format::YarnRepr yarns;
+
   // Rest Length for each segment
   std::vector<float> restLength;
 
