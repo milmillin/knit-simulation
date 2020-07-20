@@ -46,6 +46,7 @@ void AnimationManager::startAnimation() {
   {
     std::lock_guard<std::mutex> lock(_statusLock);
     _animationRunning = true;
+    _parent->setAnimationMode(true);
   }
   _statusChanged.notify_all();
 }
@@ -54,6 +55,7 @@ void AnimationManager::stopAnimation() {
   {
     std::lock_guard<std::mutex> lock(_statusLock);
     _animationRunning = false;
+    _parent->setAnimationMode(false);
   }
   _statusChanged.notify_all();
 }
