@@ -27,8 +27,11 @@ class Viewer : igl::opengl::glfw::Viewer {
     const std::string &name = "GRAIL Knit Simulator", int width = 0, int height = 0);
   void refresh();
   void loadYarn(std::string filename);
+
+  void setAnimationMode(bool animating);
   void nextFrame();
   void prevFrame();
+
   simulator::BaseSimulator* simulator() const { return _simulator.get(); }
   inline simulator::SimulatorParams &getParameters() {
     return _simulator.get()->params;

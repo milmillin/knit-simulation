@@ -5,6 +5,8 @@
 #include <iostream>
 #include <string>
 
+constexpr int inputBoxWidth = 200;
+
 namespace UI {
   bool Menu::load(std::string filename) {
     reinterpret_cast<Viewer*>(viewer)->loadYarn(filename);
@@ -121,7 +123,7 @@ namespace UI {
       ImGui::Begin("Simulator", NULL, ImGuiWindowFlags_AlwaysAutoResize);
       if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::PushID("Animation");
-          ImGui::PushItemWidth(200);
+          ImGui::PushItemWidth(inputBoxWidth);
             ImGui::Combo("Simulator class",
                         reinterpret_cast<int*>(&yarnViewer->simulatorClass),
                           "Simulator\0"
@@ -176,34 +178,36 @@ namespace UI {
               yarnViewer->history().goToEnd();
               needRefresh = true;
             }
-            ImGui::InputInt("replay frame interval(ms)", &(yarnViewer->animationPlaybackInterval),
-              10, 100);
+            ImGui::PushItemWidth(inputBoxWidth);
+              ImGui::InputInt("replay frame interval(ms)", &(yarnViewer->animationPlaybackInterval),
+                10, 100);
+            ImGui::PopItemWidth();
           ImGui::PopID();;
         ImGui::PopID();;
       }
 
       if (ImGui::CollapsingHeader("Fast projection", 0)) {
-        ImGui::PushItemWidth(200);
-        ImGui::InputFloat("Target Error", &(params.fastProjErrorCutoff),
-          1e-6, 1e-3, "%.7f");
-        ImGui::InputInt("Max iterations", &(params.fastProjMaxIter));
+        ImGui::PushItemWidth(inputBoxWidth);
+          ImGui::InputFloat("Target Error", &(params.fastProjErrorCutoff),
+            1e-6, 1e-3, "%.7f");
+          ImGui::InputInt("Max iterations", &(params.fastProjMaxIter));
         ImGui::PopItemWidth();
       }
 
       if (ImGui::CollapsingHeader("Constants", 0)) {
-        ImGui::PushItemWidth(200);
-        ImGui::InputFloat("Gravity", &(params.gravity),
-          0.1, 1);
-        if (ImGui::InputFloat("Ground height", &(params.groundHeight),
-            0.01, 0.1, "%.2f")) {
-          needRefresh = true;
-        }
-        ImGui::InputFloat("Ground fiction", &(params.groundFiction),
-          0.01, 0.1, "%.2f");
-        ImGui::InputFloat("Contact force", &(params.kContact),
-          100, 10, "%.1f");
-        ImGui::InputFloat("Global damping", &(params.kGlobal),
-          0.1, 1, "%.1f");
+        ImGui::PushItemWidth(inputBoxWidth);
+          ImGui::InputFloat("Gravity", &(params.gravity),
+            0.1, 1);
+          if (ImGui::InputFloat("Ground height", &(params.groundHeight),
+              0.01, 0.1, "%.2f")) {
+            needRefresh = true;
+          }
+          ImGui::InputFloat("Ground fiction", &(params.groundFiction),
+            0.01, 0.1, "%.2f");
+          ImGui::InputFloat("Contact force", &(params.kContact),
+            100, 10, "%.1f");
+          ImGui::InputFloat("Global damping", &(params.kGlobal),
+            0.1, 1, "%.1f");
         ImGui::PopItemWidth();
       }
       ImGui::End();
