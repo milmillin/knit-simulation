@@ -10,7 +10,7 @@ namespace simulator
 class BaseSimulator {
  public:
   // Returns current yarns
-  virtual const file_format::YarnRepr &getYarns() const { return this->yarns; };
+  virtual const file_format::YarnRepr &getYarns() = 0;
 
   // Simulates next timestep.
   virtual void step() = 0;

@@ -16,6 +16,13 @@
 
 namespace simulator {
 
+
+const file_format::YarnRepr &Simulator::getYarns() {
+	yarns.yarns[0].points = inflate(q);
+	return yarns;
+}
+
+
 //////////////////////////////////////////////
 //
 // Segment Length

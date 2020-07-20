@@ -10,6 +10,9 @@
 
 namespace UI {
 
+Viewer::Viewer() : _history(new HistoryManager(this)) {
+}
+
 int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int width, int height) {
   // Add menu
   _menu.reset(new Menu());
@@ -35,7 +38,7 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 
 void Viewer::refresh() {
   // Get yarn shape
-  const file_format::YarnRepr &yarns = _simulator.get()->getYarns();
+  const file_format::YarnRepr &yarns = _history.get()->curentFrame();
   const simulator::SimulatorParams &params = _simulator.get()->params;
 
   // Draw ground
@@ -131,7 +134,30 @@ void Viewer::loadYarn(std::string filename) {
     assert(false && "Invalid simulator class");
     break;
   }
+
+  // Reset history
+  _history.reset(new HistoryManager(this));
+  _history.get()->addFrame(yarnsRepr);
+
   this->refresh();
+}
+
+void Viewer::nextFrame() {
+  HistoryManager &history = *_history.get(); 
+  if (!history.hasNext()) {
+    _simulator.get()->step();
+    history.addFrame(_simulator.get()->getYarns());
+  }
+  history.next();
+  refresh();
+}
+
+void Viewer::prevFrame() {
+  HistoryManager &history = *_history.get(); 
+  if (history.hasPrev()) {
+    history.prev();
+    refresh();
+  }
 }
 
 } // namespace UI

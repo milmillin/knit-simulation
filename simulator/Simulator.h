@@ -65,6 +65,9 @@ private:
 
   std::ostream& log() const;
 
+  // Returns current yarns
+  virtual const file_format::YarnRepr &getYarns() override;
+
   void calculateSegmentLength();
   void addSegmentLengthConstraint();
 
@@ -109,24 +112,6 @@ public:
   file_format::YarnRepr getYarns(int i) const {
     std::lock_guard<std::mutex> lock(historyLock);
     return history[i]; 
-  }
-
-  // Returns the number of steps.
-  // Returns 1 when `step()` has not been called.
-  int numStep() const {
-    std::lock_guard<std::mutex> lock(historyLock);
-    return (int)history.size();
-  }
-
-  void togglePause() {
-    std::lock_guard<std::mutex> lock(statusLock);
-    paused_ = !paused_;
-    if (paused_) {
-      log() << "Simulator Paused" << std::endl;
-    }
-    else {
-      log() << "Simulator Resumed" << std::endl;
-    }
   }
 
   // Gets a reference to constraint container

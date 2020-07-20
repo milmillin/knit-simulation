@@ -9,22 +9,23 @@
 #include <map>
 
 #include "./menu.h"
+#include "./HistoryManager.h"
 #include "../simulator/BaseSimulator.h"
 
 namespace UI {
 
 class Menu;
+class HistoryManager;
 
 class Viewer : igl::opengl::glfw::Viewer {
  public:
-  Viewer() {}
+  Viewer();
   int launch(bool resizable = true, bool fullscreen = false,
     const std::string &name = "GRAIL Knit Simulator", int width = 0, int height = 0);
   void refresh();
   void loadYarn(std::string filename);
-  inline void step() {
-    _simulator->step();
-  }
+  void nextFrame();
+  void prevFrame();
   simulator::BaseSimulator* simulator() const { return _simulator.get(); }
   inline simulator::SimulatorParams &getParameters() {
     return _simulator.get()->params;
@@ -40,9 +41,12 @@ class Viewer : igl::opengl::glfw::Viewer {
     Discrete = 1
   } simulatorClass = Contenious;
 
+  const HistoryManager& history() {return *_history.get();}
+
  private:
   std::unique_ptr<Menu> _menu;
   std::unique_ptr<simulator::BaseSimulator> _simulator;
+  std::unique_ptr<HistoryManager> _history;
 };
 
 }  // namespace UI

@@ -21,6 +21,9 @@ class DiscreteSimulator : public BaseSimulator {
   // params_ : Simulation paramters
   DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParams params);
 
+  // Returns current yarns
+  virtual const file_format::YarnRepr &getYarns() override { return this->yarns; };
+
   // Simulates next timestep.
   void step() override;
 

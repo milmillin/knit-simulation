@@ -128,14 +128,19 @@ namespace UI {
         ImGui::Text("New class will be applied only after\nloading yarns again");
         ImGui::InputFloat("Time resolution", &(params.h),
           0.00001, 0.001, "%.5f");
-        ImGui::InputInt("steps", &(params.steps),
+        ImGui::InputInt("steps per frame", &(params.steps),
           10, 100);
         ImGui::PopItemWidth();
         ImGui::Checkbox("Debug mode", &(params.debug));
-
-        if (ImGui::Button("Step", ImVec2(-1, 0))) {
-          yarnViewer->step();
-          needRefresh = true;
+        ImGui::Text("Frame %d of %d",
+                    yarnViewer->history().currentFrameNumber() + 1,
+                    yarnViewer->history().totalFrameNumber());
+        if (ImGui::Button("Prev")) {
+          yarnViewer->prevFrame();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Next")) {
+          yarnViewer->nextFrame();
         }
       }
 
