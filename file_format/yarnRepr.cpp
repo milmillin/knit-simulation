@@ -10,7 +10,7 @@
 namespace file_format {
 
 YarnRepr::YarnRepr(file_format::Yarns::Yarns yarns) {
-  for (auto yarn : yarns.yarns) {
+  for (auto& yarn : yarns.yarns) {
     int nPoints = yarn.points.size();
 
     // Construct point list
@@ -30,6 +30,18 @@ YarnRepr::YarnRepr(file_format::Yarns::Yarns yarns) {
     // Save
     this->yarns.push_back(internalYarn);
   }
+}
+
+YarnRepr YarnRepr::createAlike() const {
+  YarnRepr res;
+  res.yarns.reserve(yarns.size());
+  for (const Yarn& yarn : yarns) {
+    Yarn internalYarn;
+    internalYarn.color = yarn.color;
+    internalYarn.radius = yarn.radius;
+    res.yarns.push_back(internalYarn);
+  }
+  return res;
 }
 
 }  // namespace file_format

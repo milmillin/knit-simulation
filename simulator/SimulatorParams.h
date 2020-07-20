@@ -9,7 +9,7 @@ struct SimulatorParams {
 
   float r = 0.125f;
   float m = 0.006f;
-  float kLen= 10000.f;
+  float kLen = 10000.f;
   float kBend = 0.005f;
   // Global damping
   float kGlobal = 1.5f;
@@ -29,6 +29,8 @@ struct SimulatorParams {
   float groundHeight = -5.f;
   // Ground fiction
   float groundFiction = 0.5f;
+
+  float cInit = 0.935f;
 
   // === Fast projection ===
   // maximum iteration

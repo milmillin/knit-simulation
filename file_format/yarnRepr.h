@@ -26,6 +26,8 @@ class YarnRepr {
   YarnRepr() {}
   // Convert `.yarns` file to internal representation
   YarnRepr(file_format::Yarns::Yarns yarns);
+  // Clone YarnRepr without cloning points
+  YarnRepr createAlike() const;
 
   // Stores a list of yarns
   std::vector<Yarn> yarns;

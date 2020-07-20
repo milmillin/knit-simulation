@@ -5,6 +5,8 @@
 #include "../file_format/yarns.h"
 #include "../file_format/yarnRepr.h"
 #include "../simulator/Helper.h"
+#include "../simulator/Simulator.h"
+#include "../simulator/DiscreteSimulator.h"
 
 namespace UI {
 
@@ -14,7 +16,7 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
   this->plugins.push_back(_menu.get());
 
   // Start trackball mode (allow panning)
-  this->core().set_rotation_type(igl::opengl::ViewerCore::ROTATION_TYPE_TRACKBALL);
+  this->core().set_rotation_type(igl::opengl::ViewerCore::ROTATION_TYPE_TWO_AXIS_VALUATOR_FIXED_UP);
 
   // Disable wireframe display
   this->data().show_lines = 0;
@@ -32,21 +34,27 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 }
 
 void Viewer::refresh() {
-
   // Get yarn shape
-  const file_format::YarnRepr yarns = simulator.getYarns();
+  const file_format::YarnRepr &yarns = _simulator.get()->getYarns();
+  const simulator::SimulatorParams &params = _simulator.get()->params;
 
+  // Draw ground
   this->selected_data_index = 0;
   Eigen::MatrixXf groundPoints(4, 3);
-  groundPoints << 10, simulator.params.groundHeight, 10,
-    10, simulator.params.groundHeight, -10,
-    -10, simulator.params.groundHeight, -10,
-    -10, simulator.params.groundHeight, 10;
+  groundPoints << 10, params.groundHeight, 10,
+    10, params.groundHeight, -10,
+    -10, params.groundHeight, -10,
+    -10, params.groundHeight, 10;
   Eigen::MatrixXi groundTrianges(2, 3);
   groundTrianges << 2, 0, 1,
     3, 0, 2;
+  this->data().clear();
   this->data().set_mesh(groundPoints.cast<double>(), groundTrianges);
-  this->data_list.push_back(igl::opengl::ViewerData());
+
+  // Create new mesh
+  while (this->data_list.size() <= yarns.yarns.size()) {
+    this->data_list.push_back(igl::opengl::ViewerData());
+  }
 
   for (int i = 0; i < yarns.yarns.size(); i++) {
     // Clear old mesh
@@ -83,6 +91,7 @@ void Viewer::refresh() {
           E, Eigen::RowVector3d(1, 1, 1));
     }
 
+    // Set vertex labels
     std::vector<std::string> labels;
     for (int i = 0; i < yarn.points.rows(); i++) {
       labels.push_back(std::to_string(i));
@@ -103,9 +112,25 @@ void Viewer::loadYarn(std::string filename) {
     std::cout << e.what() << std::endl;
   }
 
+  file_format::YarnRepr yarnsRepr(yarns);
+  simulator::SimulatorParams params;
   // Update simulator
-  simulator = simulator::DiscreteSimulator(file_format::YarnRepr(yarns),
-    simulator::SimulatorParams::Default());
+  switch (simulatorClass)
+  {
+  case SimulatorClass::Contenious:
+    std::cout << "Using contenious simulator" << std::endl;
+    _simulator.reset(new simulator::Simulator(yarnsRepr, params));
+    break;
+
+  case SimulatorClass::Discrete:
+    std::cout << "Using discrete simulator" << std::endl;
+    _simulator.reset(new simulator::DiscreteSimulator(yarnsRepr, params));
+    break;
+
+  default:
+    assert(false && "Invalid simulator class");
+    break;
+  }
   this->refresh();
 }
 
