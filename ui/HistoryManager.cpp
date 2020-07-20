@@ -2,6 +2,11 @@
 
 namespace UI {
 
+HistoryManager::HistoryManager(Viewer *parent, const file_format::YarnRepr &firstFrame)
+    : _parent(parent) {
+  _history.push_back(firstFrame);
+}
+
 bool HistoryManager::hasNext() const {
   return _currentFrame < _history.size() - 1;
 }
@@ -11,17 +16,26 @@ bool HistoryManager::hasPrev() const {
 }
 
 void HistoryManager::next() {
+  std::lock_guard<std::mutex> guard(_lock);
   if (hasNext()) {
     _currentFrame++;
   }
 }
 
 void HistoryManager::prev() {
+  std::lock_guard<std::mutex> guard(_lock);
   if (hasPrev()) {
     _currentFrame--;
   }
 }
-void HistoryManager::end() {
+
+void HistoryManager::goToStart() {
+  std::lock_guard<std::mutex> guard(_lock);
+  _currentFrame = 0;
+}
+
+void HistoryManager::goToEnd() {
+  std::lock_guard<std::mutex> guard(_lock);
   _currentFrame = _history.size() - 1;
 }
 
@@ -34,8 +48,9 @@ int HistoryManager::totalFrameNumber() const {
 }
 
 void HistoryManager::addFrame(const file_format::YarnRepr &yarn) {
+  std::lock_guard<std::mutex> guard(_lock);
   _history.push_back(yarn);
-  next();
+  _currentFrame++;
 }
 
 const file_format::YarnRepr& HistoryManager::curentFrame() {

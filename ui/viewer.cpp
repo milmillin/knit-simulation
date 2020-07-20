@@ -10,7 +10,10 @@
 
 namespace UI {
 
-Viewer::Viewer() : _history(new HistoryManager(this)) {
+Viewer::Viewer()
+    : _simulator(new simulator::Simulator()),
+      _history(new HistoryManager(this, file_format::YarnRepr())),
+      _animationManager(new AnimationManager(this)) {
 }
 
 int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int width, int height) {
@@ -37,6 +40,8 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 }
 
 void Viewer::refresh() {
+  std::lock_guard<std::mutex> guard(_refreshLock);
+
   // Get yarn shape
   const file_format::YarnRepr &yarns = _history.get()->curentFrame();
   const simulator::SimulatorParams &params = _simulator.get()->params;
@@ -136,28 +141,21 @@ void Viewer::loadYarn(std::string filename) {
   }
 
   // Reset history
-  _history.reset(new HistoryManager(this));
-  _history.get()->addFrame(yarnsRepr);
+  _history.reset(new HistoryManager(this, yarnsRepr));
 
   this->refresh();
 }
 
 void Viewer::nextFrame() {
   HistoryManager &history = *_history.get(); 
-  if (!history.hasNext()) {
-    _simulator.get()->step();
-    history.addFrame(_simulator.get()->getYarns());
-  }
   history.next();
   refresh();
 }
 
 void Viewer::prevFrame() {
   HistoryManager &history = *_history.get(); 
-  if (history.hasPrev()) {
-    history.prev();
-    refresh();
-  }
+  history.prev();
+  refresh();
 }
 
 } // namespace UI

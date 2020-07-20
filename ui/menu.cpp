@@ -119,29 +119,67 @@ namespace UI {
 
       // === Simulator menu ===
       ImGui::Begin("Simulator", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-      if (ImGui::CollapsingHeader("Step##Menu", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::PushItemWidth(200);
-        ImGui::Combo("Simulator class",
-                     reinterpret_cast<int*>(&yarnViewer->simulatorClass),
-                       "Simulator\0"
-                       "DescreteSimulator\0\0");
-        ImGui::Text("New class will be applied only after\nloading yarns again");
-        ImGui::InputFloat("Time resolution", &(params.h),
-          0.00001, 0.001, "%.5f");
-        ImGui::InputInt("steps per frame", &(params.steps),
-          10, 100);
-        ImGui::PopItemWidth();
-        ImGui::Checkbox("Debug mode", &(params.debug));
-        ImGui::Text("Frame %d of %d",
-                    yarnViewer->history().currentFrameNumber() + 1,
-                    yarnViewer->history().totalFrameNumber());
-        if (ImGui::Button("Prev")) {
-          yarnViewer->prevFrame();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Next")) {
-          yarnViewer->nextFrame();
-        }
+      if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::PushID("Animation");
+          ImGui::PushItemWidth(200);
+            ImGui::Combo("Simulator class",
+                        reinterpret_cast<int*>(&yarnViewer->simulatorClass),
+                          "Simulator\0"
+                          "DescreteSimulator\0\0");
+            ImGui::Text("New class will be applied only after\nloading yarns again");
+            
+            ImGui::InputFloat("Time resolution", &(params.h),
+              0.00001, 0.001, "%.5f");
+            ImGui::InputInt("steps per frame", &(params.steps),
+              10, 100);
+          ImGui::PopItemWidth();
+          ImGui::Checkbox("Debug mode", &(params.debug));
+
+          if (yarnViewer->animationManager().isSimulationRunning()) {
+            if (ImGui::Button("Stop Simulation")) {
+              yarnViewer->animationManager().stopSimulation();
+            }
+          } else {
+            if (ImGui::Button("Start Simulation")) {
+              yarnViewer->animationManager().startSimulation();
+            }
+          }
+          
+          ImGui::PushID("Player");
+            ImGui::Text("Frame %d of %d",
+                        yarnViewer->history().currentFrameNumber() + 1,
+                        yarnViewer->history().totalFrameNumber());
+            if (ImGui::Button("First")) {
+              yarnViewer->history().goToStart();
+              needRefresh = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Prev")) {
+              yarnViewer->prevFrame();
+            }
+            ImGui::SameLine();
+            if (yarnViewer->animationManager().isAnimationRunning()) {
+              if (ImGui::Button("Pause")) {
+                yarnViewer->animationManager().stopAnimation();
+              }
+            } else {
+              if (ImGui::Button("Play")) {
+                yarnViewer->animationManager().startAnimation();
+              }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Next")) {
+              yarnViewer->nextFrame();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Last")) {
+              yarnViewer->history().goToEnd();
+              needRefresh = true;
+            }
+            ImGui::InputInt("replay frame interval(ms)", &(yarnViewer->animationPlaybackInterval),
+              10, 100);
+          ImGui::PopID();;
+        ImGui::PopID();;
       }
 
       if (ImGui::CollapsingHeader("Fast projection", 0)) {

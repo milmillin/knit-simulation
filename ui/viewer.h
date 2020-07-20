@@ -7,15 +7,18 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <mutex>
 
 #include "./menu.h"
 #include "./HistoryManager.h"
+#include "./AnimationManager.h"
 #include "../simulator/BaseSimulator.h"
 
 namespace UI {
 
 class Menu;
 class HistoryManager;
+class AnimationManager;
 
 class Viewer : igl::opengl::glfw::Viewer {
  public:
@@ -35,18 +38,23 @@ class Viewer : igl::opengl::glfw::Viewer {
   int circleSamples = 8;
   // Number of samples for Catmull-Rom curve
   int curveSamples = 1;
+  // Animation playback interval (millisecond)
+  int animationPlaybackInterval = 1000/10;
   // Type of simulator to use
   enum SimulatorClass {
     Contenious = 0,
     Discrete = 1
   } simulatorClass = Contenious;
 
-  const HistoryManager& history() {return *_history.get();}
+  HistoryManager& history() {return *_history.get();}
+  AnimationManager& animationManager() {return *_animationManager.get();}
 
  private:
   std::unique_ptr<Menu> _menu;
   std::unique_ptr<simulator::BaseSimulator> _simulator;
   std::unique_ptr<HistoryManager> _history;
+  std::unique_ptr<AnimationManager> _animationManager;
+  std::mutex _refreshLock;
 };
 
 }  // namespace UI
