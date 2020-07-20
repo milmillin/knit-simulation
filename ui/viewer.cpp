@@ -158,4 +158,8 @@ void Viewer::prevFrame() {
   refresh();
 }
 
+void Viewer::setAnimationMode(bool animating) {
+  core().is_animating = animating;
+}
+
 } // namespace UI
