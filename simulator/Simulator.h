@@ -5,6 +5,7 @@
 #include "../file_format/yarnRepr.h"
 #include "./macros.h"
 #include "./ParallelWorker.h"
+#include "./BaseSimulator.h"
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -12,7 +13,7 @@
 #include <mutex>
 #include <thread>
 
-namespace simulator {
+namespace simulator{
 
 // Simulator contains all yarn simulation functionalities
 //
@@ -20,12 +21,10 @@ namespace simulator {
 // denoted by q[i], i from 0 to m - 1. Each segment is governed by
 // 4 control points, so there are #N = #m - 3 segments (0-indexed).
 // segment[i] is governed by q[i], q[i + 1], q[i + 2], q[i + 3].
-class Simulator {
+class Simulator : public BaseSimulator {
 private:
   // simulator attributes
   size_t m;
-  file_format::YarnRepr yarns;
-  SimulatorParams params;
   int stepCnt;
   std::thread simulatorThread;
   mutable std::mutex dataLock;
@@ -65,6 +64,9 @@ private:
   void writeToFile() const;
 
   std::ostream& log() const;
+
+  // Returns current yarns
+  virtual const file_format::YarnRepr &getYarns() override;
 
   void calculateSegmentLength();
   void addSegmentLengthConstraint();
@@ -110,24 +112,6 @@ public:
   file_format::YarnRepr getYarns(int i) const {
     std::lock_guard<std::mutex> lock(historyLock);
     return history[i]; 
-  }
-
-  // Returns the number of steps.
-  // Returns 1 when `step()` has not been called.
-  int numStep() const {
-    std::lock_guard<std::mutex> lock(historyLock);
-    return (int)history.size();
-  }
-
-  void togglePause() {
-    std::lock_guard<std::mutex> lock(statusLock);
-    paused_ = !paused_;
-    if (paused_) {
-      log() << "Simulator Paused" << std::endl;
-    }
-    else {
-      log() << "Simulator Resumed" << std::endl;
-    }
   }
 
   // Gets a reference to constraint container

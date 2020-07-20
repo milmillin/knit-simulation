@@ -16,6 +16,13 @@
 
 namespace simulator {
 
+
+const file_format::YarnRepr &Simulator::getYarns() {
+	yarns.yarns[0].points = inflate(q);
+	return yarns;
+}
+
+
 //////////////////////////////////////////////
 //
 // Segment Length
@@ -225,9 +232,10 @@ void Simulator::fastProjection() {
 // Simulator implementation
 //
 
-Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : params(params_), constraints(0), stepCnt(0) {
+Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : constraints(0), stepCnt(0) {
 	log() << "Initializing Simulator" << std::endl;
 	this->yarns = yarns;
+	this->params = params_;
 	if (yarns.yarns.size() > 0) {
 		q = yarns.yarns[0].points;
 	}

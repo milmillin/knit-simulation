@@ -16,10 +16,10 @@ namespace UI {
 
     this->callback_draw_viewer_menu = [&]() {
       // Based on 'ImGuiMenu::draw_viewer_menu'
-
-      Viewer* myviewer = reinterpret_cast<Viewer*>(viewer);
       bool needRefresh = false;
-      bool invalidateCache = false;
+      bool invalidateCache = true;
+      Viewer *yarnViewer = reinterpret_cast<Viewer*>(viewer);
+      simulator::SimulatorParams &params = yarnViewer->getParameters();
 
       // Mesh
       if (ImGui::CollapsingHeader("Yarn", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -92,17 +92,18 @@ namespace UI {
         }
         make_checkbox("Show overlay", viewer->data().show_overlay);
         make_checkbox("Show overlay depth", viewer->data().show_overlay_depth);
+        ImGui::Checkbox("Show control point labels", &(viewer->data().show_labels));
         ImGui::ColorEdit4("Background color", viewer->core().background_color.data(),
             ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel);
         ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
         ImGui::DragFloat("Shininess", &(viewer->data().shininess), 0.05f, 0.0f, 100.0f);
         if (ImGui::DragInt("Cross-section samples",
-            &(reinterpret_cast<Viewer*>(viewer)->circleSamples),
+            &(yarnViewer->circleSamples),
             1, 4, 10)) {
           needRefresh = true;
         }
         if (ImGui::DragInt("Curve samples",
-            &(reinterpret_cast<Viewer*>(viewer)->curveSamples),
+            &(yarnViewer->curveSamples),
             1, 1, 10)) {
           needRefresh = true;
           invalidateCache = true;
@@ -116,40 +117,99 @@ namespace UI {
         make_checkbox("Fill", viewer->data().show_faces);
       }
 
+      // === Simulator menu ===
+      ImGui::Begin("Simulator", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+      if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::PushID("Animation");
+          ImGui::PushItemWidth(200);
+            ImGui::Combo("Simulator class",
+                        reinterpret_cast<int*>(&yarnViewer->simulatorClass),
+                          "Simulator\0"
+                          "DescreteSimulator\0\0");
+            ImGui::Text("New class will be applied only after\nloading yarns again");
+            
+            ImGui::InputFloat("Time resolution", &(params.h),
+              0.00001, 0.001, "%.5f");
+            ImGui::InputInt("steps per frame", &(params.steps),
+              10, 100);
+          ImGui::PopItemWidth();
+          ImGui::Checkbox("Debug mode", &(params.debug));
 
-      // Add simulator menu
-      if (ImGui::CollapsingHeader("Simulator", ImGuiTreeNodeFlags_DefaultOpen)) {
-        /*
-        if (ImGui::Button("Step", ImVec2(-1, 0))) {
-          myviewer->step();
-          myviewer->viewNext();
-          needRefresh = true;
-        }
-        */
-        if (ImGui::Button("Pause/Resume", ImVec2(-1, 0))) {
-          myviewer->simulator()->togglePause();
-        }
-
-        ImGui::Text("Viewing %d of %d\n", myviewer->currentStep + 1, myviewer->simulator()->numStep());
-
-        if (ImGui::Button("View Prev", ImVec2(-1, 0))) {
-          needRefresh = needRefresh || myviewer->viewPrev();
-        }
-        if (ImGui::Button("View Next", ImVec2(-1, 0))) {
-          needRefresh = needRefresh || myviewer->viewNext();
-        }
-        if (ImGui::Button("View First", ImVec2(-1, 0))) {
-          myviewer->currentStep = 0;
-          needRefresh = true;
-        }
+          if (yarnViewer->animationManager().isSimulationRunning()) {
+            if (ImGui::Button("Stop Simulation")) {
+              yarnViewer->animationManager().stopSimulation();
+            }
+          } else {
+            if (ImGui::Button("Start Simulation")) {
+              yarnViewer->animationManager().startSimulation();
+            }
+          }
+          
+          ImGui::PushID("Player");
+            ImGui::Text("Frame %d of %d",
+                        yarnViewer->history().currentFrameNumber() + 1,
+                        yarnViewer->history().totalFrameNumber());
+            if (ImGui::Button("First")) {
+              yarnViewer->history().goToStart();
+              needRefresh = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Prev")) {
+              yarnViewer->prevFrame();
+            }
+            ImGui::SameLine();
+            if (yarnViewer->animationManager().isAnimationRunning()) {
+              if (ImGui::Button("Pause")) {
+                yarnViewer->animationManager().stopAnimation();
+              }
+            } else {
+              if (ImGui::Button("Play")) {
+                yarnViewer->animationManager().startAnimation();
+              }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Next")) {
+              yarnViewer->nextFrame();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Last")) {
+              yarnViewer->history().goToEnd();
+              needRefresh = true;
+            }
+            ImGui::InputInt("replay frame interval(ms)", &(yarnViewer->animationPlaybackInterval),
+              10, 100);
+          ImGui::PopID();;
+        ImGui::PopID();;
       }
 
-      // Refresh the mesh when config changes
-      if (invalidateCache) {
-        myviewer->clearCache();
+      if (ImGui::CollapsingHeader("Fast projection", 0)) {
+        ImGui::PushItemWidth(200);
+        ImGui::InputFloat("Target Error", &(params.fastProjErrorCutoff),
+          1e-6, 1e-3, "%.7f");
+        ImGui::InputInt("Max iterations", &(params.fastProjMaxIter));
+        ImGui::PopItemWidth();
       }
+
+      if (ImGui::CollapsingHeader("Constants", 0)) {
+        ImGui::PushItemWidth(200);
+        ImGui::InputFloat("Gravity", &(params.gravity),
+          0.1, 1);
+        if (ImGui::InputFloat("Ground height", &(params.groundHeight),
+            0.01, 0.1, "%.2f")) {
+          needRefresh = true;
+        }
+        ImGui::InputFloat("Ground fiction", &(params.groundFiction),
+          0.01, 0.1, "%.2f");
+        ImGui::InputFloat("Contact force", &(params.kContact),
+          100, 10, "%.1f");
+        ImGui::InputFloat("Global damping", &(params.kGlobal),
+          0.1, 1, "%.1f");
+        ImGui::PopItemWidth();
+      }
+      ImGui::End();
+
       if (needRefresh) {
-        myviewer->refresh();
+        yarnViewer->refresh();
       }
     };
   }
