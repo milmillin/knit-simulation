@@ -59,11 +59,11 @@ private:
 
   const bool blockingPop(Proc& res) {
     std::lock_guard<std::mutex> lock(m_queueLock);
-    if (m_workQueue.size() % reportInterval == 0) {
-      std::cout << "[ParallelWorker] " << m_workQueue.size() << " tasks remain" << std::endl;
-    }
-
     if (!m_workQueue.empty()) {
+      if (m_workQueue.size() % reportInterval == 0) {
+        std::cout << "[ParallelWorker] " << m_workQueue.size() << " tasks remain" << std::endl;
+      }
+
       res = m_workQueue.front();
       m_workQueue.pop();
       return true;
