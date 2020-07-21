@@ -87,3 +87,15 @@
   (matrix)((index), 0) = point.x; \
   (matrix)((index), 1) = point.y; \
   (matrix)((index), 2) = point.z;
+
+// Add a row in the matrix by a vector
+#define ADD_TO_ROW(matrix, index, point) \
+  (matrix)((index), 0) += point.x; \
+  (matrix)((index), 1) += point.y; \
+  (matrix)((index), 2) += point.z;
+
+// Subtract a row in the matrix by a vector
+#define SUBTRACT_FROM_ROW(matrix, index, point) \
+  (matrix)((index), 0) -= point.x; \
+  (matrix)((index), 1) -= point.y; \
+  (matrix)((index), 2) -= point.z;

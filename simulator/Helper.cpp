@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
+#include <vector>
+
 #include "macros.h"
 
 //static float simpson(const std::function<float(float)>& f, float a, float b) {
@@ -32,12 +34,17 @@ static float integrateImpl(const std::function<float(float)>& f, float a, float 
 }
 
 
-// Helper function for `catmullRowSample`
-static inline glm::vec3 bezierTerm(float t0, float t1, float t, glm::vec3& p0, glm::vec3& p1) {
-  return (t1 - t) / (t1 - t0) * p0 + (t - t0) / (t1 - t0) * p1;
+
+glm::vec3 simulator::catmullRomSample(const Eigen::MatrixXf &controlPoints, int index, float s) {
+  glm::vec3 c0 = POINT_FROM_ROW(controlPoints, index);
+  glm::vec3 c1 = POINT_FROM_ROW(controlPoints, index + 1);
+  glm::vec3 c2 = POINT_FROM_ROW(controlPoints, index + 2);
+  glm::vec3 c3 = POINT_FROM_ROW(controlPoints, index + 3);
+
+  return simulator::b1(s) * c0 + simulator::b2(s) * c1 + simulator::b3(s) * c2 + simulator::b4(s) * c3;
 }
 
-// Generate samples on a catmull-row curve
+// Generate samples on a catmull-rom curve
 // Helper function for `catmullRomSequenceSample`
 //
 // controlPoints: one row per control points
@@ -48,27 +55,14 @@ static inline glm::vec3 bezierTerm(float t0, float t1, float t, glm::vec3& p0, g
 static inline void catmullRowSample
     (const Eigen::MatrixXf &controlPoints, int controlStartRow, int nSamples,
     Eigen::MatrixXf *samples, int samplesStartRow) {
-  glm::vec3 p0 = POINT_FROM_ROW(controlPoints, controlStartRow);
-  glm::vec3 p1 = POINT_FROM_ROW(controlPoints, controlStartRow + 1);
-  glm::vec3 p2 = POINT_FROM_ROW(controlPoints, controlStartRow + 2);
-  glm::vec3 p3 = POINT_FROM_ROW(controlPoints, controlStartRow + 3);
-
-  constexpr float t0 = 0;
-  float t1 = t0 + glm::sqrt(glm::length(p1 - p0));
-  float t2 = t1 + glm::sqrt(glm::length(p2 - p1));
-  float t3 = t2 + glm::sqrt(glm::length(p3 - p2));
+  glm::vec3 c0 = POINT_FROM_ROW(controlPoints, controlStartRow);
+  glm::vec3 c1 = POINT_FROM_ROW(controlPoints, controlStartRow + 1);
+  glm::vec3 c2 = POINT_FROM_ROW(controlPoints, controlStartRow + 2);
+  glm::vec3 c3 = POINT_FROM_ROW(controlPoints, controlStartRow + 3);
 
   for (int i = 0; i < nSamples; i++) {
-    float t = t1 + (float)i / nSamples * (t2 - t1);
-
-    auto a1 = bezierTerm(t0, t1, t, p0, p1);
-    auto a2 = bezierTerm(t1, t2, t, p1, p2);
-    auto a3 = bezierTerm(t2, t3, t, p2, p3);
-
-    auto b1 = bezierTerm(t0, t2, t, a1, a2);
-    auto b2 = bezierTerm(t1, t3, t, a2, a3);
-
-    auto c = bezierTerm(t1, t2, t, b1, b2);
+    float s = (float) i / nSamples;
+    auto c = simulator::catmullRomSample(controlPoints, controlStartRow, s);
     ROW_FROM_POINT(*samples, samplesStartRow, c);
     samplesStartRow++;
   }
@@ -85,6 +79,22 @@ Eigen::MatrixXf simulator::catmullRomSequenceSample(Eigen::MatrixXf points, int 
   ROW_FROM_POINT(result, result.rows() - 1, lastPoint);
 
   return result;
+}
+
+// See https://pomax.github.io/bezierinfo/#catmullconv
+void simulator::catmullRomBoundingBox(const Eigen::MatrixXf &points, int index,
+    std::vector<double> *lowerBound, std::vector<double> *upperBound, float radius) {
+  Eigen::MatrixXf bezierControlPoints(4, 3);
+  bezierControlPoints.row(0) = points.row(index + 1);
+  bezierControlPoints.row(1) = points.row(index + 1) + (points.row(index + 2) - points.row(index + 0)) / 3;
+  bezierControlPoints.row(2) = points.row(index + 2) - (points.row(index + 3) - points.row(index + 1)) / 3;
+  bezierControlPoints.row(3) = points.row(index + 2);
+  lowerBound->resize(3);
+  upperBound->resize(3);
+  for (int i = 0; i < 3; i++) {
+    (*lowerBound)[i] = bezierControlPoints.col(i).minCoeff() - radius;
+    (*upperBound)[i] = bezierControlPoints.col(i).maxCoeff() + radius;
+  }
 }
 
 void simulator::writeMatrix(std::string filename, const Eigen::MatrixXf& q) {
