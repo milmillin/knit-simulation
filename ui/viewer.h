@@ -57,7 +57,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   std::unique_ptr<simulator::BaseSimulator> _simulator;
   std::unique_ptr<HistoryManager> _history;
   std::unique_ptr<AnimationManager> _animationManager;
-  std::mutex _refreshLock;
+  mutable std::recursive_mutex _refreshLock;
 };
 
 }  // namespace UI

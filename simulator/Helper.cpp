@@ -141,6 +141,6 @@ std::ostream& simulator::log()
 	time(&rawTime);
   timeInfo = localtime(&rawTime);
 
-	strftime(buf, 20, "%D %T", &timeInfo);
+	strftime(buf, 20, "%D %T", timeInfo);
 	return std::cout << "[" << buf << "] ";
 }

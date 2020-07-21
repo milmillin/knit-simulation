@@ -14,6 +14,16 @@ Viewer::Viewer()
     : _simulator(new simulator::Simulator()),
       _history(new HistoryManager(this, file_format::YarnRepr())),
       _animationManager(new AnimationManager(this)) {
+  callback_pre_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
+    _refreshLock.lock();
+    return false;
+  };
+
+  callback_post_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
+    _refreshLock.unlock();
+    return true;
+  };
+
 }
 
 int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int width, int height) {
@@ -40,7 +50,7 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 }
 
 void Viewer::refresh() {
-  std::lock_guard<std::mutex> guard(_refreshLock);
+  std::lock_guard<std::recursive_mutex> guard(_refreshLock);
 
   // Get yarn shape
   const file_format::YarnRepr &yarns = _history.get()->curentFrame();
