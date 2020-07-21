@@ -45,9 +45,9 @@ class Viewer : igl::opengl::glfw::Viewer {
   int animationPlaybackInterval = 1000/10;
   // Type of simulator to use
   enum SimulatorClass {
-    Contenious = 0,
+    Continuous = 0,
     Discrete = 1
-  } simulatorClass = Contenious;
+  } simulatorClass = Continuous;
 
   HistoryManager& history() {return *_history.get();}
   AnimationManager& animationManager() {return *_animationManager.get();}

@@ -137,8 +137,8 @@ void Viewer::loadYarn(std::string filename) {
   // Update simulator
   switch (simulatorClass)
   {
-  case SimulatorClass::Contenious:
-    std::cout << "Using contenious simulator" << std::endl;
+  case SimulatorClass::Continuous:
+    std::cout << "Using continuous simulator" << std::endl;
     _simulator.reset(new simulator::Simulator(yarnsRepr, params));
     break;
 

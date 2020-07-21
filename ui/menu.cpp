@@ -127,7 +127,7 @@ namespace UI {
             ImGui::Combo("Simulator class",
                         reinterpret_cast<int*>(&yarnViewer->simulatorClass),
                           "Simulator\0"
-                          "DescreteSimulator\0\0");
+                          "Discrete Simulator\0\0");
             ImGui::Text("New class will be applied only after\nloading yarns again");
             
             ImGui::InputFloat("Time resolution", &(params.h),
