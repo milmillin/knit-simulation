@@ -22,7 +22,7 @@ class HistoryManager {
   int currentFrameNumber() const;
   int totalFrameNumber() const;
   void addFrame(const file_format::YarnRepr &yarn);
-  const file_format::YarnRepr& curentFrame();
+  const file_format::YarnRepr curentFrame();
 
  private:
   Viewer *_parent;

@@ -53,7 +53,8 @@ void HistoryManager::addFrame(const file_format::YarnRepr &yarn) {
   _currentFrame++;
 }
 
-const file_format::YarnRepr& HistoryManager::curentFrame() {
+const file_format::YarnRepr HistoryManager::curentFrame() {
+  std::lock_guard<std::mutex> guard(_lock);
   return _history.at(_currentFrame);
 }
 
