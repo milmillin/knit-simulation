@@ -13,7 +13,7 @@ class BaseSimulator {
   virtual const file_format::YarnRepr &getYarns() = 0;
 
   // Simulates next timestep.
-  virtual void step() = 0;
+  virtual void step(const std::function<bool()>& cancelled) = 0;
 
   // Simulation parameters
   SimulatorParams params;

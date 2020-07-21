@@ -120,6 +120,8 @@ void Viewer::loadYarn(std::string filename) {
     std::cout << e.what() << std::endl;
   }
 
+  _animationManager.reset(new AnimationManager(this));
+
   file_format::YarnRepr yarnsRepr(yarns);
   simulator::SimulatorParams params;
   // Update simulator
