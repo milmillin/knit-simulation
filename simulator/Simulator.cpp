@@ -194,7 +194,7 @@ void Simulator::fastProjection() {
 	int iter = 0;
 	Eigen::MatrixXf constraint;
 	float cValue;
-	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 10) {
+	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 100) {
 		log() << "- iter: " << iter << ", constraint: " << cValue << std::endl;
 
 		Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
@@ -260,12 +260,15 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : con
 	calculateSegmentLength();
 	addSegmentLengthConstraint();
 
+
 	// Construct Mass Matrix
 	constructMassMatrix();
 
 	// Pin first and last control points
 	constraints.addPinConstrain(0, q.block<3, 1>(0, 0));
+	constraints.addPinConstrain(1, q.block<3, 1>(3, 0));
 	constraints.addPinConstrain(m - 1, q.block<3, 1>(3 * (m - 1), 0));
+	constraints.addPinConstrain(m - 2, q.block<3, 1>(3 * (m - 2), 0));
 	//constraints.addGlueConstrain(0, 1);
 	//constraints.addGlueConstrain(m - 2, m - 1);
 
@@ -322,9 +325,11 @@ void Simulator::step() {
 	// save to YarnRepr
 	// supports one yarn for now
 	// yarns.yarns[0].points = inflate(q, 3);
-	std::lock_guard<std::mutex> lock(historyLock);
-	history.push_back(history.back().createAlike());
-	history.back().yarns[0].points = inflate(q);
+	{
+    std::lock_guard<std::mutex> lock(historyLock);
+    history.push_back(history.back().createAlike());
+    history.back().yarns[0].points = inflate(q);
+	}
 
 	writeToFile();
 
