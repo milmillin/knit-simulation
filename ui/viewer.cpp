@@ -53,7 +53,7 @@ void Viewer::refresh() {
   std::lock_guard<std::recursive_mutex> guard(_refreshLock);
 
   // Get yarn shape
-  const file_format::YarnRepr &yarns = _history.get()->curentFrame();
+  const file_format::YarnRepr yarns = _history->getFrame(_currentFrame);
   const simulator::SimulatorParams &params = _simulator.get()->params;
 
   // Draw ground
@@ -154,20 +154,24 @@ void Viewer::loadYarn(std::string filename) {
 
   // Reset history
   _history.reset(new HistoryManager(this, yarnsRepr));
+  
+  _currentFrame = 0;
 
   this->refresh();
 }
 
 void Viewer::nextFrame() {
-  HistoryManager &history = *_history.get(); 
-  history.next();
-  refresh();
+  if (_currentFrame + 1 < _history->totalFrameNumber()) {
+    _currentFrame++;
+    refresh();
+  }
 }
 
 void Viewer::prevFrame() {
-  HistoryManager &history = *_history.get(); 
-  history.prev();
-  refresh();
+  if (_currentFrame > 0) {
+    _currentFrame--;
+    refresh();
+  }
 }
 
 void Viewer::setAnimationMode(bool animating) {

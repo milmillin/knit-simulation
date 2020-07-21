@@ -51,6 +51,7 @@ class Viewer : igl::opengl::glfw::Viewer {
 
   HistoryManager& history() {return *_history.get();}
   AnimationManager& animationManager() {return *_animationManager.get();}
+  int& currentFrame() { return _currentFrame; }
 
  private:
   std::unique_ptr<Menu> _menu;
@@ -58,6 +59,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   std::unique_ptr<HistoryManager> _history;
   std::unique_ptr<AnimationManager> _animationManager;
   mutable std::recursive_mutex _refreshLock;
+  int _currentFrame = 0;
 };
 
 }  // namespace UI
