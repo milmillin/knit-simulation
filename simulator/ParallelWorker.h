@@ -28,7 +28,7 @@ public:
   }
 
   void run() {
-    std::cout << "[ParallelWorker] Running " << m_workQueue.size() << " tasks with " << m_numThreads << " threads" << std::endl;
+    log() << "[ParallelWorker] Running " << m_workQueue.size() << " tasks with " << m_numThreads << " threads" << std::endl;
     reportInterval = m_workQueue.size() / 20;
     for (size_t i = 0; i < m_numThreads; ++i)
       m_threads.emplace_back(std::thread([this]() {
@@ -39,7 +39,7 @@ public:
           workItem();
         }
         else {
-          std::cout << "[ParallelWorker] Failed To Run" << std::endl;
+          log() << "[ParallelWorker] Failed To Run" << std::endl;
         }
       }
         }));
@@ -61,7 +61,7 @@ private:
     std::lock_guard<std::mutex> lock(m_queueLock);
     if (!m_workQueue.empty()) {
       if (m_workQueue.size() % reportInterval == 0) {
-        std::cout << "[ParallelWorker] " << m_workQueue.size() << " tasks remain" << std::endl;
+        log() << "[ParallelWorker] " << m_workQueue.size() << " tasks remain" << std::endl;
       }
 
       res = m_workQueue.front();

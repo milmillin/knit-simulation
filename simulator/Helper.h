@@ -3,8 +3,8 @@
 #include <functional>
 #include <Eigen/Core>
 #include <fstream>
-
 #include <vector>
+#include <iostream>
 
 #include <glm/glm.hpp>
 
@@ -76,4 +76,7 @@ Eigen::MatrixXf flatten(const Eigen::MatrixXf& v);
 // Reshapes a vector of (3 * #m) rows to a #m x 3 matrix.
 // Returns a new matrix.
 Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col = 3);
+
+std::ostream& log();
+
 } // namespace simulator

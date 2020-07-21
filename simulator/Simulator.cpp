@@ -302,16 +302,4 @@ void Simulator::step(const std::function<bool()>& cancelled) {
 	log() << "Done Step (" << stepCnt << ")" << std::endl;
 }
 
-std::ostream& Simulator::log() const {
-	char buf[20];
-	time_t rawTime;
-	struct tm* timeInfo;
-
-	time(&rawTime);
-	timeInfo = localtime(&rawTime);
-
-	strftime(buf, 20, "%D %T", timeInfo);
-	return std::cout << "[" << buf << "] ";
-}
-
 };  // namespace simulator

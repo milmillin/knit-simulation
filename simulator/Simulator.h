@@ -59,8 +59,6 @@ private:
   // debug
   void writeToFile() const;
 
-  std::ostream& log() const;
-
   void calculateSegmentLength();
   void addSegmentLengthConstraint();
 
