@@ -188,7 +188,7 @@ void Simulator::fastProjection() {
 	int iter = 0;
 	Eigen::MatrixXf constraint;
 	float cValue;
-	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 10) {
+	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 100) {
 		log() << "- iter: " << iter << ", constraint: " << cValue << std::endl;
 
 		Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
