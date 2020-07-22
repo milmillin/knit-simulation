@@ -61,6 +61,7 @@ private:
 
   void calculateSegmentLength();
   void addSegmentLengthConstraint();
+  void addControlPointLengthConstraint(int i, int j);
 
   void constructMassMatrix();
 

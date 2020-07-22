@@ -12,9 +12,6 @@ namespace simulator {
 
 constexpr float SIMPSON_EPS = 1e-5;
 
-// Performs Simpson's Integration of function f over [a, b]
-float integrate(const std::function<float(float)>& f, float a, float b);
-
 // Catmull-Rom coefficient
 inline float b1(float s) {
   return -s / 2 + s * s - s * s * s / 2;
@@ -78,5 +75,7 @@ Eigen::MatrixXf flatten(const Eigen::MatrixXf& v);
 Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col = 3);
 
 std::ostream& log();
+
+Eigen::Block<Eigen::MatrixXf, 3, 1> pointAt(Eigen::MatrixXf& q, int index);
 
 } // namespace simulator

@@ -46,12 +46,42 @@ void Simulator::calculateSegmentLength() {
 	log() << "Total Length: " << totalLength << std::endl;
 }
 
+void Simulator::addControlPointLengthConstraint(int i, int j) {
+	int iIndex = i * 3;
+	int jIndex = j * 3;
+  Eigen::Vector3f p0 = q.block<3, 1>(iIndex, 0);
+  Eigen::Vector3f p1 = q.block<3, 1>(jIndex, 0);
+	float length = (p1 - p0).norm();
+
+  Constraints::Func f = [=](const Eigen::MatrixXf& q)->float {
+    Eigen::Vector3f p0 = q.block<3, 1>(iIndex, 0);
+    Eigen::Vector3f p1 = q.block<3, 1>(jIndex, 0);
+    float current = (p1 - p0).norm();
+    return current / length - 1;
+  };
+
+  Constraints::JacobianFunc fD = [=](const Eigen::MatrixXf& q, Constraints::Referrer ref) {
+    Eigen::Vector3f p0 = q.block<3, 1>(iIndex, 0);
+    Eigen::Vector3f p1 = q.block<3, 1>(jIndex, 0);
+    Eigen::Vector3f diff = p1 - p0;
+    float norm = diff.norm();
+    for (int i = 0; i < 3; i++) {
+      ref(iIndex + i) += -diff(i) / length / norm;
+      ref(jIndex + i) += diff(i) / length / norm;
+    }
+  };
+  constraints.addConstraint(f, fD);
+}
+
 void Simulator::addSegmentLengthConstraint() {
 	int N = m - 3;
 
 	for (int i = 0; i < N; i++) {
 		constraints.addLengthConstrain(i, segmentLength[i]);
 	}
+
+	addControlPointLengthConstraint(0, 1);
+	addControlPointLengthConstraint(m - 2, m - 1);
 }
 
 //////////////////////////////////////////////

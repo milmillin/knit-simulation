@@ -144,3 +144,7 @@ std::ostream& simulator::log()
 	strftime(buf, 20, "%D %T", timeInfo);
 	return std::cout << "[" << buf << "] ";
 }
+
+Eigen::Block<Eigen::MatrixXf, 3, 1> simulator::pointAt(Eigen::MatrixXf& q, int index) {
+  return q.block<3, 1>(index * 3, 0);
+}

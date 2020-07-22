@@ -208,6 +208,10 @@ namespace UI {
             100, 10, "%.1f");
           ImGui::InputFloat("Global damping", &(params.kGlobal),
             0.1, 1, "%.1f");
+          ImGui::InputFloat("Length Constant", &(params.kLen),
+            1, 100, "%f");
+          ImGui::InputFloat("Bending Constant", &(params.kBend),
+            0.1, 1, "%f");
         ImGui::PopItemWidth();
       }
       ImGui::End();

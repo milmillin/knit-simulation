@@ -40,7 +40,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   // Number of samples for yarn cross-section (circle)
   int circleSamples = 8;
   // Number of samples for Catmull-Rom curve
-  int curveSamples = 1;
+  int curveSamples = 4;
   // Animation playback interval (millisecond)
   int animationPlaybackInterval = 1000/10;
   // Type of simulator to use
