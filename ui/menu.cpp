@@ -21,7 +21,7 @@ namespace UI {
       bool needRefresh = false;
       bool invalidateCache = true;
       Viewer *yarnViewer = reinterpret_cast<Viewer*>(viewer);
-      simulator::SimulatorParams &params = yarnViewer->getParameters();
+      simulator::SimulatorParams& params = yarnViewer->params;
 
       // Mesh
       if (ImGui::CollapsingHeader("Yarn", ImGuiTreeNodeFlags_DefaultOpen)) {

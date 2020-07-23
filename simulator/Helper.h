@@ -59,8 +59,8 @@ glm::vec3 catmullRomSample(const Eigen::MatrixXf &controlPoints, int index, floa
 // Return: samples (one row for each point coordinate)
 Eigen::MatrixXf catmullRomSequenceSample(Eigen::MatrixXf points, int samplePerSegment);
 
-void catmullRomBoundingBox(const Eigen::MatrixXf &controlPoints, int index,
-  std::vector<double> *lowerBound, std::vector<double> *upperBound, float radius);
+void catmullRomBoundingBox(const Eigen::MatrixXf& controlPoints, int index,
+  std::vector<double>& lowerBound, std::vector<double>& upperBound, float radius);
 
 // Writes a matrix to a file in CSV format
 const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
@@ -76,6 +76,19 @@ Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col = 3);
 
 std::ostream& log();
 
-Eigen::Block<Eigen::MatrixXf, 3, 1> pointAt(Eigen::MatrixXf& q, int index);
+template<typename T>
+Eigen::Block<T, 3, 1> pointAt(T& q, int index) {
+  return q.block<3, 1>(index * 3ll, 0);
+}
+
+template<typename T>
+Eigen::Block<const T, 3, 1> pointAt(const T& q, int index) {
+  return q.block<3, 1>(index * 3ll, 0);
+}
+
+float& coordAt(Eigen::MatrixXf& q, int index, int axis);
+const float& coordAt(const Eigen::MatrixXf& q, int index, int axis);
+
+float maxCoeff(const Eigen::MatrixXf& m);
 
 } // namespace simulator

@@ -10,10 +10,7 @@
 
 namespace UI {
 
-Viewer::Viewer()
-    : _simulator(new simulator::Simulator()),
-      _history(new HistoryManager(this, file_format::YarnRepr())),
-      _animationManager(new AnimationManager(this)) {
+Viewer::Viewer(std::string filename) {
   callback_pre_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
     _refreshLock.lock();
     return false;
@@ -24,6 +21,7 @@ Viewer::Viewer()
     return true;
   };
 
+  loadYarn(filename);
 }
 
 int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int width, int height) {
@@ -54,7 +52,7 @@ void Viewer::refresh() {
 
   // Get yarn shape
   const file_format::YarnRepr yarns = _history->getFrame(_currentFrame);
-  const simulator::SimulatorParams &params = _simulator.get()->params;
+  const simulator::SimulatorParams& params = _simulator->getParams();
 
   // Draw ground
   this->selected_data_index = 0;

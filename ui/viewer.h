@@ -22,7 +22,7 @@ class AnimationManager;
 
 class Viewer : igl::opengl::glfw::Viewer {
  public:
-  Viewer();
+  Viewer(std::string filename);
   int launch(bool resizable = true, bool fullscreen = false,
     const std::string &name = "GRAIL Knit Simulator", int width = 0, int height = 0);
   void refresh();
@@ -33,9 +33,6 @@ class Viewer : igl::opengl::glfw::Viewer {
   void prevFrame();
 
   simulator::BaseSimulator* simulator() const { return _simulator.get(); }
-  inline simulator::SimulatorParams &getParameters() {
-    return _simulator.get()->params;
-  }
 
   // Number of samples for yarn cross-section (circle)
   int circleSamples = 8;
@@ -48,6 +45,9 @@ class Viewer : igl::opengl::glfw::Viewer {
     Continuous = 0,
     Discrete = 1
   } simulatorClass = Continuous;
+
+  // TODO
+  simulator::SimulatorParams params;
 
   HistoryManager& history() {return *_history.get();}
   AnimationManager& animationManager() {return *_animationManager.get();}

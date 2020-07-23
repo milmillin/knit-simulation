@@ -99,3 +99,4 @@
   (matrix)((index), 0) -= point.x; \
   (matrix)((index), 1) -= point.y; \
   (matrix)((index), 2) -= point.z;
+
