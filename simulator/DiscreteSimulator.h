@@ -27,13 +27,27 @@ class DiscreteSimulator : public BaseSimulator {
   // Simulates next timestep.
   void step() override;
 
+
+  // Force
   void applyGravity();
-  void applyGroundVelocityFilter();
+
   void applyContactForce();
+
+  void initBendingForceMetadata();
+  void applyBendingForce();
+  void updateBendingForceMetadata();
+
+  // Constrain
   void applyLengthConstrain();
   void applyPinConstrain();
+
   void fastProjection();
+
+  // Velocity filter
+  void applyGroundVelocityFilter();
   void applyGlobalDamping();
+
+
  private:
   // Velocity
   Eigen::MatrixXf dQ;
@@ -55,6 +69,13 @@ class DiscreteSimulator : public BaseSimulator {
   Eigen::SparseMatrix<float> dConstrain;
   // Next available constrain id
   int nextConstrainID = 0;
+
+  // === Bending Force ===
+  Eigen::MatrixXf u;
+  Eigen::MatrixXf m1;
+  Eigen::MatrixXf m2;
+  Eigen::MatrixXf restOmega;
+  Eigen::MatrixXf restOmega_1;
 
   inline int pointIndex(int pointID, int axis);
   inline int nConstrain();

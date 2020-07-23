@@ -47,7 +47,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   enum SimulatorClass {
     Contenious = 0,
     Discrete = 1
-  } simulatorClass = Contenious;
+  } simulatorClass = Discrete;
 
   HistoryManager& history() {return *_history.get();}
   AnimationManager& animationManager() {return *_animationManager.get();}

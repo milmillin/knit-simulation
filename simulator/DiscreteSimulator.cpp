@@ -61,6 +61,9 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
     catmullRomBoundingBox(Q, i, &lowerBound, &upperBound, yarns.yarns[0].radius);
     collisionTree.insertParticle((unsigned)i, lowerBound, upperBound);
   }
+
+  // Initialize frame
+  initBendingForceMetadata();
 }
 
 void DiscreteSimulator::step() {
@@ -71,6 +74,7 @@ void DiscreteSimulator::step() {
     ddQ.setZero();
     applyGravity();
     applyContactForce();
+    applyBendingForce();
 
     // Calculate velocity
     dQ += ddQ * params.h;
@@ -93,6 +97,9 @@ void DiscreteSimulator::step() {
       catmullRomBoundingBox(Q, i, &lowerBound, &upperBound, yarns.yarns[0].radius);
       collisionTree.updateParticle((unsigned)i, lowerBound, upperBound);
     }
+
+    // Update frame
+    updateBendingForceMetadata();
   }
 }
 
@@ -157,6 +164,147 @@ void DiscreteSimulator::applyContactForce() {
     }
   }
   // std::cout << std::endl;
+}
+
+inline static void parallelTransport(Eigen::Vector3f tangent, Eigen::Vector3f oldUp,
+    Eigen::Vector3f *newUp, Eigen::Vector3f *newCross) {
+  *newCross = tangent.cross(oldUp).normalized();
+  *newUp = newCross->cross(tangent).normalized();
+}
+
+
+static inline Eigen::Vector3f vec(Eigen::MatrixXf &v, int index) {
+  return Eigen::Vector3f(v.row(index).transpose());
+}
+
+static inline Eigen::Vector3f curvatureBinormal(Eigen::MatrixXf &u, int i) {
+  Eigen::Vector3f a = 2 * vec(u, i - 1).cross(vec(u, i));
+  float b = u.row(i-1).norm() * u.row(i).norm();
+  float c = u.row(i-1).dot(u.row(i));
+  return a / (b + c);
+  // return 2 * vec(u, i - 1).cross(vec(u, i))
+  //   / (u.row(i-1).norm() * u.row(i).norm() + u.row(i-1).dot(u.row(i)));
+}
+
+static inline Eigen::Vector2f omega(Eigen::MatrixXf &u, Eigen::MatrixXf &m1, Eigen::MatrixXf &m2,
+  int i, int j) {
+  Eigen::Vector3f kb = curvatureBinormal(u, i);
+  Eigen::Vector2f result;
+  result(0) = kb.dot(m2.row(j));
+  result(1) = -kb.dot(m1.row(j));
+  return result;
+}
+
+void DiscreteSimulator::initBendingForceMetadata() {
+  auto &Q = yarns.yarns[0].points;
+
+  int nPoints = Q.rows();
+
+  // No bending energy
+  if (nPoints <= 2) {
+    return;
+  }
+
+  // Allocate memory
+  u.resize(nPoints - 1, 3);
+  m1.resize(nPoints - 1, 3);
+  m2.resize(nPoints - 1, 3);
+  restOmega.resize(nPoints, 2);
+  restOmega_1.resize(nPoints, 2);
+
+  // Initialize tangent
+  for (int i = 0; i < nPoints - 1; i++) {
+    u.row(i) = Q.row(i + 1) - Q.row(i);
+  }
+
+  // Initialize direction 1 with arbitrary vector that's normal to u.row(0)
+  if (std::abs(Q(0, 0) + Q(0, 1)) < std::abs(Q(0, 2))) {
+    m1.row(0) = Eigen::Vector3f(1, 0, 0).cross(vec(u, 0));
+  } else {
+    m1.row(0) = Eigen::Vector3f(0, 0, 1).cross(vec(u, 0));
+  }
+  m1.row(0).normalize();
+
+  // Initialize direction 2
+  m2.row(0) = vec(u, 0).cross(vec(m1, 0)).normalized();
+
+  // Fill in all frames
+  for (int i = 1; i < nPoints - 1; i++) {
+    Eigen::Vector3f newM1, newM2;
+    parallelTransport(u.row(i), m1.row(i - 1), &newM1, &newM2);
+    m1.row(i) = newM1;
+    m2.row(i) = newM2;
+  }
+
+  // Calculate rest omega
+  for (int i = 1; i < nPoints - 1; i++) {
+    restOmega.row(i) = omega(u, m1, m2, i, i).transpose();
+    restOmega_1.row(i) = omega(u, m1, m2, i, i - 1).transpose();
+  }
+}
+
+static inline Eigen::Matrix3f crossMatrix(Eigen::Vector3f e) {
+  Eigen::Matrix3f result;
+  result <<
+        0, -e(2),  e(1),
+     e(2),     0, -e(0),
+    -e(1),  e(0),     0;
+  return result;
+}
+
+static inline Eigen::Matrix3f gradCurvatureBinormal(Eigen::MatrixXf &u, Eigen::Vector3f kb, int i) {
+  return - (2 * crossMatrix(u.row(i)) + 2 * crossMatrix(u.row(i-1))
+      + kb * (u.row(i) - u.row(i-1)))
+    / (u.row(i-1).norm() * u.row(i).norm() + u.row(i-1).dot(u.row(i)));
+}
+
+void DiscreteSimulator::applyBendingForce() {
+  auto &Q = yarns.yarns[0].points;
+
+  // TODO: why starting from 1?
+  for (int i = 1; i < Q.rows() - 1; i++) {
+    Eigen::Vector3f force;
+    force.setZero();
+    for (int k = std::max(1, i - 1); k <= std::min((int)Q.rows() - 2, i + 1); k++) {
+      float l = u.row(k - 1).norm() + u.row(k).norm();
+      Eigen::Vector3f kb = curvatureBinormal(u, k);
+      for (int j = k - 1; j <= k; j++) {
+        Eigen::MatrixXf coeff(2, 3);
+        coeff.row(0) = m2.row(j);
+        coeff.row(1) = m1.row(j);
+        auto omegaBar = (j == k) ?
+          restOmega.row(k).transpose() :
+          restOmega_1.row(k).transpose();
+        force += (1.0f / l)
+          * (coeff * gradCurvatureBinormal(u, kb, i)).transpose()
+          * (omega(u, m1, m2, k, j) - omegaBar);
+      }
+    }
+    ddQ.row(i) += params.kBend * force;
+  }
+}
+
+void DiscreteSimulator::updateBendingForceMetadata() {
+  auto &Q = yarns.yarns[0].points;
+
+  int nPoints = Q.rows();
+
+  if (nPoints <= 2) {
+    return;
+  }
+
+  // Update tangent
+  for (int i = 0; i < nPoints - 1; i++) {
+    u.row(i) = Q.row(i + 1) - Q.row(i);
+  }
+
+  // Update frames
+  for (int i = 1; i < nPoints - 1; i++) {
+    Eigen::Vector3f newM1, newM2;
+    parallelTransport(u.row(i), m1.row(i), &newM1, &newM2);
+    m1.row(i) = newM1;
+    m2.row(i) = newM2;
+  }
 }
 
 void DiscreteSimulator::fastProjection() {
