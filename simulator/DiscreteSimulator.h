@@ -71,7 +71,7 @@ class DiscreteSimulator : public BaseSimulator {
   int nextConstrainID = 0;
 
   // === Bending Force ===
-  Eigen::MatrixXf u;
+  Eigen::MatrixXf e;
   Eigen::MatrixXf m1;
   Eigen::MatrixXf m2;
   Eigen::MatrixXf restOmega;
