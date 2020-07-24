@@ -189,7 +189,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
       }
       ImGui::Checkbox("Debug mode", &(params.debug));
       ImGui::InputFloat("Time resolution", &(params.h),
-        0.00001, 0.001, "%.5f");
+        0.00001, 0.001, "%.7f");
       ImGui::InputInt("steps per frame", &(params.steps),
         10, 100);
       ImGui::Separator();
