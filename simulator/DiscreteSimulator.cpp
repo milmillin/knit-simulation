@@ -31,12 +31,10 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
   applyGlobalDamping();
 
   // Calculate position
-  Eigen::MatrixXf originalQ = Q;
   Q += dQ * params.h;
 }
 
 void DiscreteSimulator::applyGravity() {
-  auto &Q = yarns.yarns[0].points;
 	F += Eigen::Vector3f(0, -params.gravity, 0).replicate(m, 1);
 }
 

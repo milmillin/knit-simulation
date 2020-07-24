@@ -5,7 +5,7 @@ namespace simulator {
 // SimulatorParams contains all parameters for Simulator
 struct SimulatorParams {
   // Debug mode
-  bool debug = true;
+  bool debug = false;
 
   float r = 0.125f;
   float m = 0.006f;
@@ -20,7 +20,7 @@ struct SimulatorParams {
   float aSmall = 0.3f;
   float aLarge = 0.3f;
   // Time delta for each step (time resolution)
-  float h = 1.f / 11800;
+  float h = 0.001f;
   // Number of steps to run for each button click
   int steps = 1;
   // Gravity acceleration

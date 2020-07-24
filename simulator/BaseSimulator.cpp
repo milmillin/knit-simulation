@@ -73,6 +73,7 @@ namespace simulator {
 
   ///////////////
   // Stepping
+#define WRITE_MATRIX(Q) writeMatrix(#Q"-" + std::to_string(numStep) + ".csv", Q);
 
   void BaseSimulator::step(const StateGetter& cancelled) {
     log() << "Stepping " << params.steps << " step(s) ("
@@ -86,6 +87,12 @@ namespace simulator {
       this->fastProjection(cancelled);
       if (cancelled()) break;
       this->updateCollisionTree(cancelled);
+
+      IFDEBUG{
+        WRITE_MATRIX(Q);
+        WRITE_MATRIX(dQ);
+        WRITE_MATRIX(F);
+      }
 
       yarns.yarns[0].points = inflate(Q);
       numStep++;
