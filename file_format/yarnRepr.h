@@ -29,6 +29,8 @@ class YarnRepr {
   // Clone YarnRepr without cloning points
   YarnRepr createAlike() const;
 
+  Yarns::Yarns toYarns() const;
+
   // Stores a list of yarns
   std::vector<Yarn> yarns;
 };

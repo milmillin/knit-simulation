@@ -26,7 +26,9 @@ class Viewer : igl::opengl::glfw::Viewer {
   int launch(bool resizable = true, bool fullscreen = false,
     const std::string &name = "GRAIL Knit Simulator", int width = 0, int height = 0);
   void refresh();
-  void loadYarn(std::string filename);
+  void loadYarn(const std::string& filename);
+  void saveYarn(const std::string& filename);
+  void createSimulator();
 
   void setAnimationMode(bool animating);
   void nextFrame();
@@ -46,11 +48,10 @@ class Viewer : igl::opengl::glfw::Viewer {
     Discrete = 1
   } simulatorClass = Continuous;
 
-  // TODO
   simulator::SimulatorParams params;
 
-  HistoryManager& history() {return *_history.get();}
-  AnimationManager& animationManager() {return *_animationManager.get();}
+  HistoryManager* history() {return _history.get();}
+  AnimationManager* animationManager() {return _animationManager.get();}
   int& currentFrame() { return _currentFrame; }
 
  private:
@@ -60,6 +61,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   std::unique_ptr<AnimationManager> _animationManager;
   mutable std::recursive_mutex _refreshLock;
   int _currentFrame = 0;
+  file_format::YarnRepr _yarnsRepr;
 };
 
 }  // namespace UI

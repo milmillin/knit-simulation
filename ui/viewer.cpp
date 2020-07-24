@@ -117,7 +117,35 @@ void Viewer::refresh() {
   }
 }
 
-void Viewer::loadYarn(std::string filename) {
+void Viewer::createSimulator() {
+  // Update simulator
+  switch (simulatorClass)
+  {
+  case SimulatorClass::Continuous:
+    std::cout << "Using continuous simulator" << std::endl;
+    _simulator.reset(new simulator::Simulator(_yarnsRepr, params));
+    break;
+
+  case SimulatorClass::Discrete:
+    std::cout << "Using discrete simulator" << std::endl;
+    _simulator.reset(new simulator::DiscreteSimulator(_yarnsRepr, params));
+    break;
+
+  default:
+    assert(false && "Invalid simulator class");
+    break;
+  }
+
+  // Reset manager
+  _animationManager.reset(new AnimationManager(this));
+  _history.reset(new HistoryManager(this, _yarnsRepr));
+  
+  _currentFrame = 0;
+
+  this->refresh();
+}
+
+void Viewer::loadYarn(const std::string& filename) {
   // Load .yarns file
   std::cout << "Loading model: " << filename << std::endl;
   file_format::Yarns::Yarns yarns;
@@ -128,34 +156,13 @@ void Viewer::loadYarn(std::string filename) {
     std::cout << e.what() << std::endl;
   }
 
-  _animationManager.reset(new AnimationManager(this));
+  _yarnsRepr = file_format::YarnRepr(yarns);
 
-  file_format::YarnRepr yarnsRepr(yarns);
-  simulator::SimulatorParams params;
-  // Update simulator
-  switch (simulatorClass)
-  {
-  case SimulatorClass::Continuous:
-    std::cout << "Using continuous simulator" << std::endl;
-    _simulator.reset(new simulator::Simulator(yarnsRepr, params));
-    break;
+  createSimulator();
+}
 
-  case SimulatorClass::Discrete:
-    std::cout << "Using discrete simulator" << std::endl;
-    _simulator.reset(new simulator::DiscreteSimulator(yarnsRepr, params));
-    break;
-
-  default:
-    assert(false && "Invalid simulator class");
-    break;
-  }
-
-  // Reset history
-  _history.reset(new HistoryManager(this, yarnsRepr));
-  
-  _currentFrame = 0;
-
-  this->refresh();
+void Viewer::saveYarn(const std::string& filename) {
+  _history->getFrame(_currentFrame).toYarns().save(filename);
 }
 
 void Viewer::nextFrame() {
