@@ -57,7 +57,7 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
   collisionTree = aabb::Tree(3, 0.05, Q.rows() - 4, true);
   std::vector<double> lowerBound;
   std::vector<double> upperBound;
-  for (int i = 0; i < Q.rows() - 4; i++) {
+  for (int i = 0; i < Q.rows() - 3; i++) {
     catmullRomBoundingBox(Q, i, &lowerBound, &upperBound, yarns.yarns[0].radius);
     collisionTree.insertParticle((unsigned)i, lowerBound, upperBound);
   }
@@ -93,7 +93,7 @@ void DiscreteSimulator::step() {
     // Update AABB tree
     std::vector<double> lowerBound;
     std::vector<double> upperBound;
-    for (int i = 0; i < Q.rows() - 4; i++) {
+    for (int i = 0; i < Q.rows() - 3; i++) {
       catmullRomBoundingBox(Q, i, &lowerBound, &upperBound, yarns.yarns[0].radius);
       collisionTree.updateParticle((unsigned)i, lowerBound, upperBound);
     }
