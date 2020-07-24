@@ -241,15 +241,15 @@ namespace simulator {
     float length = segmentLength[i];
 
     Constraints::Func f = [=](const Eigen::VectorXf& q)->float {
-      Eigen::Vector3f p0 = pointAt(Q, i);
-      Eigen::Vector3f p1 = pointAt(Q, i + 1);
+      Eigen::Vector3f p0 = pointAt(q, i);
+      Eigen::Vector3f p1 = pointAt(q, i + 1);
       float current = (p1 - p0).norm();
       return current / length - 1;
     };
 
     Constraints::JacobianFunc fD = [=](const Eigen::VectorXf& q, Constraints::Referrer ref) {
-      Eigen::Vector3f p0 = pointAt(Q, i);
-      Eigen::Vector3f p1 = pointAt(Q, i + 1);
+      Eigen::Vector3f p0 = pointAt(q, i);
+      Eigen::Vector3f p1 = pointAt(q, i + 1);
       Eigen::Vector3f diff = p1 - p0;
       float norm = diff.norm();
       for (int ax = 0; ax < 3; ax++) {

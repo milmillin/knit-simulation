@@ -36,7 +36,7 @@ struct SimulatorParams {
   // maximum iteration
   int fastProjMaxIter = 20;
   // Early termination when error is small
-  float fastProjErrorCutoff = 1e-6;
+  float fastProjErrorCutoff = 1e-5;
 
   static SimulatorParams Default() {
     SimulatorParams param;
