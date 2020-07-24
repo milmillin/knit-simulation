@@ -10,7 +10,7 @@ struct SimulatorParams {
   float r = 0.125f;
   float m = 0.006f;
   float kLen = 10000.f;
-  float kBend = 0.005f;
+  float kBend = 0.05f;
   // Global damping
   float kGlobal = 1.5f;
   // Contact force coefficient
