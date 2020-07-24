@@ -271,11 +271,11 @@ void DiscreteSimulator::applyBendingForce() {
       for (int j = k - 1; j <= k; j++) {
         Eigen::MatrixXf coeff(2, 3);
         coeff.row(0) = m2.row(j);
-        coeff.row(1) = m1.row(j);
+        coeff.row(1) = -m1.row(j);
         auto omegaBar = (j == k) ?
           restOmega.row(k).transpose() :
           restOmega_1.row(k).transpose();
-        force += (1.0f / l)
+        force -= (1.0f / l)
           * (coeff * gradCurvatureBinormal(u, kb, i)).transpose()
           * (omega(u, m1, m2, k, j) - omegaBar);
       }
