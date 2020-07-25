@@ -35,6 +35,7 @@ class DiscreteSimulator : public BaseSimulator {
 
   void initBendingForceMetadata();
   void applyBendingForce();
+  void applyTwistingForce();
   void updateBendingForceMetadata();
 
   // Constrain
@@ -74,6 +75,9 @@ class DiscreteSimulator : public BaseSimulator {
   Eigen::MatrixXf e;
   Eigen::MatrixXf m1;
   Eigen::MatrixXf m2;
+  Eigen::MatrixXf u;
+  Eigen::MatrixXf v;
+  std::vector<float> theta;
   Eigen::MatrixXf restOmega;
   Eigen::MatrixXf restOmega_1;
 

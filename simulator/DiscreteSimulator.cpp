@@ -166,12 +166,17 @@ void DiscreteSimulator::applyContactForce() {
   // std::cout << std::endl;
 }
 
-inline static void parallelTransport(Eigen::Vector3f tangent, Eigen::Vector3f oldUp,
-    Eigen::Vector3f *newUp, Eigen::Vector3f *newCross) {
-  *newCross = tangent.cross(oldUp).normalized();
-  *newUp = newCross->cross(tangent).normalized();
+inline static Eigen::Vector3f parallelTransport(const Eigen::Vector3f& u, const Eigen::Vector3f& e1, const Eigen::Vector3f& e2) {
+    Eigen::Vector3f t1 = e1 / e1.norm();
+    Eigen::Vector3f t2 = e2 / e2.norm();
+    Eigen::Vector3f n = t1.cross(t2);
+    if (n.norm() < 1e-10)
+        return u;
+    n /= n.norm();
+    Eigen::Vector3f p1 = n.cross(t1);
+    Eigen::Vector3f p2 = n.cross(t2);
+    return u.dot(n)*n + u.dot(t1)*t2 + u.dot(p1)*p2;
 }
-
 
 static inline Eigen::Vector3f vec(Eigen::MatrixXf &v, int index) {
   return Eigen::Vector3f(v.row(index).transpose());
@@ -230,17 +235,21 @@ void DiscreteSimulator::initBendingForceMetadata() {
 
   // Fill in all frames
   for (int i = 1; i < nPoints - 1; i++) {
-    Eigen::Vector3f newM1, newM2;
-    parallelTransport(e.row(i), m1.row(i - 1), &newM1, &newM2);
-    m1.row(i) = newM1;
-    m2.row(i) = newM2;
+    m1.row(i) = parallelTransport(m1.row(i-1), e.row(i-1), e.row(i)).normalized();
+    m2.row(i) = vec(e, i).cross(vec(m1, i)).normalized();
   }
+
 
   // Calculate rest omega
   for (int i = 1; i < nPoints - 1; i++) {
     restOmega.row(i) = omega(e, m1, m2, i, i).transpose();
     restOmega_1.row(i) = omega(e, m1, m2, i, i - 1).transpose();
   }
+
+  // Initialize theta
+  u = m1;
+  v = m2;
+  theta = std::vector<float>(nPoints - 1, 0.0f);
 }
 
 static inline Eigen::Matrix3f crossMatrix(Eigen::Vector3f e) {
@@ -256,6 +265,11 @@ static inline Eigen::Matrix3f gradCurvatureBinormal(Eigen::MatrixXf &e, Eigen::V
   return - (2 * crossMatrix(e.row(i)) + 2 * crossMatrix(e.row(i-1))
       + kb * (e.row(i) - e.row(i-1)))
     / (e.row(i-1).norm() * e.row(i).norm() + e.row(i-1).dot(e.row(i)));
+}
+
+static float thetaHat(Eigen::MatrixXf &e, Eigen::MatrixXf &u, int i) {
+  Eigen::Vector3f newU = parallelTransport(u.row(i-1), e.row(i - 1), e.row(i));
+  return std::atan2(newU.cross(vec(u, i)).norm(), newU.dot(u.row(i)));
 }
 
 void DiscreteSimulator::applyBendingForce() {
@@ -281,6 +295,10 @@ void DiscreteSimulator::applyBendingForce() {
       }
     }
     ddQ.row(i) += params.kBend * force;
+    Eigen::Vector3f dTheta_dQi_1 = curvatureBinormal(e, i) / 2 / e.row(i - 1).norm();
+    Eigen::Vector3f dTheta_dQi = curvatureBinormal(e, i) / 2 / e.row(i).norm();
+    float coeff = 2 * (theta[i] - theta[i + 1] - thetaHat(e, u, i)) / (e.row(i - 1).norm() + e.row(i).norm());
+    ddQ.row(i) += params.kTwist * coeff * (dTheta_dQi_1 - dTheta_dQi);
   }
 }
 
@@ -293,17 +311,50 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     return;
   }
 
-  // Update tangent
+  // Update frames
   for (int i = 0; i < nPoints - 1; i++) {
-    e.row(i) = Q.row(i + 1) - Q.row(i);
+    Eigen::Vector3f newE = Q.row(i + 1) - Q.row(i);
+    u.row(i) = parallelTransport(u.row(i), e.row(i), newE).normalized();
+    v.row(i) = newE.cross(vec(u, i)).normalized();
+    e.row(i) = newE.transpose();
   }
 
-  // Update frames
-  for (int i = 1; i < nPoints - 1; i++) {
-    Eigen::Vector3f newM1, newM2;
-    parallelTransport(e.row(i), m1.row(i), &newM1, &newM2);
-    m1.row(i) = newM1;
-    m2.row(i) = newM2;
+  bool shouldContinue = true;
+  for (int iter = 0; shouldContinue && iter < 100; iter++) {
+    shouldContinue = false;
+
+    std::vector<float> thetaUpdate(nPoints - 1, 0.0f);
+    for (int i = 1; i < nPoints - 1; i++) {
+      float li = e.row(i).norm() + e.row(i-1).norm();
+      thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat(e, u, i)) / li;
+      if (i != nPoints - 2) {
+        float li_1 = e.row(i).norm() + e.row(i+1).norm();
+        thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat(e, u, i+1)) / li_1;
+      }
+    }
+
+
+    float maxUpdate = 0;
+    for (int i = 1; i < nPoints - 1; i++) {
+      theta[i] -= thetaUpdate[i];
+      maxUpdate = std::max(maxUpdate, thetaUpdate[i]);
+    }
+
+    if (maxUpdate > 1e-4) {
+      shouldContinue = true;
+    }
+
+    std::cout << "Solve for material frame iteration " << iter << " " << maxUpdate << std::endl;
+
+    // for (int i = 1; i < theta.size(); i++) {
+    //   std::cout << theta[i] << "(" << thetaHat(e, u, i)<<") ";
+    // }
+    // std::cout << std::endl;
+  }
+
+  for (int i = 0; i < nPoints - 1; i++) {
+    m1.row(i) = std::cos(theta[i]) * u.row(i) + std::sin(theta[i]) * v.row(i);
+    m2.row(i) = std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
   }
 }
 

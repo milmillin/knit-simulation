@@ -207,7 +207,9 @@ namespace UI {
           ImGui::InputFloat("Contact force", &(params.kContact),
             100, 10, "%.1f");
           ImGui::InputFloat("Bending force", &(params.kBend),
-            0.1, 1, "%.1f");
+            0.1, 1, "%.2f");
+          ImGui::InputFloat("Twisting force", &(params.kTwist),
+            0.1, 1, "%.2f");
           ImGui::InputFloat("Global damping", &(params.kGlobal),
             0.1, 1, "%.1f");
         ImGui::PopItemWidth();
