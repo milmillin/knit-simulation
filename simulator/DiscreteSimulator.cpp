@@ -26,10 +26,13 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
 
   // TODO: remove hard-coded control points
   pinControlPoints.push_back(0);
+  pinControlPoints.push_back(81-59);
+  pinControlPoints.push_back(88-59);
+  pinControlPoints.push_back(74-59);
 
   // TODO: remove hard-coded slicing
   Eigen::MatrixXf newMatrix(10, 3);
-  newMatrix = Q.block(0, 0, 20, 3);
+  newMatrix = Q.block(59, 0, 88-59+1, 3);
   Q = newMatrix;
 
   // Initialize speed
