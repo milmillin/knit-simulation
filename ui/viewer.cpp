@@ -14,6 +14,16 @@ Viewer::Viewer()
     : _simulator(new simulator::Simulator()),
       _history(new HistoryManager(this, file_format::YarnRepr())),
       _animationManager(new AnimationManager(this)) {
+  callback_pre_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
+    _refreshLock.lock();
+    return false;
+  };
+
+  callback_post_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
+    _refreshLock.unlock();
+    return true;
+  };
+
 }
 
 int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int width, int height) {
@@ -40,10 +50,10 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 }
 
 void Viewer::refresh() {
-  std::lock_guard<std::mutex> guard(_refreshLock);
+  std::lock_guard<std::recursive_mutex> guard(_refreshLock);
 
   // Get yarn shape
-  const file_format::YarnRepr &yarns = _history.get()->curentFrame();
+  const file_format::YarnRepr yarns = _history->getFrame(_currentFrame);
   const simulator::SimulatorParams &params = _simulator.get()->params;
 
   // Draw ground
@@ -120,13 +130,15 @@ void Viewer::loadYarn(std::string filename) {
     std::cout << e.what() << std::endl;
   }
 
+  _animationManager.reset(new AnimationManager(this));
+
   file_format::YarnRepr yarnsRepr(yarns);
   simulator::SimulatorParams params;
   // Update simulator
   switch (simulatorClass)
   {
-  case SimulatorClass::Contenious:
-    std::cout << "Using contenious simulator" << std::endl;
+  case SimulatorClass::Continuous:
+    std::cout << "Using continuous simulator" << std::endl;
     _simulator.reset(new simulator::Simulator(yarnsRepr, params));
     break;
 
@@ -142,20 +154,24 @@ void Viewer::loadYarn(std::string filename) {
 
   // Reset history
   _history.reset(new HistoryManager(this, yarnsRepr));
+  
+  _currentFrame = 0;
 
   this->refresh();
 }
 
 void Viewer::nextFrame() {
-  HistoryManager &history = *_history.get(); 
-  history.next();
-  refresh();
+  if (_currentFrame + 1 < _history->totalFrameNumber()) {
+    _currentFrame++;
+    refresh();
+  }
 }
 
 void Viewer::prevFrame() {
-  HistoryManager &history = *_history.get(); 
-  history.prev();
-  refresh();
+  if (_currentFrame > 0) {
+    _currentFrame--;
+    refresh();
+  }
 }
 
 void Viewer::setAnimationMode(bool animating) {

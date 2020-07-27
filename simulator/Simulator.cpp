@@ -17,12 +17,6 @@
 namespace simulator {
 
 
-const file_format::YarnRepr &Simulator::getYarns() {
-	yarns.yarns[0].points = inflate(q);
-	return yarns;
-}
-
-
 //////////////////////////////////////////////
 //
 // Segment Length
@@ -52,12 +46,42 @@ void Simulator::calculateSegmentLength() {
 	log() << "Total Length: " << totalLength << std::endl;
 }
 
+void Simulator::addControlPointLengthConstraint(int i, int j) {
+	int iIndex = i * 3;
+	int jIndex = j * 3;
+  Eigen::Vector3f p0 = q.block<3, 1>(iIndex, 0);
+  Eigen::Vector3f p1 = q.block<3, 1>(jIndex, 0);
+	float length = (p1 - p0).norm();
+
+  Constraints::Func f = [=](const Eigen::MatrixXf& q)->float {
+    Eigen::Vector3f p0 = q.block<3, 1>(iIndex, 0);
+    Eigen::Vector3f p1 = q.block<3, 1>(jIndex, 0);
+    float current = (p1 - p0).norm();
+    return current / length - 1;
+  };
+
+  Constraints::JacobianFunc fD = [=](const Eigen::MatrixXf& q, Constraints::Referrer ref) {
+    Eigen::Vector3f p0 = q.block<3, 1>(iIndex, 0);
+    Eigen::Vector3f p1 = q.block<3, 1>(jIndex, 0);
+    Eigen::Vector3f diff = p1 - p0;
+    float norm = diff.norm();
+    for (int i = 0; i < 3; i++) {
+      ref(iIndex + i) += -diff(i) / length / norm;
+      ref(jIndex + i) += diff(i) / length / norm;
+    }
+  };
+  constraints.addConstraint(f, fD);
+}
+
 void Simulator::addSegmentLengthConstraint() {
 	int N = m - 3;
 
 	for (int i = 0; i < N; i++) {
 		constraints.addLengthConstrain(i, segmentLength[i]);
 	}
+
+	addControlPointLengthConstraint(0, 1);
+	addControlPointLengthConstraint(m - 2, m - 1);
 }
 
 //////////////////////////////////////////////
@@ -133,7 +157,7 @@ void Simulator::constructMassMatrix() {
 // Energy Gradient
 //
 
-void Simulator::calculateGradient() {
+void Simulator::calculateGradient(const std::function<bool()> cancelled) {
 	log() << "Calculating Gradient" << std::endl;
 	int N = m - 3;
 
@@ -150,7 +174,7 @@ void Simulator::calculateGradient() {
 
 	log() << "- Collision Energy" << std::endl;
 	{
-		ParallelWorker worker([this]()->bool { return cancelled(); });
+		ParallelWorker worker(cancelled);
 
     for (int i = 0; i < N; i++) {
 			worker.addWork([this, i, N]() {
@@ -194,7 +218,7 @@ void Simulator::fastProjection() {
 	int iter = 0;
 	Eigen::MatrixXf constraint;
 	float cValue;
-	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 10) {
+	while ((cValue = maxCoeff(constraint = constraints.calculate(qj))) > eps && iter < 100) {
 		log() << "- iter: " << iter << ", constraint: " << cValue << std::endl;
 
 		Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
@@ -240,7 +264,6 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : con
 		q = yarns.yarns[0].points;
 	}
 	m = q.rows();
-	history.push_back(yarns);
 
 	log() << "Found " << m << " control points" << std::endl;
 
@@ -271,34 +294,11 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) : con
 
 	writeToFile();
 
-	log() << "Starting Simulator Thread" << std::endl;
-
-	simulatorThread = std::thread(&Simulator::simulatorLoop, this);
-
 	log() << "Simulator Initialized" << std::endl;
 }
 
 Simulator::~Simulator() {
-	log() << "Waiting for the last step to complete" << std::endl;
-	statusLock.lock();
-	cancelled_ = true;
-	statusLock.unlock();
-	simulatorThread.join();
 	log() << "Simulator Destroyed" << std::endl;
-}
-
-void Simulator::simulatorLoop() {
-	while (true) {
-		if (cancelled()) {
-			break;
-		}
-		if (!paused()) {
-      step();
-		}
-		else {
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-		}
-	}
 }
 
 void Simulator::writeToFile() const {
@@ -307,7 +307,7 @@ void Simulator::writeToFile() const {
 	writeMatrix("gradE-" + std::to_string(stepCnt) + ".csv", gradE);
 }
 
-void Simulator::step() {
+void Simulator::step(const std::function<bool()>& cancelled) {
 	stepCnt++;
 	log() << "Step (" << stepCnt << ")" << std::endl;
 
@@ -315,32 +315,21 @@ void Simulator::step() {
 	gradD.setZero();
 
 	// update gradE, gradD, f
-	calculateGradient();
+	if (!cancelled()) {
+    calculateGradient(cancelled);
+	}
 
-	fastProjection();
+	if (!cancelled()) {
+    fastProjection();
+	}
 
 	// save to YarnRepr
 	// supports one yarn for now
-	// yarns.yarns[0].points = inflate(q, 3);
-	std::lock_guard<std::mutex> lock(historyLock);
-	history.push_back(history.back().createAlike());
-	history.back().yarns[0].points = inflate(q);
+	yarns.yarns[0].points = inflate(q);
 
 	writeToFile();
 
 	log() << "Done Step (" << stepCnt << ")" << std::endl;
-}
-
-std::ostream& Simulator::log() const {
-	char buf[20];
-	time_t rawTime;
-	struct tm* timeInfo;
-
-	time(&rawTime);
-	timeInfo = localtime(&rawTime);
-
-	strftime(buf, 20, "%D %T", timeInfo);
-	return std::cout << "[" << buf << "] ";
 }
 
 };  // namespace simulator

@@ -25,7 +25,7 @@ class DiscreteSimulator : public BaseSimulator {
   virtual const file_format::YarnRepr &getYarns() override { return this->yarns; };
 
   // Simulates next timestep.
-  void step() override;
+  void step(const std::function<bool()>& cancelled) override;
 
 
   // Force

@@ -127,7 +127,7 @@ namespace UI {
             ImGui::Combo("Simulator class",
                         reinterpret_cast<int*>(&yarnViewer->simulatorClass),
                           "Simulator\0"
-                          "DescreteSimulator\0\0");
+                          "Discrete Simulator\0\0");
             ImGui::Text("New class will be applied only after\nloading yarns again");
             
             ImGui::InputFloat("Time resolution", &(params.h),
@@ -149,10 +149,10 @@ namespace UI {
           
           ImGui::PushID("Player");
             ImGui::Text("Frame %d of %d",
-                        yarnViewer->history().currentFrameNumber() + 1,
+                        yarnViewer->currentFrame() + 1,
                         yarnViewer->history().totalFrameNumber());
             if (ImGui::Button("First")) {
-              yarnViewer->history().goToStart();
+              yarnViewer->currentFrame() = 0;
               needRefresh = true;
             }
             ImGui::SameLine();
@@ -175,7 +175,7 @@ namespace UI {
             }
             ImGui::SameLine();
             if (ImGui::Button("Last")) {
-              yarnViewer->history().goToEnd();
+              yarnViewer->currentFrame() = yarnViewer->history().totalFrameNumber() - 1;
               needRefresh = true;
             }
             ImGui::PushItemWidth(inputBoxWidth);
@@ -212,6 +212,10 @@ namespace UI {
             0.1, 1, "%.2f");
           ImGui::InputFloat("Global damping", &(params.kGlobal),
             0.1, 1, "%.1f");
+          ImGui::InputFloat("Length Constant", &(params.kLen),
+            1, 100, "%f");
+          ImGui::InputFloat("Bending Constant", &(params.kBend),
+            0.1, 1, "%f");
         ImGui::PopItemWidth();
       }
       ImGui::End();

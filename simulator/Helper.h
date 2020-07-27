@@ -3,17 +3,14 @@
 #include <functional>
 #include <Eigen/Core>
 #include <fstream>
-
 #include <vector>
+#include <iostream>
 
 #include <glm/glm.hpp>
 
 namespace simulator {
 
 constexpr float SIMPSON_EPS = 1e-5;
-
-// Performs Simpson's Integration of function f over [a, b]
-float integrate(const std::function<float(float)>& f, float a, float b);
 
 // Catmull-Rom coefficient
 inline float b1(float s) {
@@ -76,4 +73,9 @@ Eigen::MatrixXf flatten(const Eigen::MatrixXf& v);
 // Reshapes a vector of (3 * #m) rows to a #m x 3 matrix.
 // Returns a new matrix.
 Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col = 3);
+
+std::ostream& log();
+
+Eigen::Block<Eigen::MatrixXf, 3, 1> pointAt(Eigen::MatrixXf& q, int index);
+
 } // namespace simulator

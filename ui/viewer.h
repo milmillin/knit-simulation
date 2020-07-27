@@ -40,24 +40,26 @@ class Viewer : igl::opengl::glfw::Viewer {
   // Number of samples for yarn cross-section (circle)
   int circleSamples = 8;
   // Number of samples for Catmull-Rom curve
-  int curveSamples = 1;
+  int curveSamples = 4;
   // Animation playback interval (millisecond)
   int animationPlaybackInterval = 1000/10;
   // Type of simulator to use
   enum SimulatorClass {
-    Contenious = 0,
+    Continuous = 0,
     Discrete = 1
-  } simulatorClass = Discrete;
+  } simulatorClass = Continuous;
 
   HistoryManager& history() {return *_history.get();}
   AnimationManager& animationManager() {return *_animationManager.get();}
+  int& currentFrame() { return _currentFrame; }
 
  private:
   std::unique_ptr<Menu> _menu;
   std::unique_ptr<simulator::BaseSimulator> _simulator;
   std::unique_ptr<HistoryManager> _history;
   std::unique_ptr<AnimationManager> _animationManager;
-  std::mutex _refreshLock;
+  mutable std::recursive_mutex _refreshLock;
+  int _currentFrame = 0;
 };
 
 }  // namespace UI

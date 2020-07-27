@@ -29,10 +29,6 @@ private:
   std::thread simulatorThread;
   mutable std::mutex dataLock;
 
-  // YarnRepr for each step
-  std::vector<file_format::YarnRepr> history;
-  mutable std::mutex historyLock;
-
   // position of control points
   Eigen::MatrixXf q;
 
@@ -63,17 +59,13 @@ private:
   // debug
   void writeToFile() const;
 
-  std::ostream& log() const;
-
-  // Returns current yarns
-  virtual const file_format::YarnRepr &getYarns() override;
-
   void calculateSegmentLength();
   void addSegmentLengthConstraint();
+  void addControlPointLengthConstraint(int i, int j);
 
   void constructMassMatrix();
 
-  void calculateGradient();
+  void calculateGradient(const std::function<bool()> cancelled);
   void calculateBendingEnergyGradient(int i);
   void calculateLengthEnergyGradient(int i);
   void calculateCollisionGradient(int i, int j);
@@ -82,20 +74,6 @@ private:
 
   void fastProjection();
 
-  void simulatorLoop();
-  void step();
-  bool cancelled_ = false;
-  bool paused_ = true;
-
-  mutable std::mutex statusLock; 
-  bool cancelled() const {
-    std::lock_guard<std::mutex> lock(statusLock);
-    return cancelled_;
-  }
-  bool paused() const {
-    std::lock_guard<std::mutex> lock(statusLock);
-    return paused_;
-  }
 public:
   // Empty constructor
   Simulator() : q(0, 1), constraints(0) {};
@@ -109,10 +87,11 @@ public:
   ~Simulator();
 
   // Returns current yarns
-  file_format::YarnRepr getYarns(int i) const {
-    std::lock_guard<std::mutex> lock(historyLock);
-    return history[i]; 
+  virtual const file_format::YarnRepr& getYarns() override {
+    return yarns;
   }
+
+  void step(const std::function<bool()>& cancelled) override;
 
   // Gets a reference to constraint container
   Constraints& getConstraints() { return constraints; }

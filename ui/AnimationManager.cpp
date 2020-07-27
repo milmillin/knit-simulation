@@ -18,7 +18,8 @@ AnimationManager::~AnimationManager() {
   _animationThread.join();
 }
 
-bool AnimationManager::isSimulationRunning() {
+bool AnimationManager::isSimulationRunning() const {
+  std::lock_guard<std::mutex> lock(_statusLock);
   return _simulationRunning;
 }
 
@@ -38,7 +39,13 @@ void AnimationManager::stopSimulation() {
   _statusChanged.notify_all();
 }
 
-bool AnimationManager::isAnimationRunning() {
+bool AnimationManager::isTerminated() const {
+  std::lock_guard<std::mutex> lock(_statusLock);
+  return _terminate;
+}
+
+bool AnimationManager::isAnimationRunning() const {
+  std::lock_guard<std::mutex> lock(_statusLock);
   return _animationRunning;
 }
 
@@ -61,6 +68,7 @@ void AnimationManager::stopAnimation() {
 }
 
 void AnimationManager::runSimulation() {
+  std::function<bool()> terminated = [this]()->bool { return isTerminated(); };
   while (true) {
     std::unique_lock<std::mutex> lock(_statusLock);
     _statusChanged.wait(lock, [this]{return _terminate || _simulationRunning;});
@@ -69,7 +77,7 @@ void AnimationManager::runSimulation() {
     }
     lock.unlock();
 
-    _parent->simulator()->step();
+    _parent->simulator()->step(terminated);
     _parent->history().addFrame(_parent->simulator()->getYarns());
   }
 }

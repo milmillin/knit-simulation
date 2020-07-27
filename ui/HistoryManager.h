@@ -13,22 +13,15 @@ class Viewer;
 class HistoryManager {
  public:
   HistoryManager(Viewer *parent, const file_format::YarnRepr &firstFrame);
-  bool hasNext() const;
-  bool hasPrev() const;
-  void next();
-  void prev();
-  void goToStart();
-  void goToEnd();
-  int currentFrameNumber() const;
   int totalFrameNumber() const;
   void addFrame(const file_format::YarnRepr &yarn);
-  const file_format::YarnRepr curentFrame();
+  file_format::YarnRepr getFrame(int index) const;
 
  private:
   Viewer *_parent;
   std::vector<file_format::YarnRepr> _history;
   int _currentFrame = 0;
-  std::mutex _lock;
+  mutable std::mutex _lock;
 };
 
 }  // namespace UI

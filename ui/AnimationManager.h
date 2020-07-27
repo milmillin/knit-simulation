@@ -17,13 +17,15 @@ class AnimationManager {
   AnimationManager(Viewer *parent);
   ~AnimationManager();
 
-  bool isSimulationRunning();
+  bool isSimulationRunning() const;
   void startSimulation();
   void stopSimulation();
 
-  bool isAnimationRunning();
+  bool isAnimationRunning() const;
   void startAnimation();
   void stopAnimation();
+
+  bool isTerminated() const;
 
  private:
   Viewer *_parent;
@@ -36,7 +38,7 @@ class AnimationManager {
   bool _animationRunning;
   std::thread _animationThread;
 
-  std::mutex _statusLock;
+  mutable std::mutex _statusLock;
   std::condition_variable _statusChanged;
 
   void runSimulation();

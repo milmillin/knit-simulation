@@ -71,7 +71,7 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
   initBendingForceMetadata();
 }
 
-void DiscreteSimulator::step() {
+void DiscreteSimulator::step(const std::function<bool()>& cancelled) {
   auto &Q = yarns.yarns[0].points;
 
   for (int i = 0; i < params.steps; i++) {

@@ -4,6 +4,7 @@
 #include <glm/gtx/norm.hpp>
 
 #include <vector>
+#include <ctime>
 
 #include "macros.h"
 
@@ -129,4 +130,21 @@ Eigen::MatrixXf simulator::inflate(const Eigen::MatrixXf& v, size_t col) {
 		}
 	}
 	return res;
+}
+
+std::ostream& simulator::log()
+{
+	char buf[20];
+	time_t rawTime;
+	struct tm* timeInfo;
+
+	time(&rawTime);
+  timeInfo = localtime(&rawTime);
+
+	strftime(buf, 20, "%D %T", timeInfo);
+	return std::cout << "[" << buf << "] ";
+}
+
+Eigen::Block<Eigen::MatrixXf, 3, 1> simulator::pointAt(Eigen::MatrixXf& q, int index) {
+  return q.block<3, 1>(index * 3, 0);
 }
