@@ -78,6 +78,8 @@ class DiscreteSimulator : public BaseSimulator {
   Eigen::MatrixXf u;
   Eigen::MatrixXf v;
   std::vector<float> theta;
+  std::vector<float> thetaHat;
+  std::vector<int> thetaHatOffset;
   Eigen::MatrixXf restOmega;
   Eigen::MatrixXf restOmega_1;
 

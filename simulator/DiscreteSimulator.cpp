@@ -11,6 +11,8 @@
 
 namespace simulator {
 
+static constexpr double pi = 3.14159265358979323846;
+
 DiscreteSimulator::DiscreteSimulator() {
   yarns = file_format::YarnRepr();
   yarns.yarns.push_back(file_format::Yarn());
@@ -250,6 +252,8 @@ void DiscreteSimulator::initBendingForceMetadata() {
   u = m1;
   v = m2;
   theta = std::vector<float>(nPoints - 1, 0.0f);
+  thetaHat = std::vector<float>(nPoints - 1, 0.0f);
+  thetaHatOffset = std::vector<int>(nPoints - 1, 0);
 }
 
 static inline Eigen::Matrix3f crossMatrix(Eigen::Vector3f e) {
@@ -267,7 +271,7 @@ static inline Eigen::Matrix3f gradCurvatureBinormal(Eigen::MatrixXf &e, Eigen::V
     / (e.row(i-1).norm() * e.row(i).norm() + e.row(i-1).dot(e.row(i)));
 }
 
-static float thetaHat(Eigen::MatrixXf &e, Eigen::MatrixXf &u, int i) {
+static float newThetaHat(Eigen::MatrixXf &e, Eigen::MatrixXf &u, int i) {
   Eigen::Vector3f newU = parallelTransport(u.row(i-1), e.row(i - 1), e.row(i));
   return std::atan2(newU.cross(vec(u, i)).norm(), newU.dot(u.row(i)));
 }
@@ -297,7 +301,7 @@ void DiscreteSimulator::applyBendingForce() {
     ddQ.row(i) += params.kBend * force;
     Eigen::Vector3f dTheta_dQi_1 = curvatureBinormal(e, i) / 2 / e.row(i - 1).norm();
     Eigen::Vector3f dTheta_dQi = curvatureBinormal(e, i) / 2 / e.row(i).norm();
-    float coeff = 2 * (theta[i] - theta[i + 1] - thetaHat(e, u, i)) / (e.row(i - 1).norm() + e.row(i).norm());
+    float coeff = 2 * (theta[i] - theta[i + 1] - thetaHat[i]) / (e.row(i - 1).norm() + e.row(i).norm());
     ddQ.row(i) += params.kTwist * coeff * (dTheta_dQi_1 - dTheta_dQi);
   }
 }
@@ -326,10 +330,10 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     std::vector<float> thetaUpdate(nPoints - 1, 0.0f);
     for (int i = 1; i < nPoints - 1; i++) {
       float li = e.row(i).norm() + e.row(i-1).norm();
-      thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat(e, u, i)) / li;
+      thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
       if (i != nPoints - 2) {
         float li_1 = e.row(i).norm() + e.row(i+1).norm();
-        thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat(e, u, i+1)) / li_1;
+        thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
       }
     }
 
@@ -355,6 +359,17 @@ void DiscreteSimulator::updateBendingForceMetadata() {
   for (int i = 0; i < nPoints - 1; i++) {
     m1.row(i) = std::cos(theta[i]) * u.row(i) + std::sin(theta[i]) * v.row(i);
     m2.row(i) = std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
+  }
+
+  for (int i = 1; i < nPoints - 1; i++) {
+    float newValue = newThetaHat(e, u, i);
+    if (newValue + pi * thetaHatOffset[i] - thetaHat[i] < - pi / 2) {
+      thetaHatOffset[i] += 1;
+    } else if (newValue + pi * thetaHatOffset[i] - thetaHat[i] > pi / 2) {
+      thetaHatOffset[i] -= 1;
+    }
+    assert(std::abs(newValue + pi * thetaHatOffset[i] - thetaHat[i]) < pi / 2);
+    thetaHat[i] = newValue + pi * thetaHatOffset[i];
   }
 }
 
