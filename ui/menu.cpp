@@ -182,7 +182,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
     if (ImGui::CollapsingHeader("Create Simulator", 0)) {
       ImGui::PushItemWidth(inputBoxWidth);
       if (ImGui::Combo("Simulator class",
-        reinterpret_cast<int*>(&yarnViewer->simulatorClass),
+        reinterpret_cast<int*>(&yarnViewer->simulatorType),
         "Simulator\0"
         "Discrete Simulator\0\0")) {
         std::cout << "Simulator Changed" << std::endl;
@@ -203,7 +203,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         0.1, 1);
       ImGui::InputFloat("Ground height", &(params.groundHeight),
         0.01, 0.1, "%.2f");
-      ImGui::InputFloat("Ground fiction", &(params.groundFiction),
+      ImGui::InputFloat("Ground fiction", &(params.groundFriction),
         0.01, 0.1, "%.2f");
       ImGui::InputFloat("Contact force", &(params.kContact),
         100, 10, "%.1f");

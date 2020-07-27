@@ -41,9 +41,9 @@ void DiscreteSimulator::applyGravity() {
 void DiscreteSimulator::applyGroundVelocityFilter() {
   for (int i = 0; i < m; i++) {
     if (coordAt(Q, i, 1) < params.groundHeight && coordAt(dQ, i, 1) < 0) {
-      coordAt(dQ, i, 0) *= params.groundFiction;
+      coordAt(dQ, i, 0) *= params.groundFriction;
       coordAt(dQ, i, 1) = 0;
-      coordAt(dQ, i, 2) *= params.groundFiction;
+      coordAt(dQ, i, 2) *= params.groundFriction;
       coordAt(Q, i, 1) = params.groundHeight;
     }
   }

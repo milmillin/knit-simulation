@@ -79,6 +79,7 @@ void AnimationManager::runSimulation() {
 
     _parent->simulator()->step(terminated);
     _parent->history()->addFrame(_parent->simulator()->getYarns());
+    _parent->saveState();
   }
 }
 

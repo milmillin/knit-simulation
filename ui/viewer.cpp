@@ -119,14 +119,14 @@ void Viewer::refresh() {
 
 void Viewer::createSimulator() {
   // Update simulator
-  switch (simulatorClass)
+  switch (simulatorType)
   {
-  case SimulatorClass::Continuous:
+  case simulator::SimulatorType::Continuous:
     std::cout << "Using continuous simulator" << std::endl;
     _simulator.reset(new simulator::Simulator(_yarnsRepr, params));
     break;
 
-  case SimulatorClass::Discrete:
+  case simulator::SimulatorType::Discrete:
     std::cout << "Using discrete simulator" << std::endl;
     _simulator.reset(new simulator::DiscreteSimulator(_yarnsRepr, params));
     break;
@@ -181,6 +181,14 @@ void Viewer::prevFrame() {
 
 void Viewer::setAnimationMode(bool animating) {
   core().is_animating = animating;
+}
+
+void Viewer::saveState() const {
+  file_format::ViewerState state(simulatorType,
+    _simulator->getParams(),
+    _history->totalFrameNumber());
+
+  state.save("viewer-state.txt");
 }
 
 } // namespace UI

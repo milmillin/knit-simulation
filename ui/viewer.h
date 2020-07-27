@@ -13,6 +13,8 @@
 #include "./HistoryManager.h"
 #include "./AnimationManager.h"
 #include "../simulator/BaseSimulator.h"
+#include "../simulator/Enum.h"
+#include "../file_format/viewerState.h"
 
 namespace UI {
 
@@ -34,6 +36,8 @@ class Viewer : igl::opengl::glfw::Viewer {
   void nextFrame();
   void prevFrame();
 
+  void saveState() const;
+
   simulator::BaseSimulator* simulator() const { return _simulator.get(); }
 
   // Number of samples for yarn cross-section (circle)
@@ -43,10 +47,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   // Animation playback interval (millisecond)
   int animationPlaybackInterval = 1000/10;
   // Type of simulator to use
-  enum SimulatorClass {
-    Continuous = 0,
-    Discrete = 1
-  } simulatorClass = Continuous;
+  simulator::SimulatorType simulatorType = simulator::SimulatorType::Continuous;
 
   simulator::SimulatorParams params;
 

@@ -28,6 +28,7 @@ public:
   // Simulates next timestep.
   void step(const StateGetter& cancelled);
 
+  // TODO: Locks
   SimulatorParams getParams() const { return params; }
 protected:
   // Position and meta-data
