@@ -11,7 +11,7 @@ namespace simulator {
 void Simulator::calculateGlobalDampingGradient(int i) {
   int index = i * 3;
 
-  DECLARE_POINTS2(pD, qD, index);
+  DECLARE_POINTS2(pD, dQ, index);
 
   float coefficient = params.kGlobal;
 
@@ -24,12 +24,12 @@ void Simulator::calculateGlobalDampingGradient(int i) {
     Eigen::Vector3f P = POINT_FROM_BASIS(pD, b);
 
     for (int kk = 0; kk < 4; kk++) {
-      ans.block<3, 1>(kk * 3, 0) = (2.f * b[kk]) * P;
+      ans.block<3, 1>(kk * 3ll, 0) = (2.f * b[kk]) * P;
     }
     return ans;
     }, 0, 1);
 
-  gradE.block<12, 1>(index, 0) += coefficient * res;
+  F.block<12, 1>(index, 0) -= coefficient * res;
 }
 
 

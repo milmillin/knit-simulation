@@ -32,6 +32,26 @@ YarnRepr::YarnRepr(file_format::Yarns::Yarns yarns) {
   }
 }
 
+Yarns::Yarns YarnRepr::toYarns() const {
+  Yarns::Yarns res;
+  res.yarns.reserve(yarns.size());
+  for (const Yarn& yarn : yarns) {
+    res.yarns.emplace_back();
+    Yarns::Yarn& thatYarn = res.yarns.back();
+    thatYarn.color = glm::u8vec4(yarn.color, 1);
+    thatYarn.radius = yarn.radius;
+
+    int n = yarn.points.rows();
+    thatYarn.points.resize(n);
+    const Eigen::MatrixXf& P = yarn.points;
+    for (int i = 0; i < n; i++) {
+      thatYarn.points[i] = glm::vec3(P(i, 0), P(i, 1), P(i, 2));
+    }
+    thatYarn.sources.resize(n, 0);
+  }
+  return res;
+}
+
 YarnRepr YarnRepr::createAlike() const {
   YarnRepr res;
   res.yarns.reserve(yarns.size());

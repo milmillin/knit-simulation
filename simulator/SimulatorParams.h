@@ -7,7 +7,6 @@ struct SimulatorParams {
   // Debug mode
   bool debug = false;
 
-  float r = 0.125f;
   float m = 0.006f;
   float kLen = 10000.f;
   float kBend = 0.05f;
@@ -23,21 +22,21 @@ struct SimulatorParams {
   // Time delta for each step (time resolution)
   float h = 1.f / 11800;
   // Number of steps to run for each button click
-  int steps = 100;
+  int steps = 1;
   // Gravity acceleration
   float gravity = 9.8f;
   // y coordinate of the ground
   float groundHeight = -5.f;
   // Ground fiction
-  float groundFiction = 0.5f;
+  float groundFriction = 0.5f;
 
-  float cInit = 0.935f;
+  float cInit = 1.0f;
 
   // === Fast projection ===
   // maximum iteration
   int fastProjMaxIter = 20;
   // Early termination when error is small
-  float fastProjErrorCutoff = 1e-6;
+  float fastProjErrorCutoff = 1e-5;
 
   static SimulatorParams Default() {
     SimulatorParams param;

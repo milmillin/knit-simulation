@@ -23,78 +23,23 @@ namespace simulator{
 // segment[i] is governed by q[i], q[i + 1], q[i + 2], q[i + 3].
 class Simulator : public BaseSimulator {
 private:
-  // simulator attributes
-  size_t m;
-  int stepCnt;
-  std::thread simulatorThread;
-  mutable std::mutex dataLock;
-
-  // position of control points
-  Eigen::MatrixXf q;
-
-  // segment length
-  std::vector<float> segmentLength;
-
-  // mass matrix
-  Eigen::SparseMatrix<float> M;
-  Eigen::SparseMatrix<float> MInverse;
-
-  // first-derivative of q w.r.t. time
-  Eigen::MatrixXf qD;
-
-  // gradient of positional energy
-  Eigen::MatrixXf gradE;
-
-  // gradient of damping energy
-  Eigen::MatrixXf gradD;
-
-  // external force
-  Eigen::MatrixXf f;
-
-  mutable std::mutex gradLock;
-
-  // constraints
-  Constraints constraints;
-
-  // debug
-  void writeToFile() const;
-
-  void calculateSegmentLength();
-  void addSegmentLengthConstraint();
-  void addControlPointLengthConstraint(int i, int j);
-
-  void constructMassMatrix();
-
-  void calculateGradient(const std::function<bool()> cancelled);
+  void calculateGradient(const StateGetter& cancelled);
   void calculateBendingEnergyGradient(int i);
   void calculateLengthEnergyGradient(int i);
-  void calculateCollisionGradient(int i, int j);
 
   void calculateGlobalDampingGradient(int i);
 
-  void fastProjection();
-
 public:
-  // Empty constructor
-  Simulator() : q(0, 1), constraints(0) {};
-
   // Constructs a new simulator with control points
   //
   // q_ : The #m x 3 matrix containing initial control points.
   // params_ : Simulation paramters
   Simulator(file_format::YarnRepr yarns, SimulatorParams params_);
 
-  ~Simulator();
-
-  // Returns current yarns
-  virtual const file_format::YarnRepr& getYarns() override {
-    return yarns;
-  }
-
-  void step(const std::function<bool()>& cancelled) override;
-
-  // Gets a reference to constraint container
-  Constraints& getConstraints() { return constraints; }
+protected:
+  void constructMassMatrix() override;
+  void stepImpl(const StateGetter& cancelled) override;
+  void setUpConstraints() override;
 };
 
 }; // namespace simulator

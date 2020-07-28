@@ -10,10 +10,10 @@ namespace simulator {
 
 void Simulator::calculateLengthEnergyGradient(int i) {
   int index = i * 3;
-  DECLARE_POINTS2(p, q, index);
+  DECLARE_POINTS2(p, Q, index);
 
   float coefficient = params.kLen;
-  float L = segmentLength[i];
+  float L = catmullRomLength[i];
 
   using Vec12 = Eigen::Matrix<float, 12, 1>;
 
@@ -26,13 +26,12 @@ void Simulator::calculateLengthEnergyGradient(int i) {
     float tmp = 2.f * (norm / L - 1) / (L * norm);
 
     for (int kk = 0; kk < 4; kk++) {
-      ans.block<3, 1>(kk * 3, 0) = (tmp * bD[kk]) * P;
+      ans.block<3, 1>(kk * 3ll, 0) = (tmp * bD[kk]) * P;
     }
     return ans;
     }, 0, 1);
 
-  gradE.block<12, 1>(index, 0) += coefficient * res;
+  F.block<12, 1>(index, 0) -= coefficient * res;
 }
-
 
 }  // namespace simulator

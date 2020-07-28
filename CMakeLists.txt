@@ -3,6 +3,7 @@ project(knit-simulator)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_BUILD_TYPE Debug)
+set (CMAKE_CXX_STANDARD 14)
 
 # libigl
 option(LIBIGL_WITH_OPENGL            "Use OpenGL"         ON)
