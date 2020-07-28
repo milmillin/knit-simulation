@@ -96,7 +96,6 @@ namespace simulator {
         WRITE_MATRIX(F);
       }
 
-      yarns.yarns[0].points = inflate(Q);
       numStep++;
     }
     log() << "> Done " << params.steps << " step(s)" << std::endl;
@@ -318,5 +317,10 @@ namespace simulator {
 
       constraints.addConstraint(f, fD);
     }
+  }
+
+  const file_format::YarnRepr& BaseSimulator::getYarns() {
+    yarns.yarns[0].points = inflate(Q);
+    return this->yarns;
   }
 } // namespace simulator
