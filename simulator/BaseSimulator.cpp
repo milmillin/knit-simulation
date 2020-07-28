@@ -146,7 +146,7 @@ namespace simulator {
       nIter++;
     }
 
-    dQ = (Qj - Q) / params.h;
+    dQ += (Qj - Q) / params.h;
     Q = Qj;
   }
 
