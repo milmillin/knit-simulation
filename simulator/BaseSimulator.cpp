@@ -170,9 +170,6 @@ namespace simulator {
   }
 
   void BaseSimulator::applyContactForceImpl(int ii, int jj) {
-    // TODO: Change this to a parameter
-    static constexpr int SUBDIVIDE = 20;
-
     int iIndex = ii * 3;
     int jIndex = jj * 3;
 
@@ -191,7 +188,7 @@ namespace simulator {
 
     float thresh2 = 4.0f * r * r;
 
-    float step = 1.f / SUBDIVIDE;
+    float step = 1.f / params.contactForceSamples;
     float halfStep = step / 2;
 
     Eigen::MatrixXf gradEi = Eigen::MatrixXf::Zero(12, 1);
@@ -200,13 +197,13 @@ namespace simulator {
     Eigen::MatrixXf gradDi = Eigen::MatrixXf::Zero(12, 1);
     Eigen::MatrixXf gradDj = Eigen::MatrixXf::Zero(12, 1);
 
-    for (int i = 0; i < SUBDIVIDE; i++) {
+    for (int i = 0; i < params.contactForceSamples; i++) {
       float si = i * step + halfStep;
       DECLARE_BASIS2(bi, si);
       Eigen::Vector3f Pi = POINT_FROM_BASIS(pi, bi);
       Eigen::Vector3f PiD = POINT_FROM_BASIS(piD, bi);
 
-      for (int j = 0; j < SUBDIVIDE; j++) {
+      for (int j = 0; j < params.contactForceSamples; j++) {
         float sj = j * step + halfStep;
         DECLARE_BASIS2(bj, sj);
 

@@ -9,14 +9,19 @@ struct SimulatorParams {
 
   float m = 0.006f;
   float kLen = 10000.f;
+  // Bending coefficient
   float kBend = 0.05f;
+  // Twisting coefficient
   float kTwist = 0.05f;
   // Global damping
   float kGlobal = 1.5f;
   // Contact force coefficient
   float kContact = 3250.f;
+  // Contact force damping
   float kDt = 0.003f;
   float kDn = 0.03f;
+  // Contact force samples per segment
+  int contactForceSamples = 11;
   float aSmall = 0.3f;
   float aLarge = 0.3f;
   // Time delta for each step (time resolution)
