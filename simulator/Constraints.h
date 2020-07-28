@@ -13,7 +13,7 @@ namespace simulator {
 
 class Constraints {
 public:
-  using Referrer = std::function<float& (int)>;
+  using Referrer = std::function<float& (int, int)>;
   using Func = std::function<float(const Eigen::MatrixXf&)>;
   using JacobianFunc = std::function<void(const Eigen::MatrixXf&, const Referrer&)>;
 

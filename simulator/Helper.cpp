@@ -83,18 +83,18 @@ Eigen::MatrixXf simulator::catmullRomSequenceSample(Eigen::MatrixXf points, int 
 }
 
 // See https://pomax.github.io/bezierinfo/#catmullconv
-void simulator::catmullRomBoundingBox(const Eigen::MatrixXf &points, int index,
-    std::vector<double> *lowerBound, std::vector<double> *upperBound, float radius) {
-  Eigen::MatrixXf bezierControlPoints(4, 3);
-  bezierControlPoints.row(0) = points.row(index + 1);
-  bezierControlPoints.row(1) = points.row(index + 1) + (points.row(index + 2) - points.row(index + 0)) / 3;
-  bezierControlPoints.row(2) = points.row(index + 2) - (points.row(index + 3) - points.row(index + 1)) / 3;
-  bezierControlPoints.row(3) = points.row(index + 2);
-  lowerBound->resize(3);
-  upperBound->resize(3);
+void simulator::catmullRomBoundingBox(const Eigen::MatrixXf& points, int index,
+    std::vector<double>& lowerBound, std::vector<double>& upperBound, float radius) {
+  Eigen::MatrixXf controlPoints(3, 4);
+  controlPoints.col(0) = pointAt(points, index + 1);
+  controlPoints.col(1) = pointAt(points, index + 1) + (pointAt(points, index + 2) - pointAt(points, index + 0)) / 3;
+  controlPoints.col(2) = pointAt(points, index + 2) - (pointAt(points, index + 3) - pointAt(points, index + 1)) / 3;
+  controlPoints.col(3) = pointAt(points, index + 2);
+  lowerBound.resize(3);
+  upperBound.resize(3);
   for (int i = 0; i < 3; i++) {
-    (*lowerBound)[i] = bezierControlPoints.col(i).minCoeff() - radius;
-    (*upperBound)[i] = bezierControlPoints.col(i).maxCoeff() + radius;
+    lowerBound[i] = controlPoints.row(i).minCoeff() - radius;
+    upperBound[i] = controlPoints.row(i).maxCoeff() + radius;
   }
 }
 
@@ -146,5 +146,22 @@ std::ostream& simulator::log()
 }
 
 Eigen::Block<Eigen::MatrixXf, 3, 1> simulator::pointAt(Eigen::MatrixXf& q, int index) {
-  return q.block<3, 1>(index * 3, 0);
+  return q.block<3, 1>(index * 3ll, 0);
+}
+
+Eigen::Block<const Eigen::MatrixXf, 3, 1> simulator::pointAt(const Eigen::MatrixXf& q, int index) {
+  return q.block<3, 1>(index * 3ll, 0);
+}
+
+float& simulator::coordAt(Eigen::MatrixXf& q, int index, int axis) {
+  return q(index * 3ll + axis);
+}
+
+const float& simulator::coordAt(const Eigen::MatrixXf& q, int index, int axis) {
+  return q(index * 3ll + axis);
+}
+
+float simulator::maxCoeff(const Eigen::MatrixXf& m) {
+	if (m.rows() == 0 || m.cols() == 0) return 0;
+	return std::max(fabs(m.maxCoeff()), fabs(m.minCoeff()));
 }

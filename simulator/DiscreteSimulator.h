@@ -1,3 +1,5 @@
+#pragma once
+
 #include "./BaseSimulator.h"
 
 #include <vector>
@@ -6,14 +8,11 @@
 
 #include "../file_format/yarnRepr.h"
 #include "./SimulatorParams.h"
-#include "./AABB.h"
 
 namespace simulator {
 
 class DiscreteSimulator : public BaseSimulator {
- public:
-  // Empty constructor
-  DiscreteSimulator();
+public:
 
   // Constructs a new simulator with control points
   //
@@ -21,46 +20,44 @@ class DiscreteSimulator : public BaseSimulator {
   // params_ : Simulation paramters
   DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParams params);
 
-  // Returns current yarns
-  virtual const file_format::YarnRepr &getYarns() override { return this->yarns; };
-
-  // Simulates next timestep.
-  void step(const std::function<bool()>& cancelled) override;
-
+  // Force
   void applyGravity();
+
+  void initBendingForceMetadata();
+  void applyBendingForce();
+  void applyTwistingForce();
+  void updateBendingForceMetadata();
+
+  // Velocity filter
   void applyGroundVelocityFilter();
-  void applyContactForce();
-  void applyLengthConstrain();
-  void applyPinConstrain();
-  void fastProjection();
   void applyGlobalDamping();
+
+
  private:
-  // Velocity
-  Eigen::MatrixXf dQ;
-  // Acceleration
-  Eigen::MatrixXf ddQ;
-
-  // Rest Length for each segment
-  std::vector<float> restLength;
-
   // === Constrains ===
   // Index of control points to be fixed
   std::vector<int> pinControlPoints;
-  // Location of control points to be fixed
-  std::vector<glm::vec3> pinControlPointsPosition;
-  // Value of constrain function (one row per constrain)
-  Eigen::VectorXf constrain;
-  // Gradient of constrain function (one row per constrain and one colomn per coordiate)
-  // The i^th axis of j^th point is stored in the colomn `i * nPoints + j`
-  Eigen::SparseMatrix<float> dConstrain;
-  // Next available constrain id
-  int nextConstrainID = 0;
 
-  inline int pointIndex(int pointID, int axis);
-  inline int nConstrain();
+  // === Bending Force ===
+  Eigen::MatrixXf e;
+  Eigen::MatrixXf m1;
+  Eigen::MatrixXf m2;
+  Eigen::MatrixXf u;
+  Eigen::MatrixXf v;
+  std::vector<float> theta;
+  std::vector<float> thetaHat;
+  std::vector<int> thetaHatOffset;
+  Eigen::MatrixXf restOmega;
+  Eigen::MatrixXf restOmega_1;
 
-  aabb::Tree collisionTree;
+protected:
+  // Simulates next timestep.
+  void stepImpl(const StateGetter& cancelled) override;
+  // Called after each step's calculation
+  void postStep(const std::function<bool()>& cancelled) override;
+
+  // Set up constraints
+  void setUpConstraints() override;
 };
 
-} // namespace simulatr 
-
+} // namespace simulator 

@@ -16,6 +16,7 @@ class Menu : public igl::opengl::glfw::imgui::ImGuiMenu {
 
  private:
   bool load(std::string filename) override;
+  bool save(std::string filename) override;
 };
 
 }  // namespace UI

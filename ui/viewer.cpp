@@ -10,10 +10,7 @@
 
 namespace UI {
 
-Viewer::Viewer()
-    : _simulator(new simulator::Simulator()),
-      _history(new HistoryManager(this, file_format::YarnRepr())),
-      _animationManager(new AnimationManager(this)) {
+Viewer::Viewer(std::string filename) {
   callback_pre_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
     _refreshLock.lock();
     return false;
@@ -24,6 +21,7 @@ Viewer::Viewer()
     return true;
   };
 
+  loadYarn(filename);
 }
 
 int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int width, int height) {
@@ -54,7 +52,7 @@ void Viewer::refresh() {
 
   // Get yarn shape
   const file_format::YarnRepr yarns = _history->getFrame(_currentFrame);
-  const simulator::SimulatorParams &params = _simulator.get()->params;
+  const simulator::SimulatorParams& params = _simulator->getParams();
 
   // Draw ground
   this->selected_data_index = 0;
@@ -119,7 +117,35 @@ void Viewer::refresh() {
   }
 }
 
-void Viewer::loadYarn(std::string filename) {
+void Viewer::createSimulator() {
+  // Update simulator
+  switch (simulatorType)
+  {
+  case simulator::SimulatorType::Continuous:
+    std::cout << "Using continuous simulator" << std::endl;
+    _simulator.reset(new simulator::Simulator(_yarnsRepr, params));
+    break;
+
+  case simulator::SimulatorType::Discrete:
+    std::cout << "Using discrete simulator" << std::endl;
+    _simulator.reset(new simulator::DiscreteSimulator(_yarnsRepr, params));
+    break;
+
+  default:
+    assert(false && "Invalid simulator class");
+    break;
+  }
+
+  // Reset manager
+  _animationManager.reset(new AnimationManager(this));
+  _history.reset(new HistoryManager(this, _yarnsRepr));
+  
+  _currentFrame = 0;
+
+  this->refresh();
+}
+
+void Viewer::loadYarn(const std::string& filename) {
   // Load .yarns file
   std::cout << "Loading model: " << filename << std::endl;
   file_format::Yarns::Yarns yarns;
@@ -130,34 +156,13 @@ void Viewer::loadYarn(std::string filename) {
     std::cout << e.what() << std::endl;
   }
 
-  _animationManager.reset(new AnimationManager(this));
+  _yarnsRepr = file_format::YarnRepr(yarns);
 
-  file_format::YarnRepr yarnsRepr(yarns);
-  simulator::SimulatorParams params;
-  // Update simulator
-  switch (simulatorClass)
-  {
-  case SimulatorClass::Continuous:
-    std::cout << "Using continuous simulator" << std::endl;
-    _simulator.reset(new simulator::Simulator(yarnsRepr, params));
-    break;
+  createSimulator();
+}
 
-  case SimulatorClass::Discrete:
-    std::cout << "Using discrete simulator" << std::endl;
-    _simulator.reset(new simulator::DiscreteSimulator(yarnsRepr, params));
-    break;
-
-  default:
-    assert(false && "Invalid simulator class");
-    break;
-  }
-
-  // Reset history
-  _history.reset(new HistoryManager(this, yarnsRepr));
-  
-  _currentFrame = 0;
-
-  this->refresh();
+void Viewer::saveYarn(const std::string& filename) {
+  _history->getFrame(_currentFrame).toYarns().save(filename);
 }
 
 void Viewer::nextFrame() {
@@ -176,6 +181,14 @@ void Viewer::prevFrame() {
 
 void Viewer::setAnimationMode(bool animating) {
   core().is_animating = animating;
+}
+
+void Viewer::saveState() const {
+  file_format::ViewerState state(simulatorType,
+    _simulator->getParams(),
+    _history->totalFrameNumber());
+
+  state.save("viewer-state.txt");
 }
 
 } // namespace UI
