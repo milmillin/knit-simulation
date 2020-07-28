@@ -158,6 +158,9 @@ void Viewer::loadYarn(const std::string& filename) {
 
   _yarnsRepr = file_format::YarnRepr(yarns);
 
+  // TODO: remove slicing
+  _yarnsRepr.yarns[0].points = _yarnsRepr.yarns[0].points.block(59, 0, (88-59+1), 3);
+
   createSimulator();
 }
 

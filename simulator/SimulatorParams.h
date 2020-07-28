@@ -20,9 +20,9 @@ struct SimulatorParams {
   float aSmall = 0.3f;
   float aLarge = 0.3f;
   // Time delta for each step (time resolution)
-  float h = 1.f / 11800;
+  float h = 0.001;
   // Number of steps to run for each button click
-  int steps = 1;
+  int steps = 100;
   // Gravity acceleration
   float gravity = 9.8f;
   // y coordinate of the ground
