@@ -228,12 +228,9 @@ void DiscreteSimulator::updateBendingForceMetadata() {
       shouldContinue = true;
     }
 
-    std::cout << "Solve for material frame iteration " << iter << " " << maxUpdate << std::endl;
-
-    // for (int i = 1; i < theta.size(); i++) {
-    //   std::cout << theta[i] << "(" << thetaHat(e, u, i)<<") ";
-    // }
-    // std::cout << std::endl;
+    if (params.debug) {
+      std::cout << "Solve for material frame iteration " << iter << " " << maxUpdate << std::endl;
+    }
   }
 
   for (int i = 0; i < m - 1; i++) {
