@@ -93,29 +93,25 @@ static inline Eigen::Vector2f omega(Eigen::MatrixXf &e, Eigen::MatrixXf &m1, Eig
 }
 
 void DiscreteSimulator::initBendingForceMetadata() {
-  auto &Q = yarns.yarns[0].points;
-
-  int nPoints = Q.rows();
-
   // No bending energy
-  if (nPoints <= 2) {
+  if (m <= 2) {
     return;
   }
 
   // Allocate memory
-  e.resize(nPoints - 1, 3);
-  m1.resize(nPoints - 1, 3);
-  m2.resize(nPoints - 1, 3);
-  restOmega.resize(nPoints, 2);
-  restOmega_1.resize(nPoints, 2);
+  e.resize(m - 1, 3);
+  m1.resize(m - 1, 3);
+  m2.resize(m - 1, 3);
+  restOmega.resize(m, 2);
+  restOmega_1.resize(m, 2);
 
   // Initialize tangent
-  for (int i = 0; i < nPoints - 1; i++) {
-    e.row(i) = Q.row(i + 1) - Q.row(i);
+  for (int i = 0; i < m - 1; i++) {
+    e.row(i) = pointAt(Q, i + 1) - pointAt(Q, i);
   }
 
   // Initialize direction 1 with arbitrary vector that's normal to u.row(0)
-  if (std::abs(Q(0, 0) + Q(0, 1)) < std::abs(Q(0, 2))) {
+  if (std::abs(Q(0, 0) + Q(1, 0)) < std::abs(Q(2, 0))) {
     m1.row(0) = Eigen::Vector3f(1, 0, 0).cross(vec(e, 0));
   } else {
     m1.row(0) = Eigen::Vector3f(0, 0, 1).cross(vec(e, 0));
@@ -126,14 +122,14 @@ void DiscreteSimulator::initBendingForceMetadata() {
   m2.row(0) = vec(e, 0).cross(vec(m1, 0)).normalized();
 
   // Fill in all frames
-  for (int i = 1; i < nPoints - 1; i++) {
+  for (int i = 1; i < m - 1; i++) {
     m1.row(i) = parallelTransport(m1.row(i-1), e.row(i-1), e.row(i)).normalized();
     m2.row(i) = vec(e, i).cross(vec(m1, i)).normalized();
   }
 
 
   // Calculate rest omega
-  for (int i = 1; i < nPoints - 1; i++) {
+  for (int i = 1; i < m - 1; i++) {
     restOmega.row(i) = omega(e, m1, m2, i, i).transpose();
     restOmega_1.row(i) = omega(e, m1, m2, i, i - 1).transpose();
   }
@@ -141,9 +137,9 @@ void DiscreteSimulator::initBendingForceMetadata() {
   // Initialize theta
   u = m1;
   v = m2;
-  theta = std::vector<float>(nPoints - 1, 0.0f);
-  thetaHat = std::vector<float>(nPoints - 1, 0.0f);
-  thetaHatOffset = std::vector<int>(nPoints - 1, 0);
+  theta = std::vector<float>(m - 1, 0.0f);
+  thetaHat = std::vector<float>(m - 1, 0.0f);
+  thetaHatOffset = std::vector<int>(m - 1, 0);
 }
 
 static inline Eigen::Matrix3f crossMatrix(Eigen::Vector3f e) {
@@ -167,13 +163,10 @@ static float newThetaHat(Eigen::MatrixXf &e, Eigen::MatrixXf &u, int i) {
 }
 
 void DiscreteSimulator::applyBendingForce() {
-  auto &Q = yarns.yarns[0].points;
-
-  // TODO: why starting from 1?
-  for (int i = 1; i < Q.rows() - 1; i++) {
+  for (int i = 1; i < m - 1; i++) {
     Eigen::Vector3f force;
     force.setZero();
-    for (int k = std::max(1, i - 1); k <= std::min((int)Q.rows() - 2, i + 1); k++) {
+    for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
       float l = e.row(k - 1).norm() + e.row(k).norm();
       Eigen::Vector3f kb = curvatureBinormal(e, k);
       for (int j = k - 1; j <= k; j++) {
@@ -198,17 +191,13 @@ void DiscreteSimulator::applyBendingForce() {
 }
 
 void DiscreteSimulator::updateBendingForceMetadata() {
-  auto &Q = yarns.yarns[0].points;
-
-  int nPoints = Q.rows();
-
-  if (nPoints <= 2) {
+  if (m <= 2) {
     return;
   }
 
   // Update frames
-  for (int i = 0; i < nPoints - 1; i++) {
-    Eigen::Vector3f newE = Q.row(i + 1) - Q.row(i);
+  for (int i = 0; i < m - 1; i++) {
+    Eigen::Vector3f newE = pointAt(Q, i + 1) - pointAt(Q, i);
     u.row(i) = parallelTransport(u.row(i), e.row(i), newE).normalized();
     v.row(i) = newE.cross(vec(u, i)).normalized();
     e.row(i) = newE.transpose();
@@ -218,11 +207,11 @@ void DiscreteSimulator::updateBendingForceMetadata() {
   for (int iter = 0; shouldContinue && iter < 100; iter++) {
     shouldContinue = false;
 
-    std::vector<float> thetaUpdate(nPoints - 1, 0.0f);
-    for (int i = 1; i < nPoints - 1; i++) {
+    std::vector<float> thetaUpdate(m - 1, 0.0f);
+    for (int i = 1; i < m - 1; i++) {
       float li = e.row(i).norm() + e.row(i-1).norm();
       thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
-      if (i != nPoints - 2) {
+      if (i != m - 2) {
         float li_1 = e.row(i).norm() + e.row(i+1).norm();
         thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
       }
@@ -230,7 +219,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
 
 
     float maxUpdate = 0;
-    for (int i = 1; i < nPoints - 1; i++) {
+    for (int i = 1; i < m - 1; i++) {
       theta[i] -= thetaUpdate[i];
       maxUpdate = std::max(maxUpdate, thetaUpdate[i]);
     }
@@ -247,12 +236,12 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     // std::cout << std::endl;
   }
 
-  for (int i = 0; i < nPoints - 1; i++) {
+  for (int i = 0; i < m - 1; i++) {
     m1.row(i) = std::cos(theta[i]) * u.row(i) + std::sin(theta[i]) * v.row(i);
     m2.row(i) = std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
   }
 
-  for (int i = 1; i < nPoints - 1; i++) {
+  for (int i = 1; i < m - 1; i++) {
     float newValue = newThetaHat(e, u, i);
     if (newValue + pi * thetaHatOffset[i] - thetaHat[i] < - pi / 2) {
       thetaHatOffset[i] += 1;
