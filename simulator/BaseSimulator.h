@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "./threading/ctpl_stl.h"
 #include "../file_format/yarnRepr.h"
 #include "./SimulatorParams.h"
 #include "./AABB.h"
@@ -9,6 +11,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+
 #include <functional>
 
 namespace simulator
@@ -31,6 +34,8 @@ public:
   // TODO: Locks
   SimulatorParams getParams() const { return params; }
 protected:
+  ctpl::thread_pool thread_pool;
+
   // Position and meta-data
   file_format::YarnRepr yarns;
 
@@ -109,9 +114,6 @@ protected:
   void addCatmullRomLengthConstraint(int i);
   // Add pin constraint of point i to a fixed position
   void addPinConstraint(int i, Eigen::Vector3f position);
-
-private:
-  void applyContactForceImpl(int ii, int jj);
 };
 
 } // namespace simulator

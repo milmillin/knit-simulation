@@ -23,7 +23,11 @@
 *  		+ order of testing in setup_thread;
 *  		+ atomic guards on pushes;
 *  		+ make clear_queue private
-*
+* 
+* 
+*  July 2020, Tom Lou:
+*   - Add a function that wait for jobs to complete without
+      destorying the threads
 *********************************************************/
 
 
@@ -60,8 +64,9 @@ namespace ctpl {
             // deletes the retrieved element, do not use for non integral types
             bool pop(T & v) {
                 std::unique_lock<std::mutex> lock(m_mutex);
-                if (m_queue.empty())
+                if (m_queue.empty()) {
                     return false;
+                }
                 v = m_queue.front();
                 m_queue.pop();
                 return true;
@@ -171,6 +176,12 @@ namespace ctpl {
             m_abort   .clear();
         }
 
+        // Block until all threads are idle.
+        void wait() {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_all_idle.wait(lock, [&](){return ma_n_idle == m_threads.size();});
+        }
+
         template<typename F, typename... Rest>
         auto push(F && f, Rest&&... rest) ->std::future<decltype(f(0, rest...))>
         {
@@ -258,6 +269,11 @@ namespace ctpl {
                     // the queue is empty here, wait for the next command
                     std::unique_lock<std::mutex> lock(m_mutex);
                     ++ma_n_idle;
+
+                    if (ma_n_idle == m_threads.size()) {
+                        m_all_idle.notify_all();
+                    }
+
                     m_cond.wait(lock, [this, &_f, &more_tasks, &abort](){ more_tasks = m_queue.pop(_f); return abort || ma_interrupt || more_tasks; });
                     --ma_n_idle;
                     if ( ! more_tasks) return; // we stopped waiting either because of interruption or abort
@@ -277,7 +293,7 @@ namespace ctpl {
         std::atomic<size_t>  ma_n_idle;
 
         std::mutex               m_mutex;
-        std::condition_variable  m_cond;
+        std::condition_variable  m_cond, m_all_idle;
     };
 }
 

@@ -19,6 +19,6 @@ link_directories(${GLM_LIBRARY_DIRS})
 add_definitions(${GLM_DEFINITIONS})
 
 # Add your project files
-file(GLOB SRCFILES *.cpp */*.cpp)
+file(GLOB SRCFILES *.cpp */*.cpp simulator/*/*.cpp)
 add_executable(${PROJECT_NAME} ${SRCFILES})
 target_link_libraries(${PROJECT_NAME} igl::core igl::opengl_glfw igl::opengl_glfw_imgui)
