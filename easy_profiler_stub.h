@@ -6,4 +6,6 @@
   // Define empty macros for easy profiler when it's disabled
   #define EASY_PROFILER_ENABLE
   #define EASY_FUNCTION()
+  #define EASY_BLOCK(name)
+  #define EASY_END_BLOCK
 #endif
