@@ -1,12 +1,14 @@
 #include "DiscreteSimulator.h"
 
-#include "macros.h"
-#include "Helper.h"
-
 #include <iostream>
+#include <functional>
 
 #include <Eigen/SparseLU>
 #include "../easy_profiler_stub.h"
+
+#include "macros.h"
+#include "Helper.h"
+#include "./threading/threading.h"
 
 namespace simulator {
 
@@ -76,22 +78,22 @@ inline static Eigen::Vector3f parallelTransport(const Eigen::Vector3f& u, const 
     return u.dot(n)*n + u.dot(t1)*t2 + u.dot(p1)*p2;
 }
 
-static inline Eigen::Vector3f vec(Eigen::MatrixXf &v, int index) {
+static inline Eigen::Vector3f vec(RowMatrixX3f &v, int index) {
   return Eigen::Vector3f(v.row(index).transpose());
 }
 
-static inline Eigen::Vector3f curvatureBinormal(Eigen::MatrixXf &e, int i) {
-  Eigen::Vector3f a = 2 * vec(e, i - 1).cross(vec(e, i));
-  float b = e.row(i-1).norm() * e.row(i).norm();
-  float c = e.row(i-1).dot(e.row(i));
-  return a / (b + c);
-  // return 2 * vec(u, i - 1).cross(vec(u, i))
-  //   / (u.row(i-1).norm() * u.row(i).norm() + u.row(i-1).dot(u.row(i)));
+void DiscreteSimulator::curvatureBinormalTask
+    (int thread_id, int start_index, int end_index) {
+  for (int i = start_index; i < end_index; i++) {
+    Eigen::Vector3f a = 2 * vec(e, i - 1).cross(vec(e, i));
+    float b = segmentLength[i-1] * segmentLength[i];
+    float c = e.row(i-1).dot(e.row(i));
+    curvatureBinormal.row(i) = a.transpose() / (b + c);
+  }
 }
 
-static inline Eigen::Vector2f omega(Eigen::MatrixXf &e, Eigen::MatrixXf &m1, Eigen::MatrixXf &m2,
-  int i, int j) {
-  Eigen::Vector3f kb = curvatureBinormal(e, i);
+Eigen::Vector2f DiscreteSimulator::omega(int i, int j) {
+  Eigen::Vector3f kb = vec(curvatureBinormal, i);
   Eigen::Vector2f result;
   result(0) = kb.dot(m2.row(j));
   result(1) = -kb.dot(m1.row(j));
@@ -107,11 +109,12 @@ void DiscreteSimulator::initBendingForceMetadata() {
   }
 
   // Allocate memory
-  e.resize(m - 1, 3);
-  m1.resize(m - 1, 3);
-  m2.resize(m - 1, 3);
-  restOmega.resize(m, 2);
-  restOmega_1.resize(m, 2);
+  e.resize(m - 1, Eigen::NoChange);
+  m1.resize(m - 1, Eigen::NoChange);
+  m2.resize(m - 1, Eigen::NoChange);
+  restOmega.resize(m, Eigen::NoChange);
+  restOmega_1.resize(m, Eigen::NoChange);
+  curvatureBinormal.resize(m - 1, Eigen::NoChange);
 
   // Initialize tangent
   for (int i = 0; i < m - 1; i++) {
@@ -138,8 +141,8 @@ void DiscreteSimulator::initBendingForceMetadata() {
 
   // Calculate rest omega
   for (int i = 1; i < m - 1; i++) {
-    restOmega.row(i) = omega(e, m1, m2, i, i).transpose();
-    restOmega_1.row(i) = omega(e, m1, m2, i, i - 1).transpose();
+    restOmega.row(i) = omega(i, i).transpose();
+    restOmega_1.row(i) = omega(i, i - 1).transpose();
   }
 
   // Initialize theta
@@ -159,26 +162,33 @@ static inline Eigen::Matrix3f crossMatrix(Eigen::Vector3f e) {
   return result;
 }
 
-static inline Eigen::Matrix3f gradCurvatureBinormal(Eigen::MatrixXf &e, Eigen::Vector3f kb, int i) {
+static inline Eigen::Matrix3f gradCurvatureBinormal(RowMatrixX3f &e, Eigen::Vector3f kb, int i) {
   return - (2 * crossMatrix(e.row(i)) + 2 * crossMatrix(e.row(i-1))
       + kb * (e.row(i) - e.row(i-1)))
     / (e.row(i-1).norm() * e.row(i).norm() + e.row(i-1).dot(e.row(i)));
 }
 
-static float newThetaHat(Eigen::MatrixXf &e, Eigen::MatrixXf &u, int i) {
+static float newThetaHat(RowMatrixX3f &e, RowMatrixX3f &u, int i) {
   Eigen::Vector3f newU = parallelTransport(u.row(i-1), e.row(i - 1), e.row(i));
   return std::atan2(newU.cross(vec(u, i)).norm(), newU.dot(u.row(i)));
 }
 
 void DiscreteSimulator::applyBendingForce() {
   EASY_FUNCTION();
+  using namespace std::placeholders;
+
+  EASY_BLOCK("curvatureBinormalTask");
+    auto task = std::bind(&DiscreteSimulator::curvatureBinormalTask,
+                          this, _1, _2, _3);
+    threading::runSequentialJob(thread_pool, task, 1, m-1);
+  EASY_END_BLOCK;
 
   for (int i = 1; i < m - 1; i++) {
     Eigen::Vector3f force;
     force.setZero();
     for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
       float l = e.row(k - 1).norm() + e.row(k).norm();
-      Eigen::Vector3f kb = curvatureBinormal(e, k);
+      Eigen::Vector3f kb = vec(curvatureBinormal, k);
       for (int j = k - 1; j <= k; j++) {
         Eigen::MatrixXf coeff(2, 3);
         coeff.row(0) = m2.row(j);
@@ -188,13 +198,13 @@ void DiscreteSimulator::applyBendingForce() {
           restOmega_1.row(k).transpose();
         force -= (1.0f / l)
           * (coeff * gradCurvatureBinormal(e, kb, i)).transpose()
-          * (omega(e, m1, m2, k, j) - omegaBar);
+          * (omega(k, j) - omegaBar);
       }
     }
     
     pointAt(F, i) += params.kBend * force;
-    Eigen::Vector3f dTheta_dQi_1 = curvatureBinormal(e, i) / 2 / e.row(i - 1).norm();
-    Eigen::Vector3f dTheta_dQi = curvatureBinormal(e, i) / 2 / e.row(i).norm();
+    Eigen::Vector3f dTheta_dQi_1 = vec(curvatureBinormal, i) / 2 / e.row(i - 1).norm();
+    Eigen::Vector3f dTheta_dQi = vec(curvatureBinormal, i) / 2 / e.row(i).norm();
     float coeff = 2 * (theta[i] - theta[i + 1] - thetaHat[i]) / (e.row(i - 1).norm() + e.row(i).norm());
     pointAt(F, i) += params.kTwist * coeff * (dTheta_dQi_1 - dTheta_dQi);
   }

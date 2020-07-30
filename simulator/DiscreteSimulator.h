@@ -11,6 +11,13 @@
 
 namespace simulator {
 
+typedef
+  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>
+  RowMatrixX3f;
+typedef
+  Eigen::Matrix<float, Eigen::Dynamic, 2, Eigen::RowMajor>
+  RowMatrixX2f;
+
 class DiscreteSimulator : public BaseSimulator {
 public:
 
@@ -39,16 +46,17 @@ public:
   std::vector<int> pinControlPoints;
 
   // === Bending Force ===
-  Eigen::MatrixXf e;
-  Eigen::MatrixXf m1;
-  Eigen::MatrixXf m2;
-  Eigen::MatrixXf u;
-  Eigen::MatrixXf v;
+  RowMatrixX3f e;
+  RowMatrixX3f m1;
+  RowMatrixX3f m2;
+  RowMatrixX3f u;
+  RowMatrixX3f v;
+  RowMatrixX3f curvatureBinormal;
   std::vector<float> theta;
   std::vector<float> thetaHat;
   std::vector<int> thetaHatOffset;
-  Eigen::MatrixXf restOmega;
-  Eigen::MatrixXf restOmega_1;
+  RowMatrixX2f restOmega;
+  RowMatrixX2f restOmega_1;
 
 protected:
   // Simulates next timestep.
@@ -58,6 +66,11 @@ protected:
 
   // Set up constraints
   void setUpConstraints() override;
+
+private:
+  // === Bending and twisting ===
+  void curvatureBinormalTask(int thread_id, int start_index, int end_index);
+  Eigen::Vector2f omega(int i, int j);
 };
 
 } // namespace simulator 
