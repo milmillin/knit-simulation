@@ -162,33 +162,29 @@ namespace simulator {
     return (-threshold2 / distance2 / distance2 + 1 / threshold2) * direction;
   }
 
-  static void contactForceBetweenSegments
+  void BaseSimulator::contactForceBetweenSegments
       (int thread_id,
-      const Eigen::MatrixXf *Q,
-      const Eigen::MatrixXf *dQ,
       std::vector<Eigen::MatrixXf> *forces,
-      const SimulatorParams *params,
-      int ii, int jj,
-      float r,
-      float length_i, float length_j) {
+      int ii, int jj) {
     Eigen::MatrixXf &F = (*forces)[thread_id];
     int iIndex = ii * 3;
     int jIndex = jj * 3;
 
-    DECLARE_POINTS2(pi, (*Q), iIndex);
-    DECLARE_POINTS2(pj, (*Q), jIndex);
-    DECLARE_POINTS2(piD, (*dQ), iIndex);
-    DECLARE_POINTS2(pjD, (*dQ), jIndex);
+    DECLARE_POINTS2(pi, Q, iIndex);
+    DECLARE_POINTS2(pj, Q, jIndex);
+    DECLARE_POINTS2(piD, dQ, iIndex);
+    DECLARE_POINTS2(pjD, dQ, jIndex);
 
-    float coeffE = params->kContact * length_i * length_j;
-    float coeffD = length_i * length_j;
-    float kDt = params->kDt;
-    float kDn = params->kDn;
+    float coeffE = params.kContact * catmullRomLength[ii] * catmullRomLength[jj];
+    float coeffD = catmullRomLength[ii] * catmullRomLength[jj];
+    float kDt = params.kDt;
+    float kDn = params.kDn;
     //dataLock.unlock();
 
+    float r = yarns.yarns[0].radius;
     float thresh2 = 4.0f * r * r;
 
-    float step = 1.f / params->contactForceSamples;
+    float step = 1.f / params.contactForceSamples;
     float halfStep = step / 2;
 
     Eigen::MatrixXf gradEi = Eigen::MatrixXf::Zero(12, 1);
@@ -197,13 +193,13 @@ namespace simulator {
     Eigen::MatrixXf gradDi = Eigen::MatrixXf::Zero(12, 1);
     Eigen::MatrixXf gradDj = Eigen::MatrixXf::Zero(12, 1);
 
-    for (int i = 0; i < params->contactForceSamples; i++) {
+    for (int i = 0; i < params.contactForceSamples; i++) {
       float si = i * step + halfStep;
       DECLARE_BASIS2(bi, si);
       Eigen::Vector3f Pi = POINT_FROM_BASIS(pi, bi);
       Eigen::Vector3f PiD = POINT_FROM_BASIS(piD, bi);
 
-      for (int j = 0; j < params->contactForceSamples; j++) {
+      for (int j = 0; j < params.contactForceSamples; j++) {
         float sj = j * step + halfStep;
         DECLARE_BASIS2(bj, sj);
 
@@ -244,19 +240,18 @@ namespace simulator {
     }
 
     threading::submitProducerAndWait(thread_pool,
-      [this, &forces](int, ctpl::thread_pool *pool){
+      [this, &forces](int, ctpl::thread_pool *thread_pool){
         int N = m - 3;
         for (int i = 0; i < N; i++) {
           std::vector<unsigned int> intersections = collisionTree.query(i);
           for (int j : intersections) {
             if (j > i + 1) {
               using namespace std::placeholders;
-              auto task = std::bind(contactForceBetweenSegments,
-                                    _1,
-                                    &Q, &dQ, &forces, &params,
-                                    i, j, yarns.yarns[0].radius,
-                                    catmullRomLength[i], catmullRomLength[j]);
-              pool->push(task);
+              auto task = std::bind(&BaseSimulator::contactForceBetweenSegments,
+                                    this, _1,
+                                    &forces,
+                                    i, j);
+              thread_pool->push(task);
             }
           }
         }

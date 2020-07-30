@@ -104,6 +104,10 @@ protected:
   // Contact Force
 
   void applyContactForce(const StateGetter& cancelled);
+  void contactForceBetweenSegments
+      (int thread_id,
+      std::vector<Eigen::MatrixXf> *forces,
+      int ii, int jj);
 
   ///////////////////////
   // Constraints
