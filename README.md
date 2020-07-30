@@ -21,7 +21,7 @@ git clone https://github.com/g-truc/glm.git
 
 Easy Profiler is used to time the program and help with algorithm optimization. It's intended for developers and not useful for the user.
 
-If you want to avoid this dependency, comment out `#define ENABLE_EASY_PROFILER` in `easy_profiler_stub.h`. In `CMakeList.txt`, remove `find_package(easy_profiler REQUIRED)` and remove `easy_profiler` in `target_link_libraries`.
+If you want to avoid this dependency, comment out `#define USE_EASY_PROFILER` in `easy_profiler_stub.h`. In `CMakeList.txt`, remove `find_package(easy_profiler REQUIRED)` and remove `easy_profiler` in `target_link_libraries`.
 
 To insall Easy Profiler, follow the documentation on the [project page](https://github.com/yse/easy_profiler#if-using-cmake).
 

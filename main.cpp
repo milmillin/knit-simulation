@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
   UI::Viewer viewer(argv[1]);
   viewer.launch();
 
-  #ifdef ENABLE_EASY_PROFILER
+  #ifdef USE_EASY_PROFILER
     profiler::dumpBlocksToFile("test_profile.prof");
   #endif
 }
