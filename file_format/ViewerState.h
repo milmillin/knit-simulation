@@ -14,9 +14,13 @@ class ViewerState {
 public:
   ViewerState(simulator::SimulatorType type = simulator::SimulatorType::Continuous,
     simulator::SimulatorParams params = simulator::SimulatorParams(),
-    int numSteps = 0);
+    int numSteps = 1);
   ViewerState(const std::string& filename);
   void save(const std::string& filename) const;
+
+  const simulator::SimulatorType& getType() const { return _type; }
+  const simulator::SimulatorParams& getParams() const { return _params; }
+  int getNumSteps() const { return _numSteps; }
 private:
   simulator::SimulatorType _type;
   simulator::SimulatorParams _params;

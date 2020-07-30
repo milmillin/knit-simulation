@@ -16,7 +16,6 @@ namespace simulator {
     yarns(_yarns),
     params(_params),
     m(_yarns.yarns[0].points.rows()),
-    numStep(1),
     Q(flatten(_yarns.yarns[0].points)),
     dQ(Eigen::MatrixXf::Zero(3ll * m, 1)),
     F(Eigen::MatrixXf::Zero(3ll * m, 1)),
@@ -71,16 +70,36 @@ namespace simulator {
     this->setUpConstraints();
   }
 
+  void BaseSimulator::setPosition(const file_format::YarnRepr& yarn) {
+    const Eigen::MatrixXf& v = yarn.yarns[0].points;
+    assert(v.cols() == 3 && 3 * v.rows() == dQ.rows());
+    Q = flatten(v);
+  }
+
+  void BaseSimulator::setVelocity(const file_format::YarnRepr& yarn) {
+    const Eigen::MatrixXf& v = yarn.yarns[0].points;
+    assert(v.cols() == 3 && 3 * v.rows() == dQ.rows());
+    dQ = flatten(v);
+  }
+
+  const file_format::YarnRepr& BaseSimulator::getYarns() {
+    yarns.yarns[0].points = inflate(Q);
+    return yarns;
+  }
+
+  file_format::YarnRepr BaseSimulator::getVelocityYarns() {
+    file_format::YarnRepr yarn = yarns.createAlike();
+    yarn.yarns[0].points = inflate(dQ);
+    return yarn;
+  }
+
   ///////////////
   // Stepping
 #define WRITE_MATRIX(Q) writeMatrix(#Q"-" + std::to_string(numStep) + ".csv", Q);
 
   void BaseSimulator::step(const StateGetter& cancelled) {
-    log() << "Stepping " << params.steps << " step(s) ("
-      << numStep << " to " << (numStep + params.steps - 1) << ")" << std::endl;
-
     for (int i = 0; i < params.steps; i++) {
-      IFDEBUG log() << "Step " << numStep << std::endl;
+      IFDEBUG log() << "Step " << i << std::endl;
       if (cancelled()) break;
       this->stepImpl(cancelled);
       if (cancelled()) break;
@@ -90,16 +109,8 @@ namespace simulator {
       if (cancelled()) break;
       this->postStep(cancelled);
 
-      IFDEBUG{
-        WRITE_MATRIX(Q);
-        WRITE_MATRIX(dQ);
-        WRITE_MATRIX(F);
-      }
-
       yarns.yarns[0].points = inflate(Q);
-      numStep++;
     }
-    log() << "> Done " << params.steps << " step(s)" << std::endl;
   }
 
   void BaseSimulator::updateCollisionTree(const StateGetter& cancelled) {
@@ -129,14 +140,14 @@ namespace simulator {
 
       solver.compute(dConstraint * invM * dConstraint.transpose());
       if (solver.info() != Eigen::Success) {
-        log() << "--- solve failed (1) at step " << numStep 
+        log() << "--- solve failed (1)"
           << " iter " << nIter << " STOPPING" << std::endl;
         break;
       }
 
       Eigen::MatrixXf lambda = solver.solve(constraint);
       if (solver.info() != Eigen::Success) {
-        log() << "--- solve failed (2) at step " << numStep 
+        log() << "--- solve failed (2)"
           << " iter " << nIter << " STOPPING" << std::endl;
         break;
       }

@@ -7,6 +7,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Launch viewer
-  UI::Viewer viewer(argv[1]);
+  UI::Viewer viewer("output/");
+  viewer.loadYarn(argv[1]);
   viewer.launch();
 }
