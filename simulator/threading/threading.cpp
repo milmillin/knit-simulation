@@ -22,7 +22,6 @@ static void sequencialJobProducer(int thread_id, ctpl::thread_pool *thread_pool,
   for (int i = start; i < end; i += step) {
     thread_pool->push(consumer, i, std::min(end, i + step));
   }
-  std::cout << "job submission done" << std::endl;
 }
 
 void runSequentialJob(ctpl::thread_pool &thread_pool,
