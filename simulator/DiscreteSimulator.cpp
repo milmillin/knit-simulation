@@ -5,8 +5,8 @@
 
 #include <iostream>
 
-#include<Eigen/SparseLU>
-#include<glm/gtx/norm.hpp>
+#include <Eigen/SparseLU>
+#include "../easy_profiler_stub.h"
 
 namespace simulator {
 
@@ -22,6 +22,8 @@ DiscreteSimulator::DiscreteSimulator(file_format::YarnRepr yarns, SimulatorParam
 }
 
 void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
+  EASY_FUNCTION();
+
   // Calculate acceleration
   F.setZero();
   applyGravity();
@@ -44,10 +46,14 @@ void DiscreteSimulator::postStep(const StateGetter& cancelled) {
 }
 
 void DiscreteSimulator::applyGravity() {
+  EASY_FUNCTION();
+
 	F += Eigen::Vector3f(0, -params.gravity, 0).replicate(m, 1);
 }
 
 void DiscreteSimulator::applyGroundVelocityFilter() {
+  EASY_FUNCTION();
+
   for (int i = 0; i < m; i++) {
     if (coordAt(Q, i, 1) < params.groundHeight && coordAt(dQ, i, 1) < 0) {
       coordAt(dQ, i, 0) *= params.groundFriction;
@@ -93,6 +99,8 @@ static inline Eigen::Vector2f omega(Eigen::MatrixXf &e, Eigen::MatrixXf &m1, Eig
 }
 
 void DiscreteSimulator::initBendingForceMetadata() {
+  EASY_FUNCTION();
+
   // No bending energy
   if (m <= 2) {
     return;
@@ -163,6 +171,8 @@ static float newThetaHat(Eigen::MatrixXf &e, Eigen::MatrixXf &u, int i) {
 }
 
 void DiscreteSimulator::applyBendingForce() {
+  EASY_FUNCTION();
+
   for (int i = 1; i < m - 1; i++) {
     Eigen::Vector3f force;
     force.setZero();
@@ -191,6 +201,8 @@ void DiscreteSimulator::applyBendingForce() {
 }
 
 void DiscreteSimulator::updateBendingForceMetadata() {
+  EASY_FUNCTION();
+
   if (m <= 2) {
     return;
   }
@@ -251,6 +263,8 @@ void DiscreteSimulator::updateBendingForceMetadata() {
 }
 
 void DiscreteSimulator::applyGlobalDamping() {
+  EASY_FUNCTION();
+
   dQ *= exp(-params.kGlobal * params.h);
 }
 

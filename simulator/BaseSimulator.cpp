@@ -9,6 +9,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include "../easy_profiler_stub.h"
 
 #include <functional>
 #include <thread>
@@ -80,17 +81,23 @@ namespace simulator {
 #define WRITE_MATRIX(Q) writeMatrix(#Q"-" + std::to_string(numStep) + ".csv", Q);
 
   void BaseSimulator::step(const StateGetter& cancelled) {
+    EASY_FUNCTION();
+
     log() << "Stepping " << params.steps << " step(s) ("
       << numStep << " to " << (numStep + params.steps - 1) << ")" << std::endl;
 
     for (int i = 0; i < params.steps; i++) {
       IFDEBUG log() << "Step " << numStep << std::endl;
+
       if (cancelled()) break;
       this->stepImpl(cancelled);
+
       if (cancelled()) break;
       this->fastProjection(cancelled);
+
       if (cancelled()) break;
       this->updateCollisionTree(cancelled);
+
       if (cancelled()) break;
       this->postStep(cancelled);
 
@@ -106,6 +113,8 @@ namespace simulator {
   }
 
   void BaseSimulator::updateCollisionTree(const StateGetter& cancelled) {
+    EASY_FUNCTION();
+
     IFDEBUG log() << "Updating collision tree" << std::endl;
     // Update AABB tree
     std::vector<double> lowerBound;
@@ -117,6 +126,8 @@ namespace simulator {
   }
 
   void BaseSimulator::fastProjection(const StateGetter& cancelled) {
+    EASY_FUNCTION();
+
     int nIter = 0;
     Eigen::MatrixXf constraint;
     Eigen::MatrixXf Qj = Q;
@@ -233,6 +244,8 @@ namespace simulator {
   }
   
   void BaseSimulator::applyContactForce(const StateGetter& cancelled) {
+    EASY_FUNCTION();
+
     std::vector<Eigen::MatrixXf> forces;
     for (int i = 0; i < thread_pool.size(); i++) {
       forces.push_back(std::move(Eigen::MatrixXf(Q.rows(), Q.cols())));

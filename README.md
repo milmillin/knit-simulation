@@ -5,7 +5,7 @@ This projects simulates yarn interactions.
 ## Dependencies and First-Time Setup
 
 The only dependencies are stl, eigen, [libigl](http://libigl.github.io/libigl/) and
-the dependencies of the `igl::opengl::glfw::Viewer`.
+the dependencies of the `igl::opengl::glfw::Viewer`. An optional dependency is [Easy Profiler](https://github.com/yse/easy_profiler).
 
 For now, we also require [glm](https://github.com/g-truc/glm).
 
@@ -15,6 +15,22 @@ The cmake build system will attempt to find libigl according to environment vari
 cd knit-simulation/
 git clone https://github.com/libigl/libigl.git
 git clone https://github.com/g-truc/glm.git
+```
+
+Easy Profiler is used to time the program and help with algorithm optimization. It's intended for developers and not useful for the user. If you want to avoid this dependency, comment out `#define ENABLE_EASY_PROFILER` in `main.cpp`.
+
+To insall Easy Profiler, follow the documentation on the [project page](https://github.com/yse/easy_profiler#if-using-cmake).
+
+[This instruction](https://kezunlin.me/post/91b7cf13/) works on Linux:
+
+```Bash
+git clone https://github.com/yse/easy_profiler.git
+
+cd easy_profiler && mkdir build && cd build
+
+cmake-gui ..
+make -j8
+sudo make install
 ```
 
 ## Compile
