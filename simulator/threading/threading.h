@@ -16,6 +16,9 @@ void submitProducerAndWait(ctpl::thread_pool &thread_pool,
 void runSequentialJob(ctpl::thread_pool &thread_pool,
                       SequencialTaskConsumer consumer,
                       int start, int end, int step);
+void runSequentialJob(ctpl::thread_pool &thread_pool,
+                      SequencialTaskConsumer consumer,
+                      int start, int end);
 
 }  // namespace threading
 }  // namespace simulator
