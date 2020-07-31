@@ -264,7 +264,7 @@ namespace simulator {
       return current / length - 1;
     };
 
-    Constraints::JacobianFunc fD = [=](const Eigen::VectorXf& q, Constraints::Referrer ref) {
+    Constraints::JacobianFunc fD = [=](const Eigen::MatrixXf& q, Constraints::Referrer ref) {
       Eigen::Vector3f p0 = pointAt(q, i);
       Eigen::Vector3f p1 = pointAt(q, i + 1);
       Eigen::Vector3f diff = p1 - p0;
