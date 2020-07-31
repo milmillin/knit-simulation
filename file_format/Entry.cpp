@@ -2,7 +2,6 @@
 
 namespace file_format {
 
-/*
 template<>
 void Entry<bool>::write(std::ofstream& f) {
   f << _fieldName << " " << ((*_value) ? "True" : "False") << "\n";
@@ -50,6 +49,9 @@ bool Entry<simulator::SimulatorType>::read(std::ifstream& f) {
   else return false;
   return true;
 }
-*/
+
+template Entry<float>;
+template Entry<bool>;
+template Entry<simulator::SimulatorType>;
 
 }  // namepsace file_format
