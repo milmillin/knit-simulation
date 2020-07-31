@@ -23,7 +23,7 @@ public:
   virtual ~BaseSimulator() { }
 
   // Returns current yarns
-  const file_format::YarnRepr& getYarns() { return this->yarns; }
+  const file_format::YarnRepr& getYarns();
 
   // Simulates next timestep.
   void step(const StateGetter& cancelled);
