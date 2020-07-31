@@ -68,7 +68,9 @@ void AnimationManager::stopAnimation() {
 }
 
 void AnimationManager::runSimulation() {
-  std::function<bool()> terminated = [this]()->bool { return isTerminated(); };
+  std::function<bool()> terminated = [this]()->bool { return isTerminated(); }; 
+  char positionName[200];
+  char velocityName[200];
   while (true) {
     std::unique_lock<std::mutex> lock(_statusLock);
     _statusChanged.wait(lock, [this]{return _terminate || _simulationRunning;});
@@ -77,9 +79,29 @@ void AnimationManager::runSimulation() {
     }
     lock.unlock();
 
+    int currentFrame = _parent->history()->totalFrameNumber() + 1;
+
+    simulator::log() << "Simulating Frame: " << currentFrame << std::endl;
+
     _parent->simulator()->step(terminated);
-    _parent->history()->addFrame(_parent->simulator()->getYarns());
+
+    file_format::YarnRepr yarnPos = _parent->simulator()->getYarns();
+    file_format::YarnRepr yarnVel = _parent->simulator()->getVelocityYarns();
+    _parent->history()->addFrame(yarnPos);
+
+    // TODO: remove redundancy
+    snprintf(positionName, 200, "%sposition-%05d.yarns",
+      _parent->outputDirectory().c_str(), currentFrame);
+    snprintf(velocityName, 200, "%svelocity-%05d.yarns",
+      _parent->outputDirectory().c_str(), currentFrame);
+
+    // Saving result to disk
+    yarnPos.toYarns().save(positionName);
+    yarnVel.toYarns().save(velocityName);
+
     _parent->saveState();
+
+    simulator::log() << "> Done" << std::endl;
   }
 }
 
