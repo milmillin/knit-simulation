@@ -226,9 +226,9 @@ void DiscreteSimulator::applyBendingForce() {
   using namespace std::placeholders;
 
   int step =
-    (m < 50) ?
+    (m < 200) ?
     (1 + (m / thread_pool.size()))
-    : 50;
+    : 200;
 
   {
     EASY_BLOCK("curvatureBinormalTask");
@@ -266,27 +266,40 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     return;
   }
 
-  // Update frames
-  for (int i = 0; i < m - 1; i++) {
-    Eigen::Vector3f newE = pointAt(Q, i + 1) - pointAt(Q, i);
-    u.row(i) = parallelTransport(u.row(i), e.row(i), newE).normalized();
-    v.row(i) = newE.cross(vec(u, i)).normalized();
-    e.row(i) = newE.transpose();
-  }
+  int step = m < 500 ?
+    1 + (m / thread_pool.size())
+    : 500;
 
+  // Update frames
+  EASY_BLOCK("Update frame")
+  threading::runSequentialJob(thread_pool,
+    [this](int thread_id, int start, int end) {
+      for (int i = start; i < end; i++) {
+        Eigen::Vector3f newE = pointAt(Q, i + 1) - pointAt(Q, i);
+        u.row(i) = parallelTransport(u.row(i), e.row(i), newE).normalized();
+        v.row(i) = newE.cross(vec(u, i)).normalized();
+        e.row(i) = newE.transpose();
+      }
+    }, 1, m - 1, step);
+  EASY_END_BLOCK;
+
+  EASY_BLOCK("Solve theta");
   bool shouldContinue = true;
   for (int iter = 0; shouldContinue && iter < 100; iter++) {
     shouldContinue = false;
 
     std::vector<float> thetaUpdate(m - 1, 0.0f);
-    for (int i = 1; i < m - 1; i++) {
-      float li = e.row(i).norm() + e.row(i-1).norm();
-      thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
-      if (i != m - 2) {
-        float li_1 = e.row(i).norm() + e.row(i+1).norm();
-        thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
-      }
-    }
+    threading::runSequentialJob(thread_pool,
+      [this, &thetaUpdate](int thread_id, int start, int end) {
+        for (int i = start; i < end; i++) {
+          float li = e.row(i).norm() + e.row(i-1).norm();
+          thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
+          if (i != m - 2) {
+            float li_1 = e.row(i).norm() + e.row(i+1).norm();
+            thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
+          }
+        }
+      }, 1, m - 1, step);
 
 
     float maxUpdate = 0;
@@ -303,22 +316,33 @@ void DiscreteSimulator::updateBendingForceMetadata() {
       std::cout << "Solve for material frame iteration " << iter << " " << maxUpdate << std::endl;
     }
   }
+  EASY_END_BLOCK;
 
-  for (int i = 0; i < m - 1; i++) {
-    m1.row(i) = std::cos(theta[i]) * u.row(i) + std::sin(theta[i]) * v.row(i);
-    m2.row(i) = std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
-  }
+  EASY_BLOCK("Update material frame");
+  threading::runSequentialJob(thread_pool,
+    [this](int thread_id, int start, int end) {
+      for (int i = start; i < end; i++) {
+        m1.row(i) = std::cos(theta[i]) * u.row(i) + std::sin(theta[i]) * v.row(i);
+        m2.row(i) = std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
+      }
+    }, 1, m - 1, step);
+  EASY_END_BLOCK;
 
-  for (int i = 1; i < m - 1; i++) {
-    float newValue = newThetaHat(e, u, i);
-    if (newValue + pi * thetaHatOffset[i] - thetaHat[i] < - pi / 2) {
-      thetaHatOffset[i] += 1;
-    } else if (newValue + pi * thetaHatOffset[i] - thetaHat[i] > pi / 2) {
-      thetaHatOffset[i] -= 1;
-    }
-    assert(std::abs(newValue + pi * thetaHatOffset[i] - thetaHat[i]) < pi / 2);
-    thetaHat[i] = newValue + pi * thetaHatOffset[i];
-  }
+  EASY_BLOCK("updateThetaHat");
+  threading::runSequentialJob(thread_pool,
+    [this](int thread_id, int start, int end) {
+      for (int i = start; i < end; i++) {
+        float newValue = newThetaHat(e, u, i);
+        if (newValue + pi * thetaHatOffset[i] - thetaHat[i] < - pi / 2) {
+          thetaHatOffset[i] += 1;
+        } else if (newValue + pi * thetaHatOffset[i] - thetaHat[i] > pi / 2) {
+          thetaHatOffset[i] -= 1;
+        }
+        assert(std::abs(newValue + pi * thetaHatOffset[i] - thetaHat[i]) < pi / 2);
+        thetaHat[i] = newValue + pi * thetaHatOffset[i];
+      }
+    }, 1, m - 1, step);
+  EASY_END_BLOCK;
 }
 
 void DiscreteSimulator::applyGlobalDamping() {
