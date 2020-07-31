@@ -72,6 +72,8 @@ private:
   // === Bending and twisting ===
   void curvatureBinormalTask(int thread_id, int start_index, int end_index);
   void gradCurvatureBinormalTask(int thread_id, int start_index, int end_index);
+  void bendingForceTask(int thread_id, int start_index, int end_index);
+  void twistingForceTask(int thread_id, int start_index, int end_index);
   Eigen::Vector2f omega(int i, int j);
 };
 

@@ -186,54 +186,69 @@ static float newThetaHat(RowMatrixX3f &e, RowMatrixX3f &u, int i) {
   return std::atan2(newU.cross(vec(u, i)).norm(), newU.dot(u.row(i)));
 }
 
+void DiscreteSimulator::bendingForceTask(int thread_id, int start_index, int end_index) {
+  for (int i = start_index; i < end_index; i++) {
+    Eigen::Vector3f force;
+    force.setZero();
+
+    for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
+      float l = segmentLength[k-1] + segmentLength[k];
+      Eigen::Vector3f kb = vec(curvatureBinormal, k);
+      for (int j = k - 1; j <= k; j++) {
+        Eigen::MatrixXf coeff(2, 3);
+        coeff.row(0) = m2.row(j);
+        coeff.row(1) = -m1.row(j);
+        auto omegaBar = (j == k) ?
+          restOmega.row(k).transpose() :
+          restOmega_1.row(k).transpose();
+        force -= (1.0f / l)
+          * (coeff * gradCurvatureBinormal[i][k - (i - 1)]).transpose()
+          * (omega(k, j) - omegaBar);
+      }
+    }
+    pointAt(F, i) += params.kBend * force;
+  }
+}
+
 void DiscreteSimulator::applyBendingForce() {
   EASY_FUNCTION();
   using namespace std::placeholders;
+
+  int step =
+    (m < 50) ?
+    (1 + (m / thread_pool.size()))
+    : 50;
 
   {
     EASY_BLOCK("curvatureBinormalTask");
     auto task = std::bind(&DiscreteSimulator::curvatureBinormalTask,
                           this, _1, _2, _3);
-    threading::runSequentialJob(thread_pool, task, 1, m-1);
+    threading::runSequentialJob(thread_pool, task, 1, m-1, step);
   }
 
   {
     EASY_BLOCK("gradCurvatureBinormalTask");
     auto task = std::bind(&DiscreteSimulator::gradCurvatureBinormalTask,
                           this, _1, _2, _3);
-    threading::runSequentialJob(thread_pool, task, 1, m-1);
+    threading::runSequentialJob(thread_pool, task, 1, m-1, step);
   }
 
-  for (int i = 1; i < m - 1; i++) {
-    Eigen::Vector3f force;
-    force.setZero();
+  {
+    EASY_BLOCK("bendingForceTask");
+    auto task = std::bind(&DiscreteSimulator::bendingForceTask,
+                          this, _1, _2, _3);
+    threading::runSequentialJob(thread_pool, task, 1, m-1, step);
+  }
 
-    EASY_BLOCK("Bending force");
-      for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
-        float l = segmentLength[k-1] + segmentLength[k];
-        Eigen::Vector3f kb = vec(curvatureBinormal, k);
-        for (int j = k - 1; j <= k; j++) {
-          Eigen::MatrixXf coeff(2, 3);
-          coeff.row(0) = m2.row(j);
-          coeff.row(1) = -m1.row(j);
-          auto omegaBar = (j == k) ?
-            restOmega.row(k).transpose() :
-            restOmega_1.row(k).transpose();
-          force -= (1.0f / l)
-            * (coeff * gradCurvatureBinormal[i][k - (i - 1)]).transpose()
-            * (omega(k, j) - omegaBar);
-        }
-      }
-      pointAt(F, i) += params.kBend * force;
-    EASY_END_BLOCK;
     
-    EASY_BLOCK("Twisting force");
+  EASY_BLOCK("Twisting force");
+  for (int i = 1; i < m - 1; i++) {
       Eigen::Vector3f dTheta_dQi_1 = vec(curvatureBinormal, i) / 2 / e.row(i - 1).norm();
       Eigen::Vector3f dTheta_dQi = vec(curvatureBinormal, i) / 2 / e.row(i).norm();
       float coeff = 2 * (theta[i] - theta[i + 1] - thetaHat[i]) / (e.row(i - 1).norm() + e.row(i).norm());
       pointAt(F, i) += params.kTwist * coeff * (dTheta_dQi_1 - dTheta_dQi);
-    EASY_END_BLOCK;
   }
+  EASY_END_BLOCK;
 }
 
 void DiscreteSimulator::updateBendingForceMetadata() {
