@@ -9,7 +9,7 @@
 
 namespace file_format {
 
-YarnRepr::YarnRepr(file_format::Yarns::Yarns yarns) {
+YarnRepr::YarnRepr(file_format::Yarns::Yarns &yarns) {
   for (auto& yarn : yarns.yarns) {
     int nPoints = yarn.points.size();
 
