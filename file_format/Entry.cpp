@@ -50,8 +50,8 @@ bool Entry<simulator::SimulatorType>::read(std::ifstream& f) {
   return true;
 }
 
-template Entry<float>;
-template Entry<bool>;
-template Entry<simulator::SimulatorType>;
+template class Entry<float>;
+template class Entry<bool>;
+template class Entry<simulator::SimulatorType>;
 
 }  // namepsace file_format
