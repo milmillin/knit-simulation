@@ -112,11 +112,22 @@ void DiscreteSimulator::initBendingForceMetadata() {
   e.resize(m - 1, Eigen::NoChange);
   m1.resize(m - 1, Eigen::NoChange);
   m2.resize(m - 1, Eigen::NoChange);
-  restOmega.resize(m, Eigen::NoChange);
-  restOmega_1.resize(m, Eigen::NoChange);
+  restOmega.resize(m - 1, Eigen::NoChange);
+  restOmega_1.resize(m - 1, Eigen::NoChange);
   curvatureBinormal.resize(m - 1, Eigen::NoChange);
+
+  e.setZero();
+  m1.setZero();
+  m2.setZero();
+  restOmega.setZero();
+  restOmega_1.setZero();
+  curvatureBinormal.setZero();
+
+
   for (int i = 0; i < m - 1; i++) {
-    gradCurvatureBinormal.push_back(std::vector<Eigen::Matrix3f>(3));
+    Eigen::Matrix3f empty;
+    empty.setZero();
+    gradCurvatureBinormal.push_back(std::vector<Eigen::Matrix3f>(3, empty));
   }
 
   // Initialize tangent
@@ -255,7 +266,7 @@ void DiscreteSimulator::applyBendingForce() {
     EASY_BLOCK("twistingForceTask");
     auto task = std::bind(&DiscreteSimulator::twistingForceTask,
                           this, _1, _2, _3);
-    threading::runSequentialJob(thread_pool, task, 1, m-1, step);
+    threading::runSequentialJob(thread_pool, task, 1, m-2, step);
   }
 }
 
@@ -294,7 +305,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
         for (int i = start; i < end; i++) {
           float li = e.row(i).norm() + e.row(i-1).norm();
           thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
-          if (i != m - 2) {
+          if (i < m - 2) {
             float li_1 = e.row(i).norm() + e.row(i+1).norm();
             thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
           }
