@@ -115,6 +115,9 @@ void DiscreteSimulator::initBendingForceMetadata() {
   restOmega.resize(m, Eigen::NoChange);
   restOmega_1.resize(m, Eigen::NoChange);
   curvatureBinormal.resize(m - 1, Eigen::NoChange);
+  for (int i = 0; i < m - 1; i++) {
+    gradCurvatureBinormal.push_back(std::vector<Eigen::Matrix3f>(3));
+  }
 
   // Initialize tangent
   for (int i = 0; i < m - 1; i++) {
@@ -162,10 +165,20 @@ static inline Eigen::Matrix3f crossMatrix(Eigen::Vector3f e) {
   return result;
 }
 
-static inline Eigen::Matrix3f gradCurvatureBinormal(RowMatrixX3f &e, Eigen::Vector3f kb, int i) {
-  return - (2 * crossMatrix(e.row(i)) + 2 * crossMatrix(e.row(i-1))
-      + kb * (e.row(i) - e.row(i-1)))
-    / (e.row(i-1).norm() * e.row(i).norm() + e.row(i-1).dot(e.row(i)));
+void DiscreteSimulator::gradCurvatureBinormalTask
+    (int thread_id, int start_index, int end_index) {
+  Eigen::Matrix3f a;
+  Eigen::RowVector3f b;
+  float c;
+  for (int i = start_index; i < end_index; i++) {
+    a = 2 * crossMatrix(e.row(i)) + 2 * crossMatrix(e.row(i-1));
+    b = (e.row(i) - e.row(i-1));
+    c = segmentLength[i-1] * segmentLength[i] + e.row(i-1).dot(e.row(i));
+    for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
+      gradCurvatureBinormal[i][k - (i-1)] =
+        - (a + vec(curvatureBinormal, k) * b) / c;
+    }
+  }
 }
 
 static float newThetaHat(RowMatrixX3f &e, RowMatrixX3f &u, int i) {
@@ -177,36 +190,49 @@ void DiscreteSimulator::applyBendingForce() {
   EASY_FUNCTION();
   using namespace std::placeholders;
 
-  EASY_BLOCK("curvatureBinormalTask");
+  {
+    EASY_BLOCK("curvatureBinormalTask");
     auto task = std::bind(&DiscreteSimulator::curvatureBinormalTask,
                           this, _1, _2, _3);
     threading::runSequentialJob(thread_pool, task, 1, m-1);
-  EASY_END_BLOCK;
+  }
+
+  {
+    EASY_BLOCK("gradCurvatureBinormalTask");
+    auto task = std::bind(&DiscreteSimulator::gradCurvatureBinormalTask,
+                          this, _1, _2, _3);
+    threading::runSequentialJob(thread_pool, task, 1, m-1);
+  }
 
   for (int i = 1; i < m - 1; i++) {
     Eigen::Vector3f force;
     force.setZero();
-    for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
-      float l = e.row(k - 1).norm() + e.row(k).norm();
-      Eigen::Vector3f kb = vec(curvatureBinormal, k);
-      for (int j = k - 1; j <= k; j++) {
-        Eigen::MatrixXf coeff(2, 3);
-        coeff.row(0) = m2.row(j);
-        coeff.row(1) = -m1.row(j);
-        auto omegaBar = (j == k) ?
-          restOmega.row(k).transpose() :
-          restOmega_1.row(k).transpose();
-        force -= (1.0f / l)
-          * (coeff * gradCurvatureBinormal(e, kb, i)).transpose()
-          * (omega(k, j) - omegaBar);
+
+    EASY_BLOCK("Bending force");
+      for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
+        float l = segmentLength[k-1] + segmentLength[k];
+        Eigen::Vector3f kb = vec(curvatureBinormal, k);
+        for (int j = k - 1; j <= k; j++) {
+          Eigen::MatrixXf coeff(2, 3);
+          coeff.row(0) = m2.row(j);
+          coeff.row(1) = -m1.row(j);
+          auto omegaBar = (j == k) ?
+            restOmega.row(k).transpose() :
+            restOmega_1.row(k).transpose();
+          force -= (1.0f / l)
+            * (coeff * gradCurvatureBinormal[i][k - (i - 1)]).transpose()
+            * (omega(k, j) - omegaBar);
+        }
       }
-    }
+      pointAt(F, i) += params.kBend * force;
+    EASY_END_BLOCK;
     
-    pointAt(F, i) += params.kBend * force;
-    Eigen::Vector3f dTheta_dQi_1 = vec(curvatureBinormal, i) / 2 / e.row(i - 1).norm();
-    Eigen::Vector3f dTheta_dQi = vec(curvatureBinormal, i) / 2 / e.row(i).norm();
-    float coeff = 2 * (theta[i] - theta[i + 1] - thetaHat[i]) / (e.row(i - 1).norm() + e.row(i).norm());
-    pointAt(F, i) += params.kTwist * coeff * (dTheta_dQi_1 - dTheta_dQi);
+    EASY_BLOCK("Twisting force");
+      Eigen::Vector3f dTheta_dQi_1 = vec(curvatureBinormal, i) / 2 / e.row(i - 1).norm();
+      Eigen::Vector3f dTheta_dQi = vec(curvatureBinormal, i) / 2 / e.row(i).norm();
+      float coeff = 2 * (theta[i] - theta[i + 1] - thetaHat[i]) / (e.row(i - 1).norm() + e.row(i).norm());
+      pointAt(F, i) += params.kTwist * coeff * (dTheta_dQi_1 - dTheta_dQi);
+    EASY_END_BLOCK;
   }
 }
 

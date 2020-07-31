@@ -52,6 +52,7 @@ public:
   RowMatrixX3f u;
   RowMatrixX3f v;
   RowMatrixX3f curvatureBinormal;
+  std::vector<std::vector<Eigen::Matrix3f>> gradCurvatureBinormal;
   std::vector<float> theta;
   std::vector<float> thetaHat;
   std::vector<int> thetaHatOffset;
@@ -70,6 +71,7 @@ protected:
 private:
   // === Bending and twisting ===
   void curvatureBinormalTask(int thread_id, int start_index, int end_index);
+  void gradCurvatureBinormalTask(int thread_id, int start_index, int end_index);
   Eigen::Vector2f omega(int i, int j);
 };
 
