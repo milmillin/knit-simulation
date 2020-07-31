@@ -24,6 +24,7 @@ public:
 
   // Returns current yarns
   const file_format::YarnRepr& getYarns();
+
   file_format::YarnRepr getVelocityYarns();
 
   // Set velocity

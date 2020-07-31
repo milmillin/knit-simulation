@@ -158,7 +158,7 @@ namespace simulator {
       nIter++;
     }
 
-    dQ = (Qj - Q) / params.h;
+    dQ += (Qj - Q) / params.h;
     Q = Qj;
   }
 
@@ -329,5 +329,10 @@ namespace simulator {
 
       constraints.addConstraint(f, fD);
     }
+  }
+
+  const file_format::YarnRepr& BaseSimulator::getYarns() {
+    yarns.yarns[0].points = inflate(Q);
+    return this->yarns;
   }
 } // namespace simulator
