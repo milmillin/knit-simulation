@@ -4,6 +4,7 @@
 #include "./Helper.h"
 #include "../file_format/yarnRepr.h"
 #include "../easy_profiler_stub.h"
+#include "./threading/threading.h"
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -87,35 +88,14 @@ void Simulator::constructMassMatrix() {
 // Energy Gradient
 //
 
-void Simulator::calculateGradient(const StateGetter& cancelled) {
-  IFDEBUG log() << "Calculating Gradient" << std::endl;
-  int N = m - 3;
+void Simulator::calculate(void (Simulator::* func)(int), int start, int end) {
+  auto calculateTask = [this, &func](int thread_id, int start_index, int end_index) {
+    for (int i = start_index; i < end_index; i++) {
+      (this->*func)(i);
+    }
+  };
 
-  // Energy
-  IFDEBUG log() << "- Length Energy" << std::endl;
-  EASY_BLOCK("Length Energy");
-  for (int i = 0; i < N; i++) {
-    calculateLengthEnergyGradient(i);
-  }
-  EASY_END_BLOCK;
-
-  IFDEBUG log() << "- Bending Energy" << std::endl;
-  EASY_BLOCK("Bending Energy");
-  for (int i = 0; i < N; i++) {
-    calculateBendingEnergyGradient(i);
-  }
-  EASY_END_BLOCK;
-
-  IFDEBUG log() << "- Collision Energy" << std::endl;
-  applyContactForce(cancelled);
-
-  // Damping
-  IFDEBUG log() << "- Global Damping" << std::endl;
-  EASY_BLOCK("Global Damping");
-  for (int i = 0; i < N; i++) {
-    calculateGlobalDampingGradient(i);
-  }
-  EASY_END_BLOCK;
+  threading::runSequentialJob(thread_pool, calculateTask, start, end);
 }
 
 //////////////////////////////////////////////
@@ -133,9 +113,32 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   F.setZero();
 
   // update gradE, gradD, f
-  if (!cancelled()) {
-    calculateGradient(cancelled);
-  }
+  IFDEBUG log() << "Calculating Gradient" << std::endl;
+  int N = m - 3;
+
+  // Energy
+  if (cancelled()) return;
+  IFDEBUG log() << "- Length Energy" << std::endl;
+  EASY_BLOCK("Length Energy");
+  calculate(&Simulator::calculateLengthEnergy, 0, N);
+  EASY_END_BLOCK;
+
+  if (cancelled()) return;
+  IFDEBUG log() << "- Bending Energy" << std::endl;
+  EASY_BLOCK("Bending Energy");
+  calculate(&Simulator::calculateBendingEnergy, 0, N);
+  EASY_END_BLOCK;
+
+  if (cancelled()) return;
+  IFDEBUG log() << "- Collision Energy" << std::endl;
+  applyContactForce(cancelled);
+
+  // Damping
+  if (cancelled()) return;
+  IFDEBUG log() << "- Global Damping" << std::endl;
+  EASY_BLOCK("Global Damping");
+  calculate(&Simulator::calculateGlobalDamping, 0, N);
+  EASY_END_BLOCK;
 
   // unconstrained step
   const float& h = params.h;

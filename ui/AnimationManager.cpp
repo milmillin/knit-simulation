@@ -85,23 +85,29 @@ void AnimationManager::runSimulation() {
 
     _parent->simulator()->step(terminated);
 
-    file_format::YarnRepr yarnPos = _parent->simulator()->getYarns();
-    file_format::YarnRepr yarnVel = _parent->simulator()->getVelocityYarns();
-    _parent->history()->addFrame(yarnPos);
+    // Only save state if not terminated
+    if (!isTerminated()) {
+      file_format::YarnRepr yarnPos = _parent->simulator()->getYarns();
+      file_format::YarnRepr yarnVel = _parent->simulator()->getVelocityYarns();
+      _parent->history()->addFrame(yarnPos);
 
-    // TODO: remove redundancy
-    snprintf(positionName, 200, "%sposition-%05d.yarns",
-      _parent->outputDirectory().c_str(), currentFrame);
-    snprintf(velocityName, 200, "%svelocity-%05d.yarns",
-      _parent->outputDirectory().c_str(), currentFrame);
+      // TODO: remove redundancy
+      snprintf(positionName, 200, "%sposition-%05d.yarns",
+        _parent->outputDirectory().c_str(), currentFrame);
+      snprintf(velocityName, 200, "%svelocity-%05d.yarns",
+        _parent->outputDirectory().c_str(), currentFrame);
 
-    // Saving result to disk
-    yarnPos.toYarns().save(positionName);
-    yarnVel.toYarns().save(velocityName);
+      // Saving result to disk
+      yarnPos.toYarns().save(positionName);
+      yarnVel.toYarns().save(velocityName);
 
-    _parent->saveState();
+      _parent->saveState();
 
-    simulator::log() << "> Done" << std::endl;
+      simulator::log() << "> Done" << std::endl;
+    }
+    else {
+      simulator::log() << "> Early Terminated" << std::endl;
+    }
   }
 }
 

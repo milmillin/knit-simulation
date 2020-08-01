@@ -8,7 +8,7 @@ namespace simulator {
 // Bending Energy
 //
 
-void Simulator::calculateBendingEnergyGradient(int i) {
+void Simulator::calculateBendingEnergy(int i) {
   int index = i * 3;
   DECLARE_POINTS2(p, Q, index);
 
@@ -43,7 +43,10 @@ void Simulator::calculateBendingEnergyGradient(int i) {
     return ans;
     }, 0, 1);
 
-  F.block<12, 1>(index, 0) -= res;
+  {
+    std::lock_guard<std::mutex> lock(lockF);
+    F.block<12, 1>(index, 0) -= res;
+  }
 }
 
 }  // namespace simulator

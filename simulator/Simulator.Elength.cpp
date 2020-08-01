@@ -8,7 +8,7 @@ namespace simulator {
 // Length Energy
 //
 
-void Simulator::calculateLengthEnergyGradient(int i) {
+void Simulator::calculateLengthEnergy(int i) {
   int index = i * 3;
   DECLARE_POINTS2(p, Q, index);
 
@@ -31,7 +31,10 @@ void Simulator::calculateLengthEnergyGradient(int i) {
     return ans;
     }, 0, 1);
 
-  F.block<12, 1>(index, 0) -= coefficient * res;
+  {
+    std::lock_guard<std::mutex> lock(lockF);
+    F.block<12, 1>(index, 0) -= coefficient * res;
+  }
 }
 
 }  // namespace simulator

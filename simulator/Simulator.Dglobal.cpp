@@ -8,7 +8,7 @@ namespace simulator {
 // Global Damping
 //
 
-void Simulator::calculateGlobalDampingGradient(int i) {
+void Simulator::calculateGlobalDamping(int i) {
   int index = i * 3;
 
   DECLARE_POINTS2(pD, dQ, index);
@@ -29,7 +29,10 @@ void Simulator::calculateGlobalDampingGradient(int i) {
     return ans;
     }, 0, 1);
 
-  F.block<12, 1>(index, 0) -= coefficient * res;
+  {
+    std::lock_guard<std::mutex> lock(lockF);
+    F.block<12, 1>(index, 0) -= coefficient * res;
+  }
 }
 
 

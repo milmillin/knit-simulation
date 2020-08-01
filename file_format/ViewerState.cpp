@@ -58,5 +58,4 @@ void ViewerState::save(const std::string& filename) const {
   }
 }
 
-
 }

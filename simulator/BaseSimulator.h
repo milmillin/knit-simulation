@@ -13,6 +13,7 @@
 #include <Eigen/SparseCholesky>
 
 #include <functional>
+#include <mutex>
 
 namespace simulator
 {
@@ -58,6 +59,7 @@ protected:
   Eigen::MatrixXf dQ;
   // Force
   Eigen::MatrixXf F;
+  mutable std::mutex lockF;
 
   // Acceleration can be derived from ddQ = invM * F
   // F = f - gradE - gradD

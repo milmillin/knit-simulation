@@ -23,11 +23,10 @@ namespace simulator{
 // segment[i] is governed by q[i], q[i + 1], q[i + 2], q[i + 3].
 class Simulator : public BaseSimulator {
 private:
-  void calculateGradient(const StateGetter& cancelled);
-  void calculateBendingEnergyGradient(int i);
-  void calculateLengthEnergyGradient(int i);
-
-  void calculateGlobalDampingGradient(int i);
+  void calculate(void (Simulator::* func)(int), int start, int end);
+  void calculateBendingEnergy(int i);
+  void calculateLengthEnergy(int i);
+  void calculateGlobalDamping(int i);
 
 public:
   // Constructs a new simulator with control points
