@@ -367,10 +367,50 @@ void DiscreteSimulator::setUpConstraints() {
   }
 
   // Add pin constraints. TODO: remove hard-coded pin
-  addPinConstraint(0, pointAt(Q, 0));
-  addPinConstraint(81-59, pointAt(Q, 81-59));
-  addPinConstraint(88-59, pointAt(Q, 88-59));
-  addPinConstraint(74-59, pointAt(Q, 74-59));
+  // addPinConstraint(0, pointAt(Q, 0));
+  // addPinConstraint(81-59, pointAt(Q, 81-59));
+  // addPinConstraint(88-59, pointAt(Q, 88-59));
+  // addPinConstraint(74-59, pointAt(Q, 74-59));
+
+  std::vector<int> pins;
+  // pins.push_back(0);
+  // pins.push_back(153);
+  // pins.push_back(230);
+  // pins.push_back(237);
+  // pins.push_back(249);
+  // pins.push_back(261);
+  // pins.push_back(273);
+  // pins.push_back(285);
+  // pins.push_back(297);
+  // pins.push_back(80);
+  // pins.push_back(303);
+  // pins.push_back(74);
+
+  pins.push_back(0);
+  pins.push_back(152);
+  pins.push_back(153);
+  pins.push_back(229);
+  pins.push_back(230);
+  pins.push_back(236);
+  pins.push_back(238);
+  pins.push_back(248);
+  pins.push_back(250);
+  pins.push_back(260);
+  pins.push_back(262);
+  pins.push_back(272);
+  pins.push_back(274);
+  pins.push_back(284);
+  pins.push_back(286);
+  pins.push_back(296);
+  pins.push_back(298);
+  pins.push_back(80);
+  pins.push_back(303);
+  pins.push_back(74);
+  pins.push_back(73);
+
+  for (auto i : pins) {
+    addPinConstraint(i, pointAt(Q, i));
+  }
 }
 
 }  // namespace Simulator
