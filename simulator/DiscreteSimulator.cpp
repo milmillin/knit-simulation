@@ -303,14 +303,12 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     threading::runSequentialJob(thread_pool,
       [this, &thetaUpdate](int thread_id, int start, int end) {
         for (int i = start; i < end; i++) {
-          float li = e.row(i).norm() + e.row(i-1).norm();
+          float li = segmentLength[i] + segmentLength[i - 1];
           thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
-          if (i < m - 2) {
-            float li_1 = e.row(i).norm() + e.row(i+1).norm();
-            thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
-          }
+          float li_1 = segmentLength[i] + segmentLength[i + 1];
+          thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
         }
-      }, 1, m - 1, step);
+      }, 1, m - 2, step);
 
 
     float maxUpdate = 0;
