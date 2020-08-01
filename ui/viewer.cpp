@@ -1,5 +1,8 @@
 #include "./viewer.h"
 
+// C++17
+#include <filesystem>
+
 #include "./sweep.h"
 #include "../simulator/SimulatorParams.h"
 #include "../file_format/yarns.h"
@@ -10,7 +13,9 @@
 
 namespace UI {
 
-Viewer::Viewer(std::string filename) {
+static constexpr const char* VIEWER_STATE_NAME = "viewer-state.txt";
+
+Viewer::Viewer(std::string outputDirectory) : _outputDirectory(outputDirectory) {
   callback_pre_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
     _refreshLock.lock();
     return false;
@@ -21,10 +26,14 @@ Viewer::Viewer(std::string filename) {
     return true;
   };
 
-  loadYarn(filename);
+  //loadYarn(filename);
+  if (_outputDirectory.back() != '/') {
+    _outputDirectory.push_back('/');
+  }
 }
 
 int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int width, int height) {
+  assert(_loaded);
   // Add menu
   _menu.reset(new Menu());
   this->plugins.push_back(_menu.get());
@@ -158,10 +167,44 @@ void Viewer::loadYarn(const std::string& filename) {
 
   _yarnsRepr = file_format::YarnRepr(yarns);
 
-  // TODO: remove slicing
-  // _yarnsRepr.yarns[0].points = _yarnsRepr.yarns[0].points.block(59, 0, (88-59+1), 3);
+  // Restoring State
+  std::cout << "Try restoring state and history from " << _outputDirectory << std::endl;
+  std::filesystem::create_directory(_outputDirectory);
+
+  file_format::ViewerState state(_outputDirectory + VIEWER_STATE_NAME);
+  simulatorType = state.getType();
+  params = state.getParams();
+  int numSteps = state.getNumSteps();
 
   createSimulator();
+
+  char positionName[200];
+  char velocityName[200];
+  for (int i = 2; i <= numSteps; i++) {
+    snprintf(positionName, 200, "%sposition-%05d.yarns", _outputDirectory.c_str(), i);
+    snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), i);
+    if (!std::filesystem::exists(positionName) 
+      || !std::filesystem::exists(velocityName)) {
+      std::cout << "WARNING: " << i - 1 << "frames out of " << numSteps << " restored." << std::endl;
+      numSteps = i - 1;
+      break;
+    }
+
+    file_format::Yarns::Yarns position = file_format::Yarns::Yarns::load(positionName);
+    _history->addFrame(file_format::YarnRepr(position));
+  }
+
+  // Load last position and velocity
+  if (numSteps > 1) {
+    snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), numSteps);
+    file_format::Yarns::Yarns velocity = file_format::Yarns::Yarns::load(velocityName);
+    _simulator->setVelocity(file_format::YarnRepr(velocity));
+    _simulator->setPosition(_history->getFrame(_history->totalFrameNumber() - 1));
+  }
+
+  std::cout << "> Frame 1 to " << numSteps << " restored." << std::endl;
+
+  _loaded = true;
 }
 
 void Viewer::saveYarn(const std::string& filename) {
@@ -186,12 +229,13 @@ void Viewer::setAnimationMode(bool animating) {
   core().is_animating = animating;
 }
 
+
 void Viewer::saveState() const {
   file_format::ViewerState state(simulatorType,
     _simulator->getParams(),
     _history->totalFrameNumber());
 
-  state.save("viewer-state.txt");
+  state.save(_outputDirectory + VIEWER_STATE_NAME);
 }
 
 } // namespace UI

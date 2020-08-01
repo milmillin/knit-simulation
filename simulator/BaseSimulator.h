@@ -28,6 +28,12 @@ public:
   // Returns current yarns
   const file_format::YarnRepr& getYarns();
 
+  file_format::YarnRepr getVelocityYarns();
+
+  // Set velocity
+  void setPosition(const file_format::YarnRepr& yarn);
+  void setVelocity(const file_format::YarnRepr& yarn);
+
   // Simulates next timestep.
   void step(const StateGetter& cancelled);
 
@@ -44,9 +50,6 @@ protected:
 
   // Number of control points
   int m;
-
-  // Number of steps
-  int numStep;
 
   // Flattened Coordinates [x0 y0 z0 x1 y1 x1 ...]
   // Position of control points

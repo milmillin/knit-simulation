@@ -37,14 +37,17 @@ ViewerState::ViewerState(simulator::SimulatorType type, simulator::SimulatorPara
 ViewerState::ViewerState(const std::string& filename) : ViewerState() {
   std::ifstream f(filename);
   std::string fieldName;
+  bool fieldFound;
   while (f >> fieldName) {
+    fieldFound = false;
     for (auto& entry : _entries) {
       if (fieldName == entry->_fieldName) {
         assert(entry->read(f));
+        fieldFound = true;
         break;
       }
     }
-    assert(false);
+    assert(fieldFound);
   }
 }
 

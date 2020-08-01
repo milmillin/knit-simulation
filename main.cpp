@@ -12,7 +12,8 @@ int main(int argc, char *argv[]) {
   EASY_PROFILER_ENABLE;
 
   // Launch viewer
-  UI::Viewer viewer(argv[1]);
+  UI::Viewer viewer("output/");
+  viewer.loadYarn(argv[1]);
   viewer.launch();
 
   #ifdef USE_EASY_PROFILER
