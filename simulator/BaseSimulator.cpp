@@ -24,7 +24,7 @@ namespace simulator {
     Q(flatten(_yarns.yarns[0].points)),
     dQ(Eigen::MatrixXf::Zero(3ll * m, 1)),
     F(Eigen::MatrixXf::Zero(3ll * m, 1)),
-    constraints(m)
+    constraints(m, &thread_pool)
   {
     log() << "Initializing Simulator" << std::endl;
     log() << "> Found " << m << " control points" << std::endl;
@@ -108,11 +108,15 @@ namespace simulator {
     for (int i = 0; i < params.steps; i++) {
       IFDEBUG log() << "Step " << i << std::endl;
 
+      Eigen::MatrixXf originalQ = Q;
+
       if (cancelled()) break;
       this->stepImpl(cancelled);
 
       if (cancelled()) break;
       this->fastProjection(cancelled);
+
+      dQ = (Q - originalQ) / params.h;
 
       if (cancelled()) break;
       this->updateCollisionTree(cancelled);
@@ -142,7 +146,7 @@ namespace simulator {
 
     int nIter = 0;
     Eigen::MatrixXf constraint;
-    Eigen::MatrixXf Qj = Q;
+    Eigen::MatrixXf& Qj = Q;
     float& h = params.h;
     float cValue;
     while ((cValue = maxCoeff(constraint = constraints.calculate(Qj))) > params.fastProjErrorCutoff
@@ -153,6 +157,7 @@ namespace simulator {
 
       Eigen::SparseMatrix<float> dConstraint = constraints.getJacobian(Qj);
 
+      EASY_BLOCK("Solving Constraint");
       solver.compute(dConstraint * invM * dConstraint.transpose());
       if (solver.info() != Eigen::Success) {
         log() << "--- solve failed (1)"
@@ -166,15 +171,13 @@ namespace simulator {
           << " iter " << nIter << " STOPPING" << std::endl;
         break;
       }
+      EASY_END_BLOCK;
 
       Eigen::MatrixXf dQj = invM * dConstraint.transpose() * lambda;
       Qj -= dQj;
 
       nIter++;
     }
-
-    dQ += (Qj - Q) / params.h;
-    Q = Qj;
   }
 
   ///////////////

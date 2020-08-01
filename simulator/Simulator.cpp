@@ -3,6 +3,7 @@
 #include "./SimulatorParams.h"
 #include "./Helper.h"
 #include "../file_format/yarnRepr.h"
+#include "../easy_profiler_stub.h"
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -92,38 +93,29 @@ void Simulator::calculateGradient(const StateGetter& cancelled) {
 
   // Energy
   IFDEBUG log() << "- Length Energy" << std::endl;
+  EASY_BLOCK("Length Energy");
   for (int i = 0; i < N; i++) {
     calculateLengthEnergyGradient(i);
   }
+  EASY_END_BLOCK;
 
   IFDEBUG log() << "- Bending Energy" << std::endl;
+  EASY_BLOCK("Bending Energy");
   for (int i = 0; i < N; i++) {
     calculateBendingEnergyGradient(i);
   }
+  EASY_END_BLOCK;
 
   IFDEBUG log() << "- Collision Energy" << std::endl;
   applyContactForce(cancelled);
-  /*
-  {
-    ParallelWorker worker(cancelled);
-
-    for (int i = 0; i < N; i++) {
-      worker.addWork([this, i, N]() {
-        for (int j = i + 2; j < N; j++) {
-          calculateCollisionGradient(i, j);
-        }
-        });
-    }
-
-    worker.run();
-  }
-  */
 
   // Damping
   IFDEBUG log() << "- Global Damping" << std::endl;
+  EASY_BLOCK("Global Damping");
   for (int i = 0; i < N; i++) {
     calculateGlobalDampingGradient(i);
   }
+  EASY_END_BLOCK;
 }
 
 //////////////////////////////////////////////

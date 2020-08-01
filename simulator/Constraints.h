@@ -8,6 +8,7 @@
 
 #include "macros.h"
 #include "Helper.h"
+#include "./threading/ctpl_stl.h"
 
 namespace simulator {
 
@@ -24,23 +25,12 @@ public:
 
   // Construct a constraint container with m control points.
   // To be called by Simulator only.
-  Constraints(size_t m_) : m(m_) { }
+  Constraints(size_t m_, ctpl::thread_pool* thread_pool_) : m(m_), thread_pool(thread_pool_) { }
 
   // Adds constraint
   // f: constrain function of q
   // fD: d(f)/d(q(index)) for every index with non-zero value
   void addConstraint(Func f, JacobianFunc fD);
-
-  // Pins i-th control point to <x, y, z>.
-  // i in [0, m - 1].
-  void addPinConstrain(int i, Eigen::Vector3f point);
-
-  // Glues i-th and j-th control points
-  void addGlueConstrain(int i, int j);
-
-  // Applies length constrain of segment i to length.
-  // i in [0, m - 4]
-  void addLengthConstrain(int i, float length);
 
   // Gets Jacobian matrix of size c x (3 * m)
   // where c is the number of constraints
@@ -54,6 +44,9 @@ public:
 private:
   // number of control points
   size_t m;
+
+  // thread pool
+  ctpl::thread_pool* thread_pool;
   
   // list of constraints
   std::vector<Entry> constraints;
