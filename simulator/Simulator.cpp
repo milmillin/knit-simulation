@@ -98,6 +98,10 @@ void Simulator::calculate(void (Simulator::* func)(int), int start, int end) {
   threading::runSequentialJob(thread_pool, calculateTask, start, end);
 }
 
+void Simulator::calculateGravity() {
+	F += Eigen::Vector3f(0, -params.gravity, 0).replicate(m, 1);
+}
+
 //////////////////////////////////////////////
 //
 // Simulator implementation
@@ -116,12 +120,15 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   IFDEBUG log() << "Calculating Gradient" << std::endl;
   int N = m - 3;
 
+  /*
   // Energy
   if (cancelled()) return;
   IFDEBUG log() << "- Length Energy" << std::endl;
   EASY_BLOCK("Length Energy");
   calculate(&Simulator::calculateLengthEnergy, 0, N);
   EASY_END_BLOCK;
+  */
+
 
   if (cancelled()) return;
   IFDEBUG log() << "- Bending Energy" << std::endl;
@@ -129,6 +136,7 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   calculate(&Simulator::calculateBendingEnergy, 0, N);
   EASY_END_BLOCK;
 
+  /*
   if (cancelled()) return;
   IFDEBUG log() << "- Collision Energy" << std::endl;
   applyContactForce(cancelled);
@@ -139,6 +147,15 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   EASY_BLOCK("Global Damping");
   calculate(&Simulator::calculateGlobalDamping, 0, N);
   EASY_END_BLOCK;
+  */
+
+  /*
+  if (cancelled()) return;
+  IFDEBUG log() << "- Gravity" << std::endl;
+  EASY_BLOCK("Gravity");
+  calculateGravity();
+  EASY_END_BLOCK;
+  */
 
   // unconstrained step
   const float& h = params.h;

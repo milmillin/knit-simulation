@@ -27,6 +27,7 @@ private:
   void calculateBendingEnergy(int i);
   void calculateLengthEnergy(int i);
   void calculateGlobalDamping(int i);
+  void calculateGravity();
 
 public:
   // Constructs a new simulator with control points

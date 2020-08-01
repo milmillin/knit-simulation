@@ -45,7 +45,7 @@ void Simulator::calculateBendingEnergy(int i) {
 
   {
     std::lock_guard<std::mutex> lock(lockF);
-    F.block<12, 1>(index, 0) -= res;
+    F.block<12, 1>(index, 0) -= coefficient * res;
   }
 }
 
