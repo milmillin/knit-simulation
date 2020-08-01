@@ -1,4 +1,7 @@
+#include "./easy_profiler_stub.h"
+
 #include "ui/viewer.h"
+
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -6,8 +9,14 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  EASY_PROFILER_ENABLE;
+
   // Launch viewer
   UI::Viewer viewer("output/");
   viewer.loadYarn(argv[1]);
   viewer.launch();
+
+  #ifdef USE_EASY_PROFILER
+    profiler::dumpBlocksToFile("test_profile.prof");
+  #endif
 }

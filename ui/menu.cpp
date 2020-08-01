@@ -204,6 +204,8 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         0.01, 0.1, "%.2f");
       ImGui::InputFloat("Ground fiction", &(params.groundFriction),
         0.01, 0.1, "%.2f");
+      ImGui::InputInt("Contact force samples", &(params.contactForceSamples),
+        1, 5);
       ImGui::InputFloat("Contact force", &(params.kContact),
         100, 10, "%.1f");
       ImGui::InputFloat("Global damping", &(params.kGlobal),

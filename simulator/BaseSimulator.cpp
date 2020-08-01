@@ -3,16 +3,21 @@
 #include "./SimulatorParams.h"
 #include "./Helper.h"
 #include "../file_format/yarnRepr.h"
+#include "./threading/threading.h"
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include "../easy_profiler_stub.h"
+
 #include <functional>
+#include <thread>
 
 namespace simulator {
   BaseSimulator::BaseSimulator(file_format::YarnRepr _yarns,
     SimulatorParams _params):
+    thread_pool(std::thread::hardware_concurrency()),
     yarns(_yarns),
     params(_params),
     m(_yarns.yarns[0].points.rows()),
@@ -98,14 +103,23 @@ namespace simulator {
 #define WRITE_MATRIX(Q) writeMatrix(#Q"-" + std::to_string(numStep) + ".csv", Q);
 
   void BaseSimulator::step(const StateGetter& cancelled) {
+    EASY_FUNCTION();
+
+    log() << "Stepping " << params.steps << " step(s) ("
+      << numStep << " to " << (numStep + params.steps - 1) << ")" << std::endl;
+
     for (int i = 0; i < params.steps; i++) {
       IFDEBUG log() << "Step " << i << std::endl;
+
       if (cancelled()) break;
       this->stepImpl(cancelled);
+
       if (cancelled()) break;
       this->fastProjection(cancelled);
+
       if (cancelled()) break;
       this->updateCollisionTree(cancelled);
+
       if (cancelled()) break;
       this->postStep(cancelled);
 
@@ -114,6 +128,8 @@ namespace simulator {
   }
 
   void BaseSimulator::updateCollisionTree(const StateGetter& cancelled) {
+    EASY_FUNCTION();
+
     IFDEBUG log() << "Updating collision tree" << std::endl;
     // Update AABB tree
     std::vector<double> lowerBound;
@@ -125,6 +141,8 @@ namespace simulator {
   }
 
   void BaseSimulator::fastProjection(const StateGetter& cancelled) {
+    EASY_FUNCTION();
+
     int nIter = 0;
     Eigen::MatrixXf constraint;
     Eigen::MatrixXf Qj = Q;
@@ -165,45 +183,34 @@ namespace simulator {
   ///////////////
   // Contact Force
 
-  void BaseSimulator::applyContactForce(const StateGetter& cancelled) {
-    int N = m - 3;
-    for (int i = 0; i < N; i++) {
-      std::vector<unsigned int> intersections = collisionTree.query(i);
-      for (int j : intersections) {
-        if (j > i + 1) {
-          applyContactForceImpl(i, j);
-        }
-      }
-    }
+  static inline Eigen::Vector3f contactForce(Eigen::Vector3f direction,
+      float distance2, float threshold2) {
+    return (-threshold2 / distance2 / distance2 + 1 / threshold2) * direction;
   }
 
-  static inline Eigen::Vector3f fff(Eigen::Vector3f gradient, float norm2, float thresh2) {
-    return (-thresh2 / norm2 / norm2 + 1 / thresh2) * gradient;
-  }
-
-  void BaseSimulator::applyContactForceImpl(int ii, int jj) {
-    // TODO: Change this to a parameter
-    static constexpr int SUBDIVIDE = 20;
-
+  void BaseSimulator::contactForceBetweenSegments
+      (int thread_id,
+      std::vector<Eigen::MatrixXf> *forces,
+      int ii, int jj) {
+    Eigen::MatrixXf &F = (*forces)[thread_id];
     int iIndex = ii * 3;
     int jIndex = jj * 3;
 
-    //dataLock.lock();
     DECLARE_POINTS2(pi, Q, iIndex);
     DECLARE_POINTS2(pj, Q, jIndex);
     DECLARE_POINTS2(piD, dQ, iIndex);
     DECLARE_POINTS2(pjD, dQ, jIndex);
 
-    float r = yarns.yarns[0].radius;
     float coeffE = params.kContact * catmullRomLength[ii] * catmullRomLength[jj];
     float coeffD = catmullRomLength[ii] * catmullRomLength[jj];
     float kDt = params.kDt;
     float kDn = params.kDn;
     //dataLock.unlock();
 
+    float r = yarns.yarns[0].radius;
     float thresh2 = 4.0f * r * r;
 
-    float step = 1.f / SUBDIVIDE;
+    float step = 1.f / params.contactForceSamples;
     float halfStep = step / 2;
 
     Eigen::MatrixXf gradEi = Eigen::MatrixXf::Zero(12, 1);
@@ -212,13 +219,13 @@ namespace simulator {
     Eigen::MatrixXf gradDi = Eigen::MatrixXf::Zero(12, 1);
     Eigen::MatrixXf gradDj = Eigen::MatrixXf::Zero(12, 1);
 
-    for (int i = 0; i < SUBDIVIDE; i++) {
+    for (int i = 0; i < params.contactForceSamples; i++) {
       float si = i * step + halfStep;
       DECLARE_BASIS2(bi, si);
       Eigen::Vector3f Pi = POINT_FROM_BASIS(pi, bi);
       Eigen::Vector3f PiD = POINT_FROM_BASIS(piD, bi);
 
-      for (int j = 0; j < SUBDIVIDE; j++) {
+      for (int j = 0; j < params.contactForceSamples; j++) {
         float sj = j * step + halfStep;
         DECLARE_BASIS2(bj, sj);
 
@@ -235,8 +242,8 @@ namespace simulator {
 
         for (int kk = 0; kk < 4; kk++) {
           // Contact Energy
-          gradEi.block<3, 1>(3ll * kk, 0) += fff(-2 * bi[kk] * diff, norm2, thresh2);
-          gradEj.block<3, 1>(3ll * kk, 0) += fff(2 * bj[kk] * diff, norm2, thresh2);
+          gradEi.block<3, 1>(3ll * kk, 0) += contactForce(-2 * bi[kk] * diff, norm2, thresh2);
+          gradEj.block<3, 1>(3ll * kk, 0) += contactForce(2 * bj[kk] * diff, norm2, thresh2);
 
           // Contact Damping
           gradDi.block<3, 1>(3ll * kk, 0) += kDt * (-2 * bi[kk] * diffD) + tmp * (-bi[kk] * diff);
@@ -251,6 +258,38 @@ namespace simulator {
     F.block<12, 1>(jIndex, 0) -= coeffD * gradDj * step * step;
   }
   
+  void BaseSimulator::applyContactForce(const StateGetter& cancelled) {
+    EASY_FUNCTION();
+
+    std::vector<Eigen::MatrixXf> forces;
+    for (int i = 0; i < thread_pool.size(); i++) {
+      forces.push_back(std::move(Eigen::MatrixXf(Q.rows(), Q.cols())));
+      forces[i].setZero();
+    }
+
+    threading::submitProducerAndWait(thread_pool,
+      [this, &forces](int, ctpl::thread_pool *thread_pool){
+        int N = m - 3;
+        for (int i = 0; i < N; i++) {
+          std::vector<unsigned int> intersections = collisionTree.query(i);
+          for (int j : intersections) {
+            if (j > i + 1) {
+              using namespace std::placeholders;
+              auto task = std::bind(&BaseSimulator::contactForceBetweenSegments,
+                                    this, _1,
+                                    &forces,
+                                    i, j);
+              thread_pool->push(task);
+            }
+          }
+        }
+      });
+
+    for (auto force : forces) {
+      F += force;
+    }
+  }
+
   ///////////////
   // Constraints
 

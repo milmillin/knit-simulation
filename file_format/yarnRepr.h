@@ -25,7 +25,7 @@ class YarnRepr {
   // Empty constructor
   YarnRepr() {}
   // Convert `.yarns` file to internal representation
-  YarnRepr(file_format::Yarns::Yarns yarns);
+  YarnRepr(file_format::Yarns::Yarns &yarns);
   // Clone YarnRepr without cloning points
   YarnRepr createAlike() const;
 
