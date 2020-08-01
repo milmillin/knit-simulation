@@ -105,9 +105,6 @@ namespace simulator {
   void BaseSimulator::step(const StateGetter& cancelled) {
     EASY_FUNCTION();
 
-    log() << "Stepping " << params.steps << " step(s) ("
-      << numStep << " to " << (numStep + params.steps - 1) << ")" << std::endl;
-
     for (int i = 0; i < params.steps; i++) {
       IFDEBUG log() << "Step " << i << std::endl;
 
@@ -370,8 +367,4 @@ namespace simulator {
     }
   }
 
-  const file_format::YarnRepr& BaseSimulator::getYarns() {
-    yarns.yarns[0].points = inflate(Q);
-    return this->yarns;
-  }
 } // namespace simulator

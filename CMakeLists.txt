@@ -20,6 +20,7 @@ link_directories(${GLM_LIBRARY_DIRS})
 add_definitions(${GLM_DEFINITIONS})
 
 # Easy Profiler
+list(APPEND CMAKE_PREFIX_PATH "C:/Users/milmi/Documents/1_Projects/KnittingSimulation/easy-profiler/lib/cmake/easy_profiler")
 find_package(easy_profiler REQUIRED)
 
 # Add your project files
