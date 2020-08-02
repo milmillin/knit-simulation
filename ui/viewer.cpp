@@ -17,12 +17,15 @@ static constexpr const char* VIEWER_STATE_NAME = "viewer-state.txt";
 
 Viewer::Viewer(std::string outputDirectory, bool reload) : _outputDirectory(outputDirectory), _reload(reload) {
   callback_pre_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
-    _refreshLock.lock();
+    //_refreshLock.lock();
+    if (_needRefresh) {
+      refresh();
+    }
     return false;
   };
 
   callback_post_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
-    _refreshLock.unlock();
+    //_refreshLock.unlock();
     return true;
   };
 
@@ -57,7 +60,10 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
 }
 
 void Viewer::refresh() {
-  std::lock_guard<std::recursive_mutex> guard(_refreshLock);
+  assert(std::this_thread::get_id() == _threadId
+    && "refresh() must be called from the thread the viewer has been constructed");
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
+  // std::lock_guard<std::recursive_mutex> guard(_refreshLock);
 
   // Get yarn shape
   const file_format::YarnRepr yarns = _history->getFrame(_currentFrame);
@@ -124,6 +130,8 @@ void Viewer::refresh() {
     this->data().set_labels(yarn.points.cast<double>(), labels);
     this->data().label_color = Eigen::Vector4f(1, 1, 1, 1);
   }
+
+  _needRefresh = false;
 }
 
 void Viewer::createSimulator() {
@@ -225,20 +233,23 @@ void Viewer::saveYarn(const std::string& filename) {
 }
 
 void Viewer::nextFrame() {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   if (_currentFrame + 1 < _history->totalFrameNumber()) {
     _currentFrame++;
-    refresh();
+    invalidate();
   }
 }
 
 void Viewer::prevFrame() {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   if (_currentFrame > 0) {
     _currentFrame--;
-    refresh();
+    invalidate();
   }
 }
 
 void Viewer::setAnimationMode(bool animating) {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   core().is_animating = animating;
 }
 
