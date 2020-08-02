@@ -24,7 +24,7 @@ class AnimationManager;
 
 class Viewer : igl::opengl::glfw::Viewer {
  public:
-  Viewer(std::string outputDirectory);
+  Viewer(std::string outputDirectory, bool reload = true);
   int launch(bool resizable = true, bool fullscreen = false,
     const std::string &name = "GRAIL Knit Simulator", int width = 0, int height = 0);
   void refresh();
@@ -66,6 +66,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   file_format::YarnRepr _yarnsRepr;
   std::string _outputDirectory;
   bool _loaded = false;
+  bool _reload;
 };
 
 }  // namespace UI

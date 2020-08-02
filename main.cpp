@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
   EASY_PROFILER_ENABLE;
 
   // Launch viewer
-  UI::Viewer viewer("output/");
+  UI::Viewer viewer("output/", false);
   viewer.loadYarn(argv[1]);
   viewer.launch();
 

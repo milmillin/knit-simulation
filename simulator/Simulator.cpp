@@ -120,42 +120,41 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   IFDEBUG log() << "Calculating Gradient" << std::endl;
   int N = m - 3;
 
-  /*
   // Energy
-  if (cancelled()) return;
-  IFDEBUG log() << "- Length Energy" << std::endl;
-  EASY_BLOCK("Length Energy");
-  calculate(&Simulator::calculateLengthEnergy, 0, N);
-  EASY_END_BLOCK;
-  */
+  if (params.kLen != 0) {
+    if (cancelled()) return;
+    IFDEBUG log() << "- Length Energy" << std::endl;
+    EASY_BLOCK("Length Energy");
+    calculate(&Simulator::calculateLengthEnergy, 0, N);
+    EASY_END_BLOCK;
+  }
 
+  if (params.kBend != 0) {
+    if (cancelled()) return;
+    IFDEBUG log() << "- Bending Energy" << std::endl;
+    EASY_BLOCK("Bending Energy");
+    calculate(&Simulator::calculateBendingEnergy, 0, N);
+    EASY_END_BLOCK;
+  }
 
-  if (cancelled()) return;
-  IFDEBUG log() << "- Bending Energy" << std::endl;
-  EASY_BLOCK("Bending Energy");
-  calculate(&Simulator::calculateBendingEnergy, 0, N);
-  EASY_END_BLOCK;
-
-  /*
   if (cancelled()) return;
   IFDEBUG log() << "- Collision Energy" << std::endl;
   applyContactForce(cancelled);
 
   // Damping
-  if (cancelled()) return;
-  IFDEBUG log() << "- Global Damping" << std::endl;
-  EASY_BLOCK("Global Damping");
-  calculate(&Simulator::calculateGlobalDamping, 0, N);
-  EASY_END_BLOCK;
-  */
+  if (params.kGlobal != 0) {
+    if (cancelled()) return;
+    IFDEBUG log() << "- Global Damping" << std::endl;
+    EASY_BLOCK("Global Damping");
+    calculate(&Simulator::calculateGlobalDamping, 0, N);
+    EASY_END_BLOCK;
+  }
 
-  /*
   if (cancelled()) return;
   IFDEBUG log() << "- Gravity" << std::endl;
   EASY_BLOCK("Gravity");
   calculateGravity();
   EASY_END_BLOCK;
-  */
 
   // unconstrained step
   const float& h = params.h;
@@ -172,8 +171,16 @@ void Simulator::setUpConstraints() {
   addSegmentLengthConstraint(0);
   addSegmentLengthConstraint(m - 2);
 
-  addPinConstraint(0, pointAt(Q, 0));
-  addPinConstraint(m - 1, pointAt(Q, m - 1));
+  std::vector<int> pin = {
+    33, 45
+  };
+
+  for (int p : pin) {
+    addPinConstraint(p, pointAt(Q, p));
+  }
+
+  //addPinConstraint(0, pointAt(Q, 0));
+  //addPinConstraint(m - 1, pointAt(Q, m - 1));
 }
 
 };  // namespace simulator

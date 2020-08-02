@@ -15,7 +15,7 @@ namespace UI {
 
 static constexpr const char* VIEWER_STATE_NAME = "viewer-state.txt";
 
-Viewer::Viewer(std::string outputDirectory) : _outputDirectory(outputDirectory) {
+Viewer::Viewer(std::string outputDirectory, bool reload) : _outputDirectory(outputDirectory), _reload(reload) {
   callback_pre_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
     _refreshLock.lock();
     return false;
@@ -127,6 +127,10 @@ void Viewer::refresh() {
 }
 
 void Viewer::createSimulator() {
+  delete (_animationManager.release());
+  delete (_history.release());
+  delete (_simulator.release());
+
   // Update simulator
   switch (simulatorType)
   {
@@ -160,49 +164,58 @@ void Viewer::loadYarn(const std::string& filename) {
   file_format::Yarns::Yarns yarns;
   try {
     yarns = file_format::Yarns::Yarns::load(filename);
-  } catch (const std::runtime_error& e) {
+  }
+  catch (const std::runtime_error& e) {
     std::cout << "Failed to load " << filename << std::endl;
     std::cout << e.what() << std::endl;
   }
 
   _yarnsRepr = file_format::YarnRepr(yarns);
 
-  // Restoring State
-  std::cout << "Try restoring state and history from " << _outputDirectory << std::endl;
-  std::filesystem::create_directory(_outputDirectory);
+  // TODO
+  _yarnsRepr.yarns[0].points = (Eigen::MatrixXf)_yarnsRepr.yarns[0].points.block(126, 0, 51, 3);
 
-  file_format::ViewerState state(_outputDirectory + VIEWER_STATE_NAME);
-  simulatorType = state.getType();
-  params = state.getParams();
-  int numSteps = state.getNumSteps();
+  if (_reload) {
+    // Restoring State
+    std::cout << "Try restoring state and history from " << _outputDirectory << std::endl;
+    std::filesystem::create_directory(_outputDirectory);
 
-  createSimulator();
+    file_format::ViewerState state(_outputDirectory + VIEWER_STATE_NAME);
+    simulatorType = state.getType();
+    params = state.getParams();
+    int numSteps = state.getNumSteps();
 
-  char positionName[200];
-  char velocityName[200];
-  for (int i = 2; i <= numSteps; i++) {
-    snprintf(positionName, 200, "%sposition-%05d.yarns", _outputDirectory.c_str(), i);
-    snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), i);
-    if (!std::filesystem::exists(positionName) 
-      || !std::filesystem::exists(velocityName)) {
-      std::cout << "WARNING: " << i - 1 << "frames out of " << numSteps << " restored." << std::endl;
-      numSteps = i - 1;
-      break;
+    createSimulator();
+
+    char positionName[200];
+    char velocityName[200];
+    for (int i = 2; i <= numSteps; i++) {
+      snprintf(positionName, 200, "%sposition-%05d.yarns", _outputDirectory.c_str(), i);
+      snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), i);
+      if (!std::filesystem::exists(positionName)
+        || !std::filesystem::exists(velocityName)) {
+        std::cout << "WARNING: " << i - 1 << "frames out of " << numSteps << " restored." << std::endl;
+        numSteps = i - 1;
+        break;
+      }
+
+      file_format::Yarns::Yarns position = file_format::Yarns::Yarns::load(positionName);
+      _history->addFrame(file_format::YarnRepr(position));
     }
 
-    file_format::Yarns::Yarns position = file_format::Yarns::Yarns::load(positionName);
-    _history->addFrame(file_format::YarnRepr(position));
-  }
+    // Load last position and velocity
+    if (numSteps > 1) {
+      snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), numSteps);
+      file_format::Yarns::Yarns velocity = file_format::Yarns::Yarns::load(velocityName);
+      _simulator->setVelocity(file_format::YarnRepr(velocity));
+      _simulator->setPosition(_history->getFrame(_history->totalFrameNumber() - 1));
+    }
 
-  // Load last position and velocity
-  if (numSteps > 1) {
-    snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), numSteps);
-    file_format::Yarns::Yarns velocity = file_format::Yarns::Yarns::load(velocityName);
-    _simulator->setVelocity(file_format::YarnRepr(velocity));
-    _simulator->setPosition(_history->getFrame(_history->totalFrameNumber() - 1));
+    std::cout << "> Frame 1 to " << numSteps << " restored." << std::endl;
   }
-
-  std::cout << "> Frame 1 to " << numSteps << " restored." << std::endl;
+  else {
+    createSimulator();
+  }
 
   _loaded = true;
 }
