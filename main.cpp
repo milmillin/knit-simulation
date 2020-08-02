@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     else if (arg == "--output") {
       if (i + 1 < argc) {
         outputDir = args[i + 1];
-        if (outputDir.back() != '/' || outputDir.back() != '\\') {
+        if (outputDir.back() != '/' && outputDir.back() != '\\') {
           outputDir.push_back('/');
         }
         i++;
