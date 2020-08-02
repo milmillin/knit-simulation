@@ -106,10 +106,10 @@ void Viewer::refresh() {
 
     // Set color
     Eigen::MatrixXd color(1, 3);
-    color(0, 0) = yarn.color.r;
-    color(0, 1) = yarn.color.g;
-    color(0, 2) = yarn.color.b;
-    this->data().set_colormap(color);
+    color(0, 0) = yarn.color.r / 255.f;
+    color(0, 1) = yarn.color.g / 255.f;
+    color(0, 2) = yarn.color.b / 255.f;
+    this->data().set_colors(color);
 
     // Draw center line
     if (yarn.points.rows() >= 2) {
