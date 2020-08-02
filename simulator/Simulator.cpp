@@ -172,7 +172,7 @@ void Simulator::setUpConstraints() {
   addSegmentLengthConstraint(m - 2);
 
   std::vector<int> pin = {
-    33, 45
+    159, 171, 183, 195
   };
 
   for (int p : pin) {

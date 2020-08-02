@@ -28,6 +28,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   Viewer(std::string outputDirectory, bool reload = true);
   int launch(bool resizable = true, bool fullscreen = false,
     const std::string &name = "GRAIL Knit Simulator", int width = 0, int height = 0);
+  void launchNoGUI();
   void loadYarn(const std::string& filename);
   void saveYarn(const std::string& filename);
   void createSimulator();

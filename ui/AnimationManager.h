@@ -27,6 +27,8 @@ class AnimationManager {
 
   bool isTerminated() const;
 
+  void join();
+
  private:
   Viewer *_parent;
 

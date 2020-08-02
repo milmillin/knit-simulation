@@ -59,6 +59,12 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
   return igl::opengl::glfw::Viewer::launch(resizable, fullscreen, name, width, height);
 }
 
+void Viewer::launchNoGUI() {
+  assert(_loaded);
+  this->animationManager()->startSimulation();
+  this->animationManager()->join();   // wait indefinitely
+}
+
 void Viewer::refresh() {
   assert(std::this_thread::get_id() == _threadId
     && "refresh() must be called from the thread the viewer has been constructed");
@@ -168,7 +174,7 @@ void Viewer::createSimulator() {
 
 void Viewer::loadYarn(const std::string& filename) {
   // Load .yarns file
-  std::cout << "Loading model: " << filename << std::endl;
+  simulator::log() << "Loading model: " << filename << std::endl;
   file_format::Yarns::Yarns yarns;
   try {
     yarns = file_format::Yarns::Yarns::load(filename);
@@ -181,11 +187,11 @@ void Viewer::loadYarn(const std::string& filename) {
   _yarnsRepr = file_format::YarnRepr(yarns);
 
   // TODO
-  _yarnsRepr.yarns[0].points = (Eigen::MatrixXf)_yarnsRepr.yarns[0].points.block(126, 0, 51, 3);
+  // _yarnsRepr.yarns[0].points = (Eigen::MatrixXf)_yarnsRepr.yarns[0].points.block(126, 0, 51, 3);
 
   if (_reload) {
     // Restoring State
-    std::cout << "Try restoring state and history from " << _outputDirectory << std::endl;
+    simulator::log() << "Try restoring state and history from " << _outputDirectory << std::endl;
     std::filesystem::create_directory(_outputDirectory);
 
     file_format::ViewerState state(_outputDirectory + VIEWER_STATE_NAME);
@@ -219,7 +225,7 @@ void Viewer::loadYarn(const std::string& filename) {
       _simulator->setPosition(_history->getFrame(_history->totalFrameNumber() - 1));
     }
 
-    std::cout << "> Frame 1 to " << numSteps << " restored." << std::endl;
+    simulator::log() << "> Frame 1 to " << numSteps << " restored." << std::endl;
   }
   else {
     createSimulator();
