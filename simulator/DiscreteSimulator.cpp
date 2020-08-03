@@ -225,9 +225,9 @@ void DiscreteSimulator::bendingForceTask
 void DiscreteSimulator::twistingForceTask
     (int thread_id, int start_index, int end_index) {
   for (int i = start_index; i < end_index; i++) {
-    Eigen::Vector3d dTheta_dQi_1 = vec(curvatureBinormal, i) / 2 / e.row(i - 1).norm();
-    Eigen::Vector3d dTheta_dQi = vec(curvatureBinormal, i) / 2 / e.row(i).norm();
-    double coeff = 2 * (theta[i] - theta[i + 1] - thetaHat[i]) / (e.row(i - 1).norm() + e.row(i).norm());
+    Eigen::Vector3d dTheta_dQi_1 = vec(curvatureBinormal, i) / 2 / segmentLength[i - 1];
+    Eigen::Vector3d dTheta_dQi = vec(curvatureBinormal, i) / 2 / segmentLength[i];
+    double coeff = 2 * (theta[i] - theta[i + 1] - thetaHat[i]) / (segmentLength[i - 1] + segmentLength[i]);
     pointAt(F, i) += params.kTwist * coeff * (dTheta_dQi_1 - dTheta_dQi);
   }
 }
