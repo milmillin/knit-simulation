@@ -41,7 +41,7 @@ template<>
 bool Entry<bool>::read(std::ifstream& f);
 
 template<>
-void Entry<float>::write(std::ofstream& f);
+void Entry<double>::write(std::ofstream& f);
 
 template<>
 void Entry<simulator::SimulatorType>::write(std::ofstream& f);

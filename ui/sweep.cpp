@@ -7,7 +7,7 @@
 
 // Get a point from a row in the matrix
 #define POINT_FROM_ROW(matrix, index) \
-  glm::vec3(matrix((index), 0), matrix((index), 1), matrix((index), 2))
+  glm::dvec3(matrix((index), 0), matrix((index), 1), matrix((index), 2))
 // Set a row in the matrix with a point
 #define ROW_FROM_POINT(matrix, index, point) \
   (matrix)((index), 0) = point.x; \
@@ -22,13 +22,13 @@ namespace UI {
 // d2: one of two vectors defining the plane
 // radius: circle radius
 // stride: number of samples
-inline static Eigen::MatrixXf circle(glm::vec3 offset, glm::vec3 d1, glm::vec3 d2,
-    float radius, int stride) {
-  Eigen::MatrixXf vertices(stride, 3);
+inline static Eigen::MatrixXd circle(glm::dvec3 offset, glm::dvec3 d1, glm::dvec3 d2,
+    double radius, int stride) {
+  Eigen::MatrixXd vertices(stride, 3);
   for (int i = 0; i < stride; i++) {
-    glm::vec3 vertex = radius *
-      (glm::sin((float)i * 2 * glm::pi<float>() / stride) * d1
-        + glm::cos((float)i * 2 * glm::pi<float>() / stride) * d2)
+    glm::dvec3 vertex = radius *
+      (glm::sin((double)i * 2 * glm::pi<double>() / stride) * d1
+        + glm::cos((double)i * 2 * glm::pi<double>() / stride) * d2)
       + offset;
     vertices(i, 0) = vertex.x;
     vertices(i, 1) = vertex.y;
@@ -42,14 +42,14 @@ inline static Eigen::MatrixXf circle(glm::vec3 offset, glm::vec3 d1, glm::vec3 d
 // oldUp: old up direction
 // newUp: new up direction
 // newCross: new cross direction
-inline static void parallelTransform(glm::vec3 tangent, glm::vec3 oldUp,
-    glm::vec3 *newUp, glm::vec3 *newCross) {
+inline static void parallelTransform(glm::dvec3 tangent, glm::dvec3 oldUp,
+    glm::dvec3 *newUp, glm::dvec3 *newCross) {
   *newCross = glm::normalize(glm::cross(tangent, oldUp));
   *newUp = glm::normalize(glm::cross(*newCross, tangent));
 }
 
-void circleSweep(const Eigen::MatrixXf path, const float radius, const int stride,
-    Eigen::MatrixXf *vertices, Eigen::MatrixXi *triangles) {
+void circleSweep(const Eigen::MatrixXd path, const double radius, const int stride,
+    Eigen::MatrixXd *vertices, Eigen::MatrixXi *triangles) {
   // Number of points on the path
   const int nPoints = path.rows();
 
@@ -65,17 +65,17 @@ void circleSweep(const Eigen::MatrixXf path, const float radius, const int strid
   triangles->resize(nPoints * stride * 2, 3);
 
   // Initial frame
-  glm::vec3 tangent;
-  glm::vec3 up;
-  glm::vec3 cross;
+  glm::dvec3 tangent;
+  glm::dvec3 up;
+  glm::dvec3 cross;
 
   tangent = POINT_FROM_ROW(path, 1) - POINT_FROM_ROW(path, 0);
 
   // Use an arbitrary vector that's normal to tangent line
   if (glm::abs(tangent.x + tangent.y) < glm::abs(tangent.z)) {
-    up = glm::cross(glm::vec3(1, 0, 0), tangent);
+    up = glm::cross(glm::dvec3(1, 0, 0), tangent);
   } else {
-    up = glm::cross(glm::vec3(0, 0, 1), tangent);
+    up = glm::cross(glm::dvec3(0, 0, 1), tangent);
   }
   up = glm::normalize(up);
 
@@ -87,20 +87,20 @@ void circleSweep(const Eigen::MatrixXf path, const float radius, const int strid
 
   for (int i = 1; i < nPoints; i++) {
     // Update tangent
-    glm::vec3 prevPoint;
-    glm::vec3 currentPoint;
-    glm::vec3 nextPoint;
+    glm::dvec3 prevPoint;
+    glm::dvec3 currentPoint;
+    glm::dvec3 nextPoint;
 
     prevPoint = POINT_FROM_ROW(path, i - 1);
     currentPoint = POINT_FROM_ROW(path, i);
-    glm::vec3 prevDir = currentPoint - prevPoint;
+    glm::dvec3 prevDir = currentPoint - prevPoint;
     if (i == nPoints - 1) {
       // This is the last point
       tangent = prevDir;
     } else {
       // Take the average of two segments
       nextPoint = POINT_FROM_ROW(path, i + 1);
-      glm::vec3 nextDir = nextPoint - currentPoint;
+      glm::dvec3 nextDir = nextPoint - currentPoint;
       tangent = glm::normalize(glm::normalize(prevDir)+glm::normalize(nextDir));
     }
 
@@ -111,7 +111,7 @@ void circleSweep(const Eigen::MatrixXf path, const float radius, const int strid
     vertices->block(i * stride, 0, stride, 3) =
       circle(currentPoint, up, cross, radius, stride);
   }
-  glm::vec3 endPoint = POINT_FROM_ROW(path, nPoints - 1);
+  glm::dvec3 endPoint = POINT_FROM_ROW(path, nPoints - 1);
 
   // The last two vertices is the start and end point
   ROW_FROM_POINT(*vertices, vertices->rows() - 2, POINT_FROM_ROW(path, 0));

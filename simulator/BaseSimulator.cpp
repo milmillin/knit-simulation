@@ -22,8 +22,8 @@ namespace simulator {
     params(_params),
     m(_yarns.yarns[0].points.rows()),
     Q(flatten(_yarns.yarns[0].points)),
-    dQ(Eigen::MatrixXf::Zero(3ll * m, 1)),
-    F(Eigen::MatrixXf::Zero(3ll * m, 1)),
+    dQ(Eigen::MatrixXd::Zero(3ll * m, 1)),
+    F(Eigen::MatrixXd::Zero(3ll * m, 1)),
     constraints(m, &thread_pool)
   {
     log() << "Initializing Simulator" << std::endl;
@@ -36,13 +36,13 @@ namespace simulator {
     }
 
     int N = m - 3;
-    float totalLength = 0;
+    double totalLength = 0;
     catmullRomLength.resize(N);
     for (int i = 0; i < N; i++) {
       int index = i * 3;
       DECLARE_POINTS2(p, Q, index);
 
-      totalLength += catmullRomLength[i] = params.cInit * integrate<float>([&](float s)->float {
+      totalLength += catmullRomLength[i] = params.cInit * integrate<double>([&](double s)->double {
         DECLARE_BASIS_D2(bD, s);
         return POINT_FROM_BASIS(p, bD).norm();
         }, 0, 1);
@@ -62,9 +62,9 @@ namespace simulator {
 
   // Initialize identity mass matrix by default
   void BaseSimulator::constructMassMatrix() {
-    M = Eigen::SparseMatrix<float>(3ll * m, 3ll * m);
+    M = Eigen::SparseMatrix<double>(3ll * m, 3ll * m);
     M.setIdentity();
-    invM = Eigen::SparseMatrix<float>(3ll * m, 3ll * m);
+    invM = Eigen::SparseMatrix<double>(3ll * m, 3ll * m);
     invM.setIdentity();
   }
 
@@ -76,13 +76,13 @@ namespace simulator {
   }
 
   void BaseSimulator::setPosition(const file_format::YarnRepr& yarn) {
-    const Eigen::MatrixXf& v = yarn.yarns[0].points;
+    const Eigen::MatrixXd& v = yarn.yarns[0].points;
     assert(v.cols() == 3 && 3 * v.rows() == dQ.rows());
     Q = flatten(v);
   }
 
   void BaseSimulator::setVelocity(const file_format::YarnRepr& yarn) {
-    const Eigen::MatrixXf& v = yarn.yarns[0].points;
+    const Eigen::MatrixXd& v = yarn.yarns[0].points;
     assert(v.cols() == 3 && 3 * v.rows() == dQ.rows());
     dQ = flatten(v);
   }
@@ -108,7 +108,7 @@ namespace simulator {
     for (int i = 0; i < params.steps; i++) {
       IFDEBUG log() << "Step " << i << std::endl;
 
-      Eigen::MatrixXf originalQ = Q;
+      Eigen::MatrixXd originalQ = Q;
 
       if (cancelled()) break;
       this->stepImpl(cancelled);
@@ -145,17 +145,17 @@ namespace simulator {
     EASY_FUNCTION();
 
     int nIter = 0;
-    Eigen::MatrixXf constraint;
-    Eigen::MatrixXf& Qj = Q;
-    float& h = params.h;
-    float cValue;
+    Eigen::MatrixXd constraint;
+    Eigen::MatrixXd& Qj = Q;
+    double& h = params.h;
+    double cValue;
     while ((cValue = maxCoeff(constraint = constraints.calculate(Qj))) > params.fastProjErrorCutoff
       && nIter < params.fastProjMaxIter && !cancelled()) {
       IFDEBUG log() << "- iter: " << nIter << ", constraint: " << cValue << std::endl;
 
-      Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
+      Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
 
-      Eigen::SparseMatrix<float> dConstraint = constraints.getJacobian(Qj);
+      Eigen::SparseMatrix<double> dConstraint = constraints.getJacobian(Qj);
 
       EASY_BLOCK("Solving Constraint");
       solver.compute(dConstraint * invM * dConstraint.transpose());
@@ -165,7 +165,7 @@ namespace simulator {
         break;
       }
 
-      Eigen::MatrixXf lambda = solver.solve(constraint);
+      Eigen::MatrixXd lambda = solver.solve(constraint);
       if (solver.info() != Eigen::Success) {
         log() << "--- solve failed (2)"
           << " iter " << nIter << " STOPPING" << std::endl;
@@ -173,7 +173,7 @@ namespace simulator {
       }
       EASY_END_BLOCK;
 
-      Eigen::MatrixXf dQj = invM * dConstraint.transpose() * lambda;
+      Eigen::MatrixXd dQj = invM * dConstraint.transpose() * lambda;
       Qj -= dQj;
 
       nIter++;
@@ -183,16 +183,16 @@ namespace simulator {
   ///////////////
   // Contact Force
 
-  static inline Eigen::Vector3f contactForce(Eigen::Vector3f direction,
-      float distance2, float threshold2) {
+  static inline Eigen::Vector3d contactForce(Eigen::Vector3d direction,
+      double distance2, double threshold2) {
     return (-threshold2 / distance2 / distance2 + 1 / threshold2) * direction;
   }
 
   void BaseSimulator::contactForceBetweenSegments
       (int thread_id,
-      std::vector<Eigen::MatrixXf> *forces,
+      std::vector<Eigen::MatrixXd> *forces,
       int ii, int jj) {
-    Eigen::MatrixXf &F = (*forces)[thread_id];
+    Eigen::MatrixXd &F = (*forces)[thread_id];
     int iIndex = ii * 3;
     int jIndex = jj * 3;
 
@@ -201,44 +201,44 @@ namespace simulator {
     DECLARE_POINTS2(piD, dQ, iIndex);
     DECLARE_POINTS2(pjD, dQ, jIndex);
 
-    float coeffE = params.kContact * catmullRomLength[ii] * catmullRomLength[jj];
-    float coeffD = catmullRomLength[ii] * catmullRomLength[jj];
-    float kDt = params.kDt;
-    float kDn = params.kDn;
+    double coeffE = params.kContact * catmullRomLength[ii] * catmullRomLength[jj];
+    double coeffD = catmullRomLength[ii] * catmullRomLength[jj];
+    double kDt = params.kDt;
+    double kDn = params.kDn;
     //dataLock.unlock();
 
-    float r = yarns.yarns[0].radius;
-    float thresh2 = 4.0f * r * r;
+    double r = yarns.yarns[0].radius;
+    double thresh2 = 4.0 * r * r;
 
-    float step = 1.f / params.contactForceSamples;
-    float halfStep = step / 2;
+    double step = 1.0 / params.contactForceSamples;
+    double halfStep = step / 2;
 
-    Eigen::MatrixXf gradEi = Eigen::MatrixXf::Zero(12, 1);
-    Eigen::MatrixXf gradEj = Eigen::MatrixXf::Zero(12, 1);
+    Eigen::MatrixXd gradEi = Eigen::MatrixXd::Zero(12, 1);
+    Eigen::MatrixXd gradEj = Eigen::MatrixXd::Zero(12, 1);
 
-    Eigen::MatrixXf gradDi = Eigen::MatrixXf::Zero(12, 1);
-    Eigen::MatrixXf gradDj = Eigen::MatrixXf::Zero(12, 1);
+    Eigen::MatrixXd gradDi = Eigen::MatrixXd::Zero(12, 1);
+    Eigen::MatrixXd gradDj = Eigen::MatrixXd::Zero(12, 1);
 
     for (int i = 0; i < params.contactForceSamples; i++) {
-      float si = i * step + halfStep;
+      double si = i * step + halfStep;
       DECLARE_BASIS2(bi, si);
-      Eigen::Vector3f Pi = POINT_FROM_BASIS(pi, bi);
-      Eigen::Vector3f PiD = POINT_FROM_BASIS(piD, bi);
+      Eigen::Vector3d Pi = POINT_FROM_BASIS(pi, bi);
+      Eigen::Vector3d PiD = POINT_FROM_BASIS(piD, bi);
 
       for (int j = 0; j < params.contactForceSamples; j++) {
-        float sj = j * step + halfStep;
+        double sj = j * step + halfStep;
         DECLARE_BASIS2(bj, sj);
 
-        Eigen::Vector3f Pj = POINT_FROM_BASIS(pj, bj);
-        Eigen::Vector3f diff = Pj - Pi;
+        Eigen::Vector3d Pj = POINT_FROM_BASIS(pj, bj);
+        Eigen::Vector3d diff = Pj - Pi;
 
-        float norm2 = diff.squaredNorm();
+        double norm2 = diff.squaredNorm();
         if (norm2 >= thresh2) continue;
 
-        Eigen::Vector3f PjD = POINT_FROM_BASIS(pjD, bj);
-        Eigen::Vector3f diffD = PjD - PiD;
+        Eigen::Vector3d PjD = POINT_FROM_BASIS(pjD, bj);
+        Eigen::Vector3d diffD = PjD - PiD;
 
-        float tmp = -2 * (kDt - kDn) / sqrt(norm2);
+        double tmp = -2 * (kDt - kDn) / sqrt(norm2);
 
         for (int kk = 0; kk < 4; kk++) {
           // Contact Energy
@@ -261,9 +261,9 @@ namespace simulator {
   void BaseSimulator::applyContactForce(const StateGetter& cancelled) {
     EASY_FUNCTION();
 
-    std::vector<Eigen::MatrixXf> forces;
+    std::vector<Eigen::MatrixXd> forces;
     for (int i = 0; i < thread_pool.size(); i++) {
-      forces.push_back(std::move(Eigen::MatrixXf(Q.rows(), Q.cols())));
+      forces.push_back(std::move(Eigen::MatrixXd(Q.rows(), Q.cols())));
       forces[i].setZero();
     }
 
@@ -294,20 +294,20 @@ namespace simulator {
   // Constraints
 
   void BaseSimulator::addSegmentLengthConstraint(int i) {
-    float length = segmentLength[i];
+    double length = segmentLength[i];
 
-    Constraints::Func f = [=](const Eigen::MatrixXf& q)->float {
-      Eigen::Vector3f p0 = pointAt(q, i);
-      Eigen::Vector3f p1 = pointAt(q, i + 1);
-      float current = (p1 - p0).norm();
+    Constraints::Func f = [=](const Eigen::MatrixXd& q)->double {
+      Eigen::Vector3d p0 = pointAt(q, i);
+      Eigen::Vector3d p1 = pointAt(q, i + 1);
+      double current = (p1 - p0).norm();
       return current / length - 1;
     };
 
-    Constraints::JacobianFunc fD = [=](const Eigen::MatrixXf& q, Constraints::Referrer ref) {
-      Eigen::Vector3f p0 = pointAt(q, i);
-      Eigen::Vector3f p1 = pointAt(q, i + 1);
-      Eigen::Vector3f diff = p1 - p0;
-      float norm = diff.norm();
+    Constraints::JacobianFunc fD = [=](const Eigen::MatrixXd& q, Constraints::Referrer ref) {
+      Eigen::Vector3d p0 = pointAt(q, i);
+      Eigen::Vector3d p1 = pointAt(q, i + 1);
+      Eigen::Vector3d diff = p1 - p0;
+      double norm = diff.norm();
       for (int ax = 0; ax < 3; ax++) {
         ref(i, ax) = -diff(ax) / length / norm;
         ref(i + 1, ax) = diff(ax) / length / norm;
@@ -318,26 +318,26 @@ namespace simulator {
 
   void BaseSimulator::addCatmullRomLengthConstraint(int i) {
     int index = i * 3;
-    float length = catmullRomLength[i];
+    double length = catmullRomLength[i];
 
-    Constraints::Func f = [=](const Eigen::MatrixXf& q)->float {
+    Constraints::Func f = [=](const Eigen::MatrixXd& q)->double {
       DECLARE_POINTS2(p, q, index);
-      float currentLength = integrate<float>([&](float s)->float {
+      double currentLength = integrate<double>([&](double s)->double {
         DECLARE_BASIS_D2(bD, s);
         return POINT_FROM_BASIS(p, bD).norm();
         }, 0, 1);
       return 1 - currentLength / length;
     };
 
-    using Vec12 = Eigen::Matrix<float, 12, 1>;
+    using Vec12 = Eigen::Matrix<double, 12, 1>;
 
-    Constraints::JacobianFunc fD = [=](const Eigen::MatrixXf& q, const Constraints::Referrer& ref) {
+    Constraints::JacobianFunc fD = [=](const Eigen::MatrixXd& q, const Constraints::Referrer& ref) {
       DECLARE_POINTS2(p, q, index);
-      Vec12 res = integrate<Vec12>([&](float s)->Vec12 {
+      Vec12 res = integrate<Vec12>([&](double s)->Vec12 {
         Vec12 ans;
         DECLARE_BASIS_D2(bD, s);
-        Eigen::Vector3f P = POINT_FROM_BASIS(p, bD);
-        float norm = P.norm();
+        Eigen::Vector3d P = POINT_FROM_BASIS(p, bD);
+        double norm = P.norm();
 
         for (int kk = 0; kk < 4; kk++) {
           ans.block<3, 1>(kk * 3ll, 0) = (bD[kk] / norm) * P;
@@ -345,7 +345,7 @@ namespace simulator {
         return ans;
         }, 0, 1);
 
-      res *= -1.f / length;
+      res *= -1.0 / length;
 
       for (int ii = 0; ii < 12; ii++) {
         ref(i, ii) += res(ii);
@@ -354,15 +354,15 @@ namespace simulator {
     constraints.addConstraint(f, fD);
   }
 
-  void BaseSimulator::addPinConstraint(int i, Eigen::Vector3f point) {
+  void BaseSimulator::addPinConstraint(int i, Eigen::Vector3d point) {
     int index = i * 3;
 
     for (int ax = 0; ax < 3; ax++) {
-      Constraints::Func f = [=](const Eigen::MatrixXf& q)->float {
+      Constraints::Func f = [=](const Eigen::MatrixXd& q)->double {
         return coordAt(q, i, ax) - point(ax);
       };
 
-      Constraints::JacobianFunc fD = [=](const Eigen::MatrixXf& q, const Constraints::Referrer& ref) {
+      Constraints::JacobianFunc fD = [=](const Eigen::MatrixXd& q, const Constraints::Referrer& ref) {
         ref(i, ax) += 1;
       };
 

@@ -7,41 +7,41 @@ struct SimulatorParams {
   // Debug mode
   bool debug = false;
 
-  float m = 0.006f;
-  float kLen = 10000.f;
+  double m = 0.006f;
+  double kLen = 10000.f;
   // Bending coefficient
-  float kBend = 0.05f;
+  double kBend = 0.05f;
   // Twisting coefficient
-  float kTwist = 0.05f;
+  double kTwist = 0.05f;
   // Global damping
-  float kGlobal = 1.5f;
+  double kGlobal = 1.5f;
   // Contact force coefficient
-  float kContact = 3250.f;
+  double kContact = 3250.f;
   // Contact force damping
-  float kDt = 0.003f;
-  float kDn = 0.03f;
+  double kDt = 0.003f;
+  double kDn = 0.03f;
   // Contact force samples per segment
   int contactForceSamples = 11;
-  float aSmall = 0.3f;
-  float aLarge = 0.3f;
+  double aSmall = 0.3f;
+  double aLarge = 0.3f;
   // Time delta for each step (time resolution)
-  float h = 0.001;
+  double h = 0.001;
   // Number of steps to run for each button click
   int steps = 100;
   // Gravity acceleration
-  float gravity = 9.8f;
+  double gravity = 9.8f;
   // y coordinate of the ground
-  float groundHeight = -5.f;
+  double groundHeight = -5.f;
   // Ground fiction
-  float groundFriction = 0.5f;
+  double groundFriction = 0.5f;
 
-  float cInit = 1.0f;
+  double cInit = 1.0f;
 
   // === Fast projection ===
   // maximum iteration
   int fastProjMaxIter = 20;
   // Early termination when error is small
-  float fastProjErrorCutoff = 1e-5;
+  double fastProjErrorCutoff = 1e-5;
 
   static SimulatorParams Default() {
     SimulatorParams param;

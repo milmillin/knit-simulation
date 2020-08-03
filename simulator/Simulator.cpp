@@ -31,7 +31,7 @@ namespace simulator {
 //
 // MASS_CONTRIBUTION[i][j] = integrate(bi(s)*bj(s), (s, 0, 1))
 // TODO: check correctness
-static const float MASS_CONTRIBUTION[4][4] =
+static const double MASS_CONTRIBUTION[4][4] =
 {
   {1.f / 420, -47.f / 1680, -1.f / 56, 1.f / 560},
   {-47.f / 1680, 17.f / 42, 307.f / 1680, -1.f / 56},
@@ -40,18 +40,18 @@ static const float MASS_CONTRIBUTION[4][4] =
 };
 
 void Simulator::constructMassMatrix() {
-  M = Eigen::SparseMatrix<float>(3ll * m, 3ll * m);
+  M = Eigen::SparseMatrix<double>(3ll * m, 3ll * m);
 
   // Iterate though each segment
   int N = m - 3;
 
-  float mUnit = params.m;
+  double mUnit = params.m;
   for (int i = 0; i < N; i++) {
     // Iterate through combination of control points to find mass contribution.
     for (int j = 0; j < 4; j++) {
       for (int k = j; k < 4; k++) {
         // M[(i+j)*3][(i+k)*3] = mUnit * l[i] * integrate(bj(s), bk(s), (s, 0, 1))
-        float contribution = mUnit * catmullRomLength[i] * MASS_CONTRIBUTION[j][k];
+        double contribution = mUnit * catmullRomLength[i] * MASS_CONTRIBUTION[j][k];
         M.coeffRef((i + j) * 3, (i + k) * 3) += contribution;
         M.coeffRef((i + j) * 3 + 1, (i + k) * 3 + 1) += contribution;
         M.coeffRef((i + j) * 3 + 2, (i + k) * 3 + 2) += contribution;
@@ -66,14 +66,14 @@ void Simulator::constructMassMatrix() {
     }
   }
 
-  Eigen::SimplicialLDLT<Eigen::SparseMatrix<float>> solver;
+  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
   solver.compute(M);
   if (solver.info() != Eigen::Success) {
     log() << "Decomposition Failed" << std::endl;
     return;
   }
 
-  Eigen::SparseMatrix<float> I(M.rows(), M.cols());
+  Eigen::SparseMatrix<double> I(M.rows(), M.cols());
   I.setIdentity();
 
   invM = solver.solve(I);
@@ -99,7 +99,7 @@ void Simulator::calculate(void (Simulator::* func)(int), int start, int end) {
 }
 
 void Simulator::calculateGravity() {
-	F += Eigen::Vector3f(0, -params.gravity, 0).replicate(m, 1);
+	F += Eigen::Vector3d(0, -params.gravity, 0).replicate(m, 1);
 }
 
 //////////////////////////////////////////////
@@ -157,7 +157,7 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   EASY_END_BLOCK;
 
   // unconstrained step
-  const float& h = params.h;
+  const double& h = params.h;
   Q += h * dQ + (h * h) * (invM * F);
 }
 

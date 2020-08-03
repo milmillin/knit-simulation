@@ -77,7 +77,7 @@ void Viewer::refresh() {
 
   // Draw ground
   this->selected_data_index = 0;
-  Eigen::MatrixXf groundPoints(4, 3);
+  Eigen::MatrixXd groundPoints(4, 3);
   groundPoints << 10, params.groundHeight, 10,
     10, params.groundHeight, -10,
     -10, params.groundHeight, -10,
@@ -102,10 +102,10 @@ void Viewer::refresh() {
     auto &yarn = yarns.yarns[i];
 
     // Use Catmull-Rom to smooth the curve
-    Eigen::MatrixXf points = simulator::catmullRomSequenceSample(yarn.points, curveSamples);
+    Eigen::MatrixXd points = simulator::catmullRomSequenceSample(yarn.points, curveSamples);
 
     // Create mesh for tube
-    Eigen::MatrixXf vertices;
+    Eigen::MatrixXd vertices;
     Eigen::MatrixXi triangles;
     circleSweep(points, yarn.radius, circleSamples, &vertices, &triangles);
     this->data().set_mesh(vertices.cast<double>(), triangles);
@@ -133,7 +133,7 @@ void Viewer::refresh() {
     for (int i = 0; i < yarn.points.rows(); i++) {
       labels.push_back(std::to_string(i));
     }
-    this->data().set_labels(yarn.points.cast<double>(), labels);
+    this->data().set_labels(yarn.points, labels);
     this->data().label_color = Eigen::Vector4f(1, 1, 1, 1);
   }
 
@@ -185,9 +185,6 @@ void Viewer::loadYarn(const std::string& filename) {
   }
 
   _yarnsRepr = file_format::YarnRepr(yarns);
-
-  // TODO
-  // _yarnsRepr.yarns[0].points = (Eigen::MatrixXf)_yarnsRepr.yarns[0].points.block(126, 0, 51, 3);
 
   if (_reload) {
     // Restoring State

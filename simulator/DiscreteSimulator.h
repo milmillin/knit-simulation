@@ -12,11 +12,11 @@
 namespace simulator {
 
 typedef
-  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>
-  RowMatrixX3f;
+  Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>
+  RowMatrixX3d;
 typedef
-  Eigen::Matrix<float, Eigen::Dynamic, 2, Eigen::RowMajor>
-  RowMatrixX2f;
+  Eigen::Matrix<double, Eigen::Dynamic, 2, Eigen::RowMajor>
+  RowMatrixX2d;
 
 class DiscreteSimulator : public BaseSimulator {
 public:
@@ -46,18 +46,18 @@ public:
   std::vector<int> pinControlPoints;
 
   // === Bending Force ===
-  RowMatrixX3f e;
-  RowMatrixX3f m1;
-  RowMatrixX3f m2;
-  RowMatrixX3f u;
-  RowMatrixX3f v;
-  RowMatrixX3f curvatureBinormal;
-  std::vector<std::vector<Eigen::Matrix3f>> gradCurvatureBinormal;
-  std::vector<float> theta;
-  std::vector<float> thetaHat;
+  RowMatrixX3d e;
+  RowMatrixX3d m1;
+  RowMatrixX3d m2;
+  RowMatrixX3d u;
+  RowMatrixX3d v;
+  RowMatrixX3d curvatureBinormal;
+  std::vector<std::vector<Eigen::Matrix3d>> gradCurvatureBinormal;
+  std::vector<double> theta;
+  std::vector<double> thetaHat;
   std::vector<int> thetaHatOffset;
-  RowMatrixX2f restOmega;
-  RowMatrixX2f restOmega_1;
+  RowMatrixX2d restOmega;
+  RowMatrixX2d restOmega_1;
 
 protected:
   // Simulates next timestep.
@@ -74,7 +74,7 @@ private:
   void gradCurvatureBinormalTask(int thread_id, int start_index, int end_index);
   void bendingForceTask(int thread_id, int start_index, int end_index);
   void twistingForceTask(int thread_id, int start_index, int end_index);
-  Eigen::Vector2f omega(int i, int j);
+  Eigen::Vector2d omega(int i, int j);
 };
 
 } // namespace simulator 

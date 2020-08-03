@@ -54,27 +54,27 @@ protected:
 
   // Flattened Coordinates [x0 y0 z0 x1 y1 x1 ...]
   // Position of control points
-  Eigen::MatrixXf Q;
+  Eigen::MatrixXd Q;
   // Velocity
-  Eigen::MatrixXf dQ;
+  Eigen::MatrixXd dQ;
   // Force
-  Eigen::MatrixXf F;
+  Eigen::MatrixXd F;
   mutable std::mutex lockF;
 
   // Acceleration can be derived from ddQ = invM * F
   // F = f - gradE - gradD
 
   // Mass Matrix
-  Eigen::SparseMatrix<float> M;
+  Eigen::SparseMatrix<double> M;
   // Inverse
-  Eigen::SparseMatrix<float> invM;
+  Eigen::SparseMatrix<double> invM;
 
   // Constraints
   Constraints constraints;
 
   // Length for each segment
-  std::vector<float> segmentLength;
-  std::vector<float> catmullRomLength;
+  std::vector<double> segmentLength;
+  std::vector<double> catmullRomLength;
 
   // Collision Tree
   aabb::Tree collisionTree;
@@ -111,7 +111,7 @@ protected:
   void applyContactForce(const StateGetter& cancelled);
   void contactForceBetweenSegments
       (int thread_id,
-      std::vector<Eigen::MatrixXf> *forces,
+      std::vector<Eigen::MatrixXd> *forces,
       int ii, int jj);
 
   ///////////////////////
@@ -122,7 +122,7 @@ protected:
   // Add length constraint of Catmull-Rom segment defined by points i to i + 3.
   void addCatmullRomLengthConstraint(int i);
   // Add pin constraint of point i to a fixed position
-  void addPinConstraint(int i, Eigen::Vector3f position);
+  void addPinConstraint(int i, Eigen::Vector3d position);
 };
 
 } // namespace simulator
