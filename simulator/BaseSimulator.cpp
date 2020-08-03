@@ -158,7 +158,15 @@ namespace simulator {
       Eigen::SparseMatrix<double> dConstraint = constraints.getJacobian(Qj);
 
       EASY_BLOCK("Solving Constraint");
-      solver.compute(dConstraint * invM * dConstraint.transpose());
+
+      // Make sure that there's at least one solution
+      Eigen::SparseMatrix<double> leftHandSide = dConstraint * invM * dConstraint.transpose();
+      for (int i = 0; i < leftHandSide.rows(); i++) {
+        leftHandSide.coeffRef(i, i) += 1e-9;
+      }
+
+      // Solve
+      solver.compute(leftHandSide);
       if (solver.info() != Eigen::Success) {
         log() << "--- solve failed (1)"
           << " iter " << nIter << " STOPPING" << std::endl;
