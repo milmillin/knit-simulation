@@ -1,7 +1,8 @@
 #include "./viewer.h"
 
-// C++17
-#include <filesystem>
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 
 #include "./sweep.h"
 #include "../simulator/SimulatorParams.h"
@@ -186,13 +187,10 @@ void Viewer::loadYarn(const std::string& filename) {
 
   _yarnsRepr = file_format::YarnRepr(yarns);
 
-  // TODO
-  // _yarnsRepr.yarns[0].points = (Eigen::MatrixXf)_yarnsRepr.yarns[0].points.block(126, 0, 51, 3);
-
   if (_reload) {
     // Restoring State
     simulator::log() << "Try restoring state and history from " << _outputDirectory << std::endl;
-    std::filesystem::create_directory(_outputDirectory);
+    fs::create_directory(_outputDirectory);
 
     file_format::ViewerState state(_outputDirectory + VIEWER_STATE_NAME);
     simulatorType = state.getType();
@@ -206,8 +204,8 @@ void Viewer::loadYarn(const std::string& filename) {
     for (int i = 2; i <= numSteps; i++) {
       snprintf(positionName, 200, "%sposition-%05d.yarns", _outputDirectory.c_str(), i);
       snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), i);
-      if (!std::filesystem::exists(positionName)
-        || !std::filesystem::exists(velocityName)) {
+      if (!fs::exists(positionName)
+        || !fs::exists(velocityName)) {
         std::cout << "WARNING: " << i - 1 << "frames out of " << numSteps << " restored." << std::endl;
         numSteps = i - 1;
         break;
