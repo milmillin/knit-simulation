@@ -1,20 +1,21 @@
 #include "Simulator.h"
 
-#include "./SimulatorParams.h"
-#include "./Helper.h"
-#include "../file_format/yarnRepr.h"
-#include "../easy_profiler_stub.h"
-#include "./threading/threading.h"
-
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <Eigen/SparseCholesky>
 #include <iostream>
 #include <fstream>
 #include <ctime>
 #include <iomanip>
 #include <algorithm>
+
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
+#include "easy_profiler_stub.h"
+
+#include "file_format/yarnRepr.h"
+#include "./SimulatorParams.h"
+#include "./Helper.h"
+#include "./threading/threading.h"
 
 namespace simulator {
 

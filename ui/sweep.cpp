@@ -1,9 +1,7 @@
-// Copyright 2020 Tom Lou
+#include "./sweep.h"
 
 #include <glm/glm.hpp>
 #include <glm/ext/scalar_constants.hpp>
-
-#include "./sweep.h"
 
 // Get a point from a row in the matrix
 #define POINT_FROM_ROW(matrix, index) \

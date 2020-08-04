@@ -4,9 +4,9 @@
 #include <vector>
 #include <memory>
 
+#include "simulator/Enum.h"
+#include "simulator/SimulatorParams.h"
 #include "./Entry.h"
-#include "../simulator/Enum.h"
-#include "../simulator/SimulatorParams.h"
 
 namespace file_format {
 

@@ -1,13 +1,14 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Sparse>
-#include <Eigen/SparseCholesky>
 #include <vector>
 #include <functional>
 
-#include "macros.h"
-#include "Helper.h"
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
+
+#include "./macros.h"
+#include "./Helper.h"
 #include "./threading/ctpl_stl.h"
 
 namespace simulator {

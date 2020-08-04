@@ -1,9 +1,9 @@
 #include "Constraints.h"
 
-#include "../easy_profiler_stub.h"
-#include "./threading/threading.h"
-
 #include <mutex>
+
+#include "easy_profiler_stub.h"
+#include "./threading/threading.h"
 
 namespace simulator {
 

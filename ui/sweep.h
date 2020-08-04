@@ -1,5 +1,3 @@
-// Copyright 2020 Tom Lou
-
 #pragma once
 
 #include <Eigen/Core>

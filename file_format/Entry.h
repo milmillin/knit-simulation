@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iomanip>
 
-#include "../simulator/Enum.h"
+#include "simulator/Enum.h"
 
 namespace file_format {
 

@@ -4,11 +4,11 @@
 #include <functional>
 
 #include <Eigen/SparseLU>
-#include "../easy_profiler_stub.h"
+#include "easy_profiler_stub.h"
 
-#include "macros.h"
-#include "Helper.h"
 #include "./threading/threading.h"
+#include "./macros.h"
+#include "./Helper.h"
 
 namespace simulator {
 

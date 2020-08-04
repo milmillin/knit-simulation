@@ -1,9 +1,7 @@
 #include "BaseSimulator.h"
 
-#include "./SimulatorParams.h"
-#include "./Helper.h"
-#include "../file_format/yarnRepr.h"
-#include "./threading/threading.h"
+#include <functional>
+#include <thread>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -11,8 +9,10 @@
 #include <Eigen/SparseCholesky>
 #include "../easy_profiler_stub.h"
 
-#include <functional>
-#include <thread>
+#include "file_format/yarnRepr.h"
+#include "threading/threading.h"
+#include "./SimulatorParams.h"
+#include "./Helper.h"
 
 namespace simulator {
   BaseSimulator::BaseSimulator(file_format::YarnRepr _yarns,

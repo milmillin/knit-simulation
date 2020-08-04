@@ -1,10 +1,9 @@
 // Based on https://github.com/textiles-lab/smobj
+#include "./yarns.h"
 
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
-
-#include "./yarns.h"
 
 namespace file_format {
 namespace Yarns {

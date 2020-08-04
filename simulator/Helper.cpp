@@ -1,12 +1,12 @@
-#include "Helper.h"
-
-#include <glm/glm.hpp>
-#include <glm/gtx/norm.hpp>
+#include "./Helper.h"
 
 #include <vector>
 #include <ctime>
 
-#include "macros.h"
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
+
+#include "./macros.h"
 
 //static double simpson(const std::function<double(double)>& f, double a, double b) {
   //return (f(a) + 4 * f((a + b) / 2) + f(b))* (b - a) / 4;

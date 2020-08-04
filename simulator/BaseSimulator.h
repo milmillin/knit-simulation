@@ -1,12 +1,5 @@
 #pragma once
 
-
-#include "./threading/ctpl_stl.h"
-#include "../file_format/yarnRepr.h"
-#include "./SimulatorParams.h"
-#include "./AABB.h"
-#include "Constraints.h"
-
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -14,6 +7,12 @@
 
 #include <functional>
 #include <mutex>
+
+#include "file_format/yarnRepr.h"
+#include "./threading/ctpl_stl.h"
+#include "./SimulatorParams.h"
+#include "./AABB.h"
+#include "./Constraints.h"
 
 namespace simulator
 {

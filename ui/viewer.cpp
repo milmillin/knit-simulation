@@ -3,13 +3,13 @@
 // C++17
 #include <filesystem>
 
+#include "file_format/yarns.h"
+#include "file_format/yarnRepr.h"
+#include "simulator/SimulatorParams.h"
+#include "simulator/Simulator.h"
+#include "simulator/DiscreteSimulator.h"
+#include "simulator/Helper.h"
 #include "./sweep.h"
-#include "../simulator/SimulatorParams.h"
-#include "../file_format/yarns.h"
-#include "../file_format/yarnRepr.h"
-#include "../simulator/Helper.h"
-#include "../simulator/Simulator.h"
-#include "../simulator/DiscreteSimulator.h"
 
 namespace UI {
 

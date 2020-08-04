@@ -1,13 +1,12 @@
 #pragma once
 
-#include "./BaseSimulator.h"
-
 #include <vector>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "../file_format/yarnRepr.h"
+#include "./BaseSimulator.h"
 #include "./SimulatorParams.h"
+#include "file_format/yarnRepr.h"
 
 namespace simulator {
 

@@ -6,6 +6,8 @@ set(CMAKE_BUILD_TYPE Debug)
 
 set (CMAKE_CXX_STANDARD 17)
 
+include_directories("./")
+
 # libigl
 option(LIBIGL_WITH_OPENGL            "Use OpenGL"         ON)
 option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"           ON)

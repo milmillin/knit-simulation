@@ -1,9 +1,9 @@
 #pragma once
 
+#include <vector>
+
 #include <Eigen/Core>
 #include <glm/common.hpp>
-
-#include <vector>
 
 #include "./yarns.h"
 

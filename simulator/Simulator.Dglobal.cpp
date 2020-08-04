@@ -1,5 +1,5 @@
-#include "Simulator.h"
-#include "Helper.h"
+#include "./Simulator.h"
+#include "./Helper.h"
 
 namespace simulator {
 
