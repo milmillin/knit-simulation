@@ -8,6 +8,7 @@
 #include <memory>
 #include <map>
 #include <mutex>
+#include <thread>
 
 #include "./menu.h"
 #include "./HistoryManager.h"
@@ -24,10 +25,10 @@ class AnimationManager;
 
 class Viewer : igl::opengl::glfw::Viewer {
  public:
-  Viewer(std::string outputDirectory);
+  Viewer(std::string outputDirectory, bool reload = true);
   int launch(bool resizable = true, bool fullscreen = false,
     const std::string &name = "GRAIL Knit Simulator", int width = 0, int height = 0);
-  void refresh();
+  void launchNoGUI();
   void loadYarn(const std::string& filename);
   void saveYarn(const std::string& filename);
   void createSimulator();
@@ -55,17 +56,26 @@ class Viewer : igl::opengl::glfw::Viewer {
   AnimationManager* animationManager() {return _animationManager.get();}
   int& currentFrame() { return _currentFrame; }
   const std::string& outputDirectory() const { return _outputDirectory; }
-
+  void invalidate() {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    _needRefresh = true;
+  }
  private:
   std::unique_ptr<Menu> _menu;
   std::unique_ptr<simulator::BaseSimulator> _simulator;
   std::unique_ptr<HistoryManager> _history;
   std::unique_ptr<AnimationManager> _animationManager;
-  mutable std::recursive_mutex _refreshLock;
   int _currentFrame = 0;
   file_format::YarnRepr _yarnsRepr;
   std::string _outputDirectory;
   bool _loaded = false;
+  bool _reload;
+  bool _needRefresh = false;
+  std::thread::id _threadId = std::this_thread::get_id();
+
+  mutable std::recursive_mutex _mutex;
+
+  void refresh();
 };
 
 }  // namespace UI

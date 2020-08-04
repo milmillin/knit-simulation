@@ -50,11 +50,18 @@ cmake --build .
 
 This should find and build the dependencies and create a `knit-simulator` binary.
 
-## Run
+## Usage
 
-From within the `build` directory just issue:
+    ./knit-simulator yarns-filename [--no-restore] [--no-gui] [--output output-directory]
 
-    ./knit-simulator
+### Options
 
-A glfw app should launch displaying a 3D cube.
+- `--no-restore` : (optional) The simulator will not restore the state and history located in the output directory.
+- `--no-gui` : (optional) Start the simulator without GUI. (useful when running on a remote machine)
+- `--output output-directory` : (optional, default = `output/`) Specify the output directory.
 
+### Output File
+
+The output directory consists of `viewer-state.txt`, `position-xxxxx.yarns`, and `velocity-xxxxx.yarns`.
+The `viewer-state.txt` contains number of frames and all the parameters used by the simulator.
+This file will be updated at every frame.

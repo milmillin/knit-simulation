@@ -32,7 +32,7 @@ inline float b4(float s) {
 // 
 // subdivide : number of subdivision
 template<typename T>
-T integrate(const std::function<T(float)>& f, float a, float b, int subdivide = 64)
+T integrate(const std::function<T(float)>& f, float a, float b, int subdivide = 16)
 {
   assert(subdivide % 2 == 0);
   float step = (b - a) / subdivide;

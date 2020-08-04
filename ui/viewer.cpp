@@ -1,7 +1,8 @@
 #include "./viewer.h"
 
-// C++17
-#include <filesystem>
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 
 #include "./sweep.h"
 #include "../simulator/SimulatorParams.h"
@@ -15,14 +16,17 @@ namespace UI {
 
 static constexpr const char* VIEWER_STATE_NAME = "viewer-state.txt";
 
-Viewer::Viewer(std::string outputDirectory) : _outputDirectory(outputDirectory) {
+Viewer::Viewer(std::string outputDirectory, bool reload) : _outputDirectory(outputDirectory), _reload(reload) {
   callback_pre_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
-    _refreshLock.lock();
+    //_refreshLock.lock();
+    if (_needRefresh) {
+      refresh();
+    }
     return false;
   };
 
   callback_post_draw = [&](igl::opengl::glfw::Viewer&)-> bool {
-    _refreshLock.unlock();
+    //_refreshLock.unlock();
     return true;
   };
 
@@ -56,8 +60,17 @@ int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int
   return igl::opengl::glfw::Viewer::launch(resizable, fullscreen, name, width, height);
 }
 
+void Viewer::launchNoGUI() {
+  assert(_loaded);
+  this->animationManager()->startSimulation();
+  this->animationManager()->join();   // wait indefinitely
+}
+
 void Viewer::refresh() {
-  std::lock_guard<std::recursive_mutex> guard(_refreshLock);
+  assert(std::this_thread::get_id() == _threadId
+    && "refresh() must be called from the thread the viewer has been constructed");
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
+  // std::lock_guard<std::recursive_mutex> guard(_refreshLock);
 
   // Get yarn shape
   const file_format::YarnRepr yarns = _history->getFrame(_currentFrame);
@@ -100,10 +113,10 @@ void Viewer::refresh() {
 
     // Set color
     Eigen::MatrixXd color(1, 3);
-    color(0, 0) = yarn.color.r;
-    color(0, 1) = yarn.color.g;
-    color(0, 2) = yarn.color.b;
-    this->data().set_colormap(color);
+    color(0, 0) = yarn.color.r / 255.f;
+    color(0, 1) = yarn.color.g / 255.f;
+    color(0, 2) = yarn.color.b / 255.f;
+    this->data().set_colors(color);
 
     // Draw center line
     if (yarn.points.rows() >= 2) {
@@ -124,9 +137,15 @@ void Viewer::refresh() {
     this->data().set_labels(yarn.points.cast<double>(), labels);
     this->data().label_color = Eigen::Vector4f(1, 1, 1, 1);
   }
+
+  _needRefresh = false;
 }
 
 void Viewer::createSimulator() {
+  delete (_animationManager.release());
+  delete (_history.release());
+  delete (_simulator.release());
+
   // Update simulator
   switch (simulatorType)
   {
@@ -156,53 +175,59 @@ void Viewer::createSimulator() {
 
 void Viewer::loadYarn(const std::string& filename) {
   // Load .yarns file
-  std::cout << "Loading model: " << filename << std::endl;
+  simulator::log() << "Loading model: " << filename << std::endl;
   file_format::Yarns::Yarns yarns;
   try {
     yarns = file_format::Yarns::Yarns::load(filename);
-  } catch (const std::runtime_error& e) {
+  }
+  catch (const std::runtime_error& e) {
     std::cout << "Failed to load " << filename << std::endl;
     std::cout << e.what() << std::endl;
   }
 
   _yarnsRepr = file_format::YarnRepr(yarns);
 
-  // Restoring State
-  std::cout << "Try restoring state and history from " << _outputDirectory << std::endl;
-  std::filesystem::create_directory(_outputDirectory);
+  if (_reload) {
+    // Restoring State
+    simulator::log() << "Try restoring state and history from " << _outputDirectory << std::endl;
+    fs::create_directory(_outputDirectory);
 
-  file_format::ViewerState state(_outputDirectory + VIEWER_STATE_NAME);
-  simulatorType = state.getType();
-  params = state.getParams();
-  int numSteps = state.getNumSteps();
+    file_format::ViewerState state(_outputDirectory + VIEWER_STATE_NAME);
+    simulatorType = state.getType();
+    params = state.getParams();
+    int numSteps = state.getNumSteps();
 
-  createSimulator();
+    createSimulator();
 
-  char positionName[200];
-  char velocityName[200];
-  for (int i = 2; i <= numSteps; i++) {
-    snprintf(positionName, 200, "%sposition-%05d.yarns", _outputDirectory.c_str(), i);
-    snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), i);
-    if (!std::filesystem::exists(positionName) 
-      || !std::filesystem::exists(velocityName)) {
-      std::cout << "WARNING: " << i - 1 << "frames out of " << numSteps << " restored." << std::endl;
-      numSteps = i - 1;
-      break;
+    char positionName[200];
+    char velocityName[200];
+    for (int i = 2; i <= numSteps; i++) {
+      snprintf(positionName, 200, "%sposition-%05d.yarns", _outputDirectory.c_str(), i);
+      snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), i);
+      if (!fs::exists(positionName)
+        || !fs::exists(velocityName)) {
+        std::cout << "WARNING: " << i - 1 << "frames out of " << numSteps << " restored." << std::endl;
+        numSteps = i - 1;
+        break;
+      }
+
+      file_format::Yarns::Yarns position = file_format::Yarns::Yarns::load(positionName);
+      _history->addFrame(file_format::YarnRepr(position));
     }
 
-    file_format::Yarns::Yarns position = file_format::Yarns::Yarns::load(positionName);
-    _history->addFrame(file_format::YarnRepr(position));
-  }
+    // Load last position and velocity
+    if (numSteps > 1) {
+      snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), numSteps);
+      file_format::Yarns::Yarns velocity = file_format::Yarns::Yarns::load(velocityName);
+      _simulator->setVelocity(file_format::YarnRepr(velocity));
+      _simulator->setPosition(_history->getFrame(_history->totalFrameNumber() - 1));
+    }
 
-  // Load last position and velocity
-  if (numSteps > 1) {
-    snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), numSteps);
-    file_format::Yarns::Yarns velocity = file_format::Yarns::Yarns::load(velocityName);
-    _simulator->setVelocity(file_format::YarnRepr(velocity));
-    _simulator->setPosition(_history->getFrame(_history->totalFrameNumber() - 1));
+    simulator::log() << "> Frame 1 to " << numSteps << " restored." << std::endl;
   }
-
-  std::cout << "> Frame 1 to " << numSteps << " restored." << std::endl;
+  else {
+    createSimulator();
+  }
 
   _loaded = true;
 }
@@ -212,20 +237,23 @@ void Viewer::saveYarn(const std::string& filename) {
 }
 
 void Viewer::nextFrame() {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   if (_currentFrame + 1 < _history->totalFrameNumber()) {
     _currentFrame++;
-    refresh();
+    invalidate();
   }
 }
 
 void Viewer::prevFrame() {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   if (_currentFrame > 0) {
     _currentFrame--;
-    refresh();
+    invalidate();
   }
 }
 
 void Viewer::setAnimationMode(bool animating) {
+  std::lock_guard<std::recursive_mutex> lock(_mutex);
   core().is_animating = animating;
 }
 

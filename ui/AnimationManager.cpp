@@ -18,6 +18,11 @@ AnimationManager::~AnimationManager() {
   _animationThread.join();
 }
 
+void AnimationManager::join() {
+  _simulationThread.join();
+  _animationThread.join();
+}
+
 bool AnimationManager::isSimulationRunning() const {
   std::lock_guard<std::mutex> lock(_statusLock);
   return _simulationRunning;

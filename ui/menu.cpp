@@ -224,7 +224,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
     ImGui::End();
 
     if (needRefresh) {
-      yarnViewer->refresh();
+      yarnViewer->invalidate();
     }
   };
 }
