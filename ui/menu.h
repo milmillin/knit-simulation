@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
-
 #include <string>
+
+#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 
 #include "./viewer.h"
 

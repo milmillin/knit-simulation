@@ -1,17 +1,18 @@
 #pragma once
 
-#include "./SimulatorParams.h"
-#include "./Constraints.h"
-#include "../file_format/yarnRepr.h"
-#include "./macros.h"
-#include "./ParallelWorker.h"
-#include "./BaseSimulator.h"
-
-#include <Eigen/Core>
-#include <Eigen/Sparse>
 #include <vector>
 #include <mutex>
 #include <thread>
+
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+
+#include "file_format/yarnRepr.h"
+#include "./SimulatorParams.h"
+#include "./Constraints.h"
+#include "./macros.h"
+#include "./ParallelWorker.h"
+#include "./BaseSimulator.h"
 
 namespace simulator{
 

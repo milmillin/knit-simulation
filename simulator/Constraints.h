@@ -1,22 +1,23 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Sparse>
-#include <Eigen/SparseCholesky>
 #include <vector>
 #include <functional>
 
-#include "macros.h"
-#include "Helper.h"
+#include <Eigen/Core>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
+
+#include "./macros.h"
+#include "./Helper.h"
 #include "./threading/ctpl_stl.h"
 
 namespace simulator {
 
 class Constraints {
 public:
-  using Referrer = std::function<float& (int, int)>;
-  using Func = std::function<float(const Eigen::MatrixXf&)>;
-  using JacobianFunc = std::function<void(const Eigen::MatrixXf&, const Referrer&)>;
+  using Referrer = std::function<double& (int, int)>;
+  using Func = std::function<double(const Eigen::MatrixXd&)>;
+  using JacobianFunc = std::function<void(const Eigen::MatrixXd&, const Referrer&)>;
 
   struct Entry {
     Func f;
@@ -35,11 +36,11 @@ public:
   // Gets Jacobian matrix of size c x (3 * m)
   // where c is the number of constraints
   // evaluated at q.
-  Eigen::SparseMatrix<float> getJacobian(const Eigen::MatrixXf& q) const;
+  Eigen::SparseMatrix<double> getJacobian(const Eigen::MatrixXd& q) const;
 
   // Evaluates the constraints at q
   // Returns the matrix of size c x 1
-  Eigen::MatrixXf calculate(const Eigen::MatrixXf& q) const;
+  Eigen::MatrixXd calculate(const Eigen::MatrixXd& q) const;
 
 private:
   // number of control points

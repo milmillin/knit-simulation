@@ -1,8 +1,5 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <imgui/imgui.h>
-
 #include <unordered_set>
 #include <string>
 #include <memory>
@@ -10,12 +7,15 @@
 #include <mutex>
 #include <thread>
 
+#include <Eigen/Core>
+#include <imgui/imgui.h>
+
+#include "simulator/BaseSimulator.h"
+#include "simulator/Enum.h"
+#include "file_format/ViewerState.h"
 #include "./menu.h"
 #include "./HistoryManager.h"
 #include "./AnimationManager.h"
-#include "../simulator/BaseSimulator.h"
-#include "../simulator/Enum.h"
-#include "../file_format/ViewerState.h"
 
 namespace UI {
 

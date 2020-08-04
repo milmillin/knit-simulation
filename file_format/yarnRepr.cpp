@@ -1,9 +1,9 @@
 #include "./yarnRepr.h"
 
+#include <vector>
+
 #include <Eigen/Core>
 #include <glm/common.hpp>
-
-#include <vector>
 
 #include "./yarns.h"
 
@@ -14,7 +14,7 @@ YarnRepr::YarnRepr(file_format::Yarns::Yarns &yarns) {
     int nPoints = yarn.points.size();
 
     // Construct point list
-    Eigen::MatrixXf P(nPoints, 3);
+    Eigen::MatrixXd P(nPoints, 3);
     for (int i = 0; i < nPoints; i++) {
       P(i, 0) = yarn.points[i][0];
       P(i, 1) = yarn.points[i][1];
@@ -43,7 +43,7 @@ Yarns::Yarns YarnRepr::toYarns() const {
 
     int n = yarn.points.rows();
     thatYarn.points.resize(n);
-    const Eigen::MatrixXf& P = yarn.points;
+    const Eigen::MatrixXd& P = yarn.points;
     for (int i = 0; i < n; i++) {
       thatYarn.points[i] = glm::vec3(P(i, 0), P(i, 1), P(i, 2));
     }

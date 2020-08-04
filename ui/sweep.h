@@ -1,5 +1,3 @@
-// Copyright 2020 Tom Lou
-
 #pragma once
 
 #include <Eigen/Core>
@@ -11,7 +9,7 @@ namespace UI {
 // radius: radius of tube
 // vertex: vertices for the tube
 // triangles: triangles for the tube
-void circleSweep(const Eigen::MatrixXf path, const float radius, const int stride,
-    Eigen::MatrixXf *vertex, Eigen::MatrixXi *triangles);
+void circleSweep(const Eigen::MatrixXd path, const double radius, const int stride,
+    Eigen::MatrixXd *vertex, Eigen::MatrixXi *triangles);
 
 }  // namespace UI

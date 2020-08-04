@@ -1,4 +1,5 @@
 #include "./AnimationManager.h"
+
 #include <chrono>
 
 namespace UI {

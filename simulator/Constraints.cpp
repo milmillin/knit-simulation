@@ -1,9 +1,9 @@
 #include "Constraints.h"
 
-#include "../easy_profiler_stub.h"
-#include "./threading/threading.h"
-
 #include <mutex>
+
+#include "easy_profiler_stub.h"
+#include "./threading/threading.h"
 
 namespace simulator {
 
@@ -11,14 +11,14 @@ void Constraints::addConstraint(Func f, JacobianFunc fD) {
   constraints.push_back(Entry{ f, fD });
 }
 
-Eigen::SparseMatrix<float> Constraints::getJacobian(const Eigen::MatrixXf& q) const {
+Eigen::SparseMatrix<double> Constraints::getJacobian(const Eigen::MatrixXd& q) const {
   EASY_FUNCTION();
   int c = (int)constraints.size();
-  std::vector<Eigen::SparseMatrix<float>> Js(thread_pool->size(), Eigen::SparseMatrix<float>(c, 3 * m));
+  std::vector<Eigen::SparseMatrix<double>> Js(thread_pool->size(), Eigen::SparseMatrix<double>(c, 3 * m));
 
   auto getJacobianTask = [this, &Js, &q](int thread_id, int start_index, int end_index) {
     int i;
-    Referrer ref = [&Js, &i, thread_id](int index, int ax)->float& {
+    Referrer ref = [&Js, &i, thread_id](int index, int ax)->double& {
       return Js[thread_id].coeffRef(i, index * 3ll + ax); 
     };
     for (i = start_index; i < end_index; i++) {
@@ -28,7 +28,7 @@ Eigen::SparseMatrix<float> Constraints::getJacobian(const Eigen::MatrixXf& q) co
 
   threading::runSequentialJob(*thread_pool, getJacobianTask, 0, (int)constraints.size());
 
-  Eigen::SparseMatrix<float> J(c, 3 * m);
+  Eigen::SparseMatrix<double> J(c, 3 * m);
   for (const auto& j : Js) {
     J += j;
   }
@@ -36,9 +36,9 @@ Eigen::SparseMatrix<float> Constraints::getJacobian(const Eigen::MatrixXf& q) co
   return J;
 }
 
-Eigen::MatrixXf Constraints::calculate(const Eigen::MatrixXf& q) const {
+Eigen::MatrixXd Constraints::calculate(const Eigen::MatrixXd& q) const {
   EASY_FUNCTION();
-  Eigen::MatrixXf res(constraints.size(), 1);
+  Eigen::MatrixXd res(constraints.size(), 1);
 
   auto calculateTask = [this, &res, &q](int thread_id, int start_index, int end_index) {
     for (int i = start_index; i < end_index; i++) {

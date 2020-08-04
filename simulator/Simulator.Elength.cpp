@@ -1,5 +1,5 @@
-#include "Simulator.h"
-#include "Helper.h"
+#include "./Simulator.h"
+#include "./Helper.h"
 
 namespace simulator {
 
@@ -12,18 +12,18 @@ void Simulator::calculateLengthEnergy(int i) {
   int index = i * 3;
   DECLARE_POINTS2(p, Q, index);
 
-  float coefficient = params.kLen;
-  float L = catmullRomLength[i];
+  double coefficient = params.kLen;
+  double L = catmullRomLength[i];
 
-  using Vec12 = Eigen::Matrix<float, 12, 1>;
+  using Vec12 = Eigen::Matrix<double, 12, 1>;
 
-  Vec12 res = integrate<Vec12>([L, &p](float s)->Vec12 {
+  Vec12 res = integrate<Vec12>([L, &p](double s)->Vec12 {
     Vec12 ans;
     DECLARE_BASIS_D2(bD, s);
-    Eigen::Vector3f P = POINT_FROM_BASIS(p, bD);
-    float norm = P.norm();
+    Eigen::Vector3d P = POINT_FROM_BASIS(p, bD);
+    double norm = P.norm();
 
-    float tmp = 2.f * (norm / L - 1) / (L * norm);
+    double tmp = 2.0 * (norm / L - 1) / (L * norm);
 
     for (int kk = 0; kk < 4; kk++) {
       ans.block<3, 1>(kk * 3ll, 0) = (tmp * bD[kk]) * P;

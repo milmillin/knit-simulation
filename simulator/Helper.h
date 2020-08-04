@@ -11,19 +11,19 @@
 
 namespace simulator {
 
-constexpr float SIMPSON_EPS = 1e-5;
+constexpr double SIMPSON_EPS = 1e-5;
 
 // Catmull-Rom coefficient
-inline float b1(float s) {
+inline double b1(double s) {
   return -s / 2 + s * s - s * s * s / 2;
 }
-inline float b2(float s) {
+inline double b2(double s) {
   return 1 - s * s * 5 / 2 + s * s * s * 3 / 2;
 }
-inline float b3(float s) {
+inline double b3(double s) {
   return s / 2 + 2 * s * s - s * s * s * 3 / 2;
 }
-inline float b4(float s) {
+inline double b4(double s) {
   return -s * s / 2 + s * s * s / 2;
 }
 
@@ -32,10 +32,10 @@ inline float b4(float s) {
 // 
 // subdivide : number of subdivision
 template<typename T>
-T integrate(const std::function<T(float)>& f, float a, float b, int subdivide = 16)
+T integrate(const std::function<T(double)>& f, double a, double b, int subdivide = 16)
 {
   assert(subdivide % 2 == 0);
-  float step = (b - a) / subdivide;
+  double step = (b - a) / subdivide;
 
   T result = f(a) + f(b);
 
@@ -51,38 +51,38 @@ T integrate(const std::function<T(float)>& f, float a, float b, int subdivide = 
 }
 
 // Calculates Arc length of a Catmull-Rom Spline defined by 4 control points.
-glm::vec3 catmullRomSample(const Eigen::MatrixXf &controlPoints, int index, float s);
+glm::dvec3 catmullRomSample(const Eigen::MatrixXd &controlPoints, int index, double s);
 
 // Sample a Catmul-Rom curve
 //
 // points: one row for each point coordinate
 // samplePerSegment: number of samples for each segment
 // Return: samples (one row for each point coordinate)
-Eigen::MatrixXf catmullRomSequenceSample(Eigen::MatrixXf points, int samplePerSegment);
+Eigen::MatrixXd catmullRomSequenceSample(Eigen::MatrixXd points, int samplePerSegment);
 
-void catmullRomBoundingBox(const Eigen::MatrixXf& controlPoints, int index,
-  std::vector<double>& lowerBound, std::vector<double>& upperBound, float radius);
+void catmullRomBoundingBox(const Eigen::MatrixXd& controlPoints, int index,
+  std::vector<double>& lowerBound, std::vector<double>& upperBound, double radius);
 
 // Writes a matrix to a file in CSV format
 const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
-void writeMatrix(std::string filename, const Eigen::MatrixXf& q);
+void writeMatrix(std::string filename, const Eigen::MatrixXd& q);
 
 // Reshapes #m x 3 matrix into a vector of (3 * #m) rows.
 // Returns a new matrix.
-Eigen::MatrixXf flatten(const Eigen::MatrixXf& v);
+Eigen::MatrixXd flatten(const Eigen::MatrixXd& v);
 
 // Reshapes a vector of (3 * #m) rows to a #m x 3 matrix.
 // Returns a new matrix.
-Eigen::MatrixXf inflate(const Eigen::MatrixXf& v, size_t col = 3);
+Eigen::MatrixXd inflate(const Eigen::MatrixXd& v, size_t col = 3);
 
 std::ostream& log();
 
-Eigen::Block<Eigen::MatrixXf, 3, 1> pointAt(Eigen::MatrixXf& q, int index);
-Eigen::Block<const Eigen::MatrixXf, 3, 1> pointAt(const Eigen::MatrixXf& q, int index);
+Eigen::Block<Eigen::MatrixXd, 3, 1> pointAt(Eigen::MatrixXd& q, int index);
+Eigen::Block<const Eigen::MatrixXd, 3, 1> pointAt(const Eigen::MatrixXd& q, int index);
 
-float& coordAt(Eigen::MatrixXf& q, int index, int axis);
-const float& coordAt(const Eigen::MatrixXf& q, int index, int axis);
+double& coordAt(Eigen::MatrixXd& q, int index, int axis);
+const double& coordAt(const Eigen::MatrixXd& q, int index, int axis);
 
-float maxCoeff(const Eigen::MatrixXf& m);
+double maxCoeff(const Eigen::MatrixXd& m);
 
 } // namespace simulator

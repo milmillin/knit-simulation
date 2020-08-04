@@ -3,8 +3,8 @@
 #include <vector>
 #include <mutex>
 
+#include "file_format/yarnRepr.h"
 #include "./viewer.h"
-#include "../file_format/yarnRepr.h"
 
 namespace UI {
 

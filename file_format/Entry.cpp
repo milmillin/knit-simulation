@@ -18,7 +18,7 @@ bool Entry<bool>::read(std::ifstream& f) {
 }
 
 template<>
-void Entry<float>::write(std::ofstream& f) {
+void Entry<double>::write(std::ofstream& f) {
   f << _fieldName << " " << std::setprecision(9) << *_value << "\n";
 }
 
@@ -50,7 +50,7 @@ bool Entry<simulator::SimulatorType>::read(std::ifstream& f) {
   return true;
 }
 
-template class Entry<float>;
+template class Entry<double>;
 template class Entry<bool>;
 template class Entry<simulator::SimulatorType>;
 

@@ -187,34 +187,34 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         std::cout << "Simulator Changed" << std::endl;
       }
       ImGui::Checkbox("Debug mode", &(params.debug));
-      ImGui::InputFloat("Time resolution", &(params.h),
+      ImGui::InputDouble("Time resolution", &(params.h),
         0.00001, 0.001, "%.7f");
       ImGui::InputInt("steps per frame", &(params.steps),
         10, 100);
       ImGui::Separator();
       ImGui::Text("Constraint and Fast Projection");
-      ImGui::InputFloat("Target Error", &(params.fastProjErrorCutoff),
+      ImGui::InputDouble("Target Error", &(params.fastProjErrorCutoff),
         1e-6, 1e-3, "%.7f");
       ImGui::InputInt("Max iterations", &(params.fastProjMaxIter));
       ImGui::Separator();
       ImGui::Text("Parameters");
-      ImGui::InputFloat("Gravity", &(params.gravity),
+      ImGui::InputDouble("Gravity", &(params.gravity),
         0.1, 1);
-      ImGui::InputFloat("Ground height", &(params.groundHeight),
+      ImGui::InputDouble("Ground height", &(params.groundHeight),
         0.01, 0.1, "%.2f");
-      ImGui::InputFloat("Ground fiction", &(params.groundFriction),
+      ImGui::InputDouble("Ground fiction", &(params.groundFriction),
         0.01, 0.1, "%.2f");
       ImGui::InputInt("Contact force samples", &(params.contactForceSamples),
         1, 5);
-      ImGui::InputFloat("Contact force", &(params.kContact),
+      ImGui::InputDouble("Contact force", &(params.kContact),
         100, 10, "%.1f");
-      ImGui::InputFloat("Global damping", &(params.kGlobal),
+      ImGui::InputDouble("Global damping", &(params.kGlobal),
         0.1, 1, "%.1f");
-      ImGui::InputFloat("Length Constant", &(params.kLen),
+      ImGui::InputDouble("Length Constant", &(params.kLen),
         1, 100, "%f");
-      ImGui::InputFloat("Bending Constant", &(params.kBend),
+      ImGui::InputDouble("Bending Constant", &(params.kBend),
         0.1, 1, "%f");
-      ImGui::InputFloat("Twisting Constant", &(params.kTwist),
+      ImGui::InputDouble("Twisting Constant", &(params.kTwist),
         0.1, 1, "%f");
       ImGui::PopItemWidth();
       if (ImGui::Button("Create")) {
