@@ -7,35 +7,35 @@ struct SimulatorParams {
   // Debug mode
   bool debug = false;
 
-  double m = 0.006f;
-  double kLen = 10000.f;
+  double m = 0.006;
+  double kLen = 10000;
   // Bending coefficient
-  double kBend = 0.05f;
+  double kBend = 0.05;
   // Twisting coefficient
-  double kTwist = 0.05f;
+  double kTwist = 0.05;
   // Global damping
-  double kGlobal = 1.5f;
+  double kGlobal = 1.5;
   // Contact force coefficient
-  double kContact = 3250.f;
+  double kContact = 3250;
   // Contact force damping
-  double kDt = 0.003f;
-  double kDn = 0.03f;
+  double kDt = 0.003;
+  double kDn = 0.03;
   // Contact force samples per segment
   int contactForceSamples = 11;
-  double aSmall = 0.3f;
-  double aLarge = 0.3f;
+  double aSmall = 0.3;
+  double aLarge = 0.3;
   // Time delta for each step (time resolution)
   double h = 0.001;
   // Number of steps to run for each button click
   int steps = 100;
   // Gravity acceleration
-  double gravity = 9.8f;
+  double gravity = 9.8;
   // y coordinate of the ground
-  double groundHeight = -5.f;
+  double groundHeight = -5.0;
   // Ground fiction
-  double groundFriction = 0.5f;
+  double groundFriction = 0.5;
 
-  double cInit = 1.0f;
+  double cInit = 1.0;
 
   // === Fast projection ===
   // maximum iteration

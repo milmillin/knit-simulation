@@ -23,7 +23,7 @@ void Simulator::calculateLengthEnergy(int i) {
     Eigen::Vector3d P = POINT_FROM_BASIS(p, bD);
     double norm = P.norm();
 
-    double tmp = 2.f * (norm / L - 1) / (L * norm);
+    double tmp = 2.0 * (norm / L - 1) / (L * norm);
 
     for (int kk = 0; kk < 4; kk++) {
       ans.block<3, 1>(kk * 3ll, 0) = (tmp * bD[kk]) * P;

@@ -36,43 +36,43 @@
     Eigen::Vector3d(q.block<3, 1>((index) + 9, 0)) }
 
 #define DECLARE_BASIS(b, s) \
-  double b##1 = s * (-1.0f / 2.0f) + s * s - (s * s * s) / 2.0f; \
-  double b##2 = (s * s) * (-5.0f / 2.0f) + (s * s * s) * (3.0f / 2.0f) + 1.0f; \
-  double b##3 = s / 2.0f + (s * s) * 2.0f - (s * s * s) * (3.0f / 2.0f); \
-  double b##4 = (s * s) * (-1.0f / 2.0f) + (s * s * s) / 2.0f;
+  double b##1 = s * (-1.0 / 2.0) + s * s - (s * s * s) / 2.0; \
+  double b##2 = (s * s) * (-5.0 / 2.0) + (s * s * s) * (3.0 / 2.0) + 1.0; \
+  double b##3 = s / 2.0 + (s * s) * 2.0 - (s * s * s) * (3.0 / 2.0); \
+  double b##4 = (s * s) * (-1.0 / 2.0) + (s * s * s) / 2.0;
 
 #define DECLARE_BASIS_D(b, s) \
-  double b##D1 = s * 2.0f - (s * s) * (3.0f / 2.0f) - 1.0f / 2.0f; \
-  double b##D2 = s * -5.0f + (s * s) * (9.0f / 2.0f); \
-  double b##D3 = s * 4.0f - (s * s) * (9.0f / 2.0f) + 1.0f / 2.0f; \
-  double b##D4 = -s + (s * s) * (3.0f / 2.0f);
+  double b##D1 = s * 2.0 - (s * s) * (3.0 / 2.0) - 1.0 / 2.0; \
+  double b##D2 = s * -5.0 + (s * s) * (9.0 / 2.0); \
+  double b##D3 = s * 4.0 - (s * s) * (9.0 / 2.0) + 1.0 / 2.0; \
+  double b##D4 = -s + (s * s) * (3.0 / 2.0);
 
 #define DECLARE_BASIS_DD(b, s) \
-  double b##DD1 = s * -3.0f + 2.0f; \
-  double b##DD2 = s * 9.0f - 5.0f; \
-  double b##DD3 = s * -9.0f + 4.0f; \
-  double b##DD4 = s * 3.0f - 1.0f;
+  double b##DD1 = s * -3.0 + 2.0; \
+  double b##DD2 = s * 9.0 - 5.0; \
+  double b##DD3 = s * -9.0 + 4.0; \
+  double b##DD4 = s * 3.0 - 1.0;
 
 #define DECLARE_BASIS2(b, s) \
   const double b[4] = { \
-    (s) * (-1.0f / 2.0f) + (s) * (s) - ((s) * (s) * (s)) / 2.0f, \
-    ((s) * (s)) * (-5.0f / 2.0f) + ((s) * (s) * (s)) * (3.0f / 2.0f) + 1.0f, \
-    (s) / 2.0f + ((s) * (s)) * 2.0f - ((s) * (s) * (s)) * (3.0f / 2.0f), \
-    ((s) * (s)) * (-1.0f / 2.0f) + ((s) * (s) * (s)) / 2.0f }
+    (s) * (-1.0 / 2.0) + (s) * (s) - ((s) * (s) * (s)) / 2.0, \
+    ((s) * (s)) * (-5.0 / 2.0) + ((s) * (s) * (s)) * (3.0 / 2.0) + 1.0, \
+    (s) / 2.0 + ((s) * (s)) * 2.0 - ((s) * (s) * (s)) * (3.0 / 2.0), \
+    ((s) * (s)) * (-1.0 / 2.0) + ((s) * (s) * (s)) / 2.0 }
 
 #define DECLARE_BASIS_D2(b, s) \
   const double b[4] = { \
-    (s) * 2.0f - ((s) * (s)) * (3.0f / 2.0f) - 1.0f / 2.0f, \
-    (s) * -5.0f + ((s) * (s)) * (9.0f / 2.0f), \
-    (s) * 4.0f - ((s) * (s)) * (9.0f / 2.0f) + 1.0f / 2.0f, \
-    -(s) + ((s) * (s)) * (3.0f / 2.0f) }
+    (s) * 2.0 - ((s) * (s)) * (3.0 / 2.0) - 1.0 / 2.0, \
+    (s) * -5.0 + ((s) * (s)) * (9.0 / 2.0), \
+    (s) * 4.0 - ((s) * (s)) * (9.0 / 2.0) + 1.0 / 2.0, \
+    -(s) + ((s) * (s)) * (3.0 / 2.0) }
 
 #define DECLARE_BASIS_DD2(b, s) \
   const double b[4] = { \
-  (s) * -3.0f + 2.0f, \
-  (s) * 9.0f - 5.0f, \
-  (s) * -9.0f + 4.0f, \
-  (s) * 3.0f - 1.0f }
+  (s) * -3.0 + 2.0, \
+  (s) * 9.0 - 5.0, \
+  (s) * -9.0 + 4.0, \
+  (s) * 3.0 - 1.0 }
 
 
 #define POINT_FROM_BASIS(points, basis) \

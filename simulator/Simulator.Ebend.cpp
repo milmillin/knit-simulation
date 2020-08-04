@@ -33,11 +33,11 @@ void Simulator::calculateBendingEnergy(int i) {
     double crossNorm2 = cross.squaredNorm();
 
     for (int kk = 0; kk < 4; kk++) {
-      ans(kk * 3ll) = 2.f * (cross(1) * (PD(2) * bDD[kk] - PDD(2) * bD[kk]) + cross(2) * (PDD(1) * bD[kk] - PD(1) * bDD[kk])) / PDnorm6;
-      ans(kk * 3ll + 1) = 2.f * (cross(0) * (PDD(2) * bD[kk] - PD(2) * bDD[kk]) + cross(2) * (PD(0) * bDD[kk] - PDD(0) * bD[kk])) / PDnorm6;
-      ans(kk * 3ll + 2) = 2.f * (cross(0) * (PD(1) * bDD[kk] - PDD(1) * bD[kk]) + cross(1) * (PDD(0) * bD[kk] - PD(0) * bDD[kk])) / PDnorm6;
+      ans(kk * 3ll) = 2.0 * (cross(1) * (PD(2) * bDD[kk] - PDD(2) * bD[kk]) + cross(2) * (PDD(1) * bD[kk] - PD(1) * bDD[kk])) / PDnorm6;
+      ans(kk * 3ll + 1) = 2.0 * (cross(0) * (PDD(2) * bD[kk] - PD(2) * bDD[kk]) + cross(2) * (PD(0) * bDD[kk] - PDD(0) * bD[kk])) / PDnorm6;
+      ans(kk * 3ll + 2) = 2.0 * (cross(0) * (PD(1) * bDD[kk] - PDD(1) * bD[kk]) + cross(1) * (PDD(0) * bD[kk] - PD(0) * bDD[kk])) / PDnorm6;
 
-      ans.block<3, 1>(kk * 3ll, 0) += (-6.f * bD[kk] * crossNorm2 / PDnorm8) * PD;
+      ans.block<3, 1>(kk * 3ll, 0) += (-6.0 * bD[kk] * crossNorm2 / PDnorm8) * PD;
     }
 
     return ans;
