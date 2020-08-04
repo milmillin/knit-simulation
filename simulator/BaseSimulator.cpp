@@ -73,6 +73,8 @@ namespace simulator {
     this->constructMassMatrix();
     log() << "Setting-up constraints" << std::endl;
     this->setUpConstraints();
+
+    initializeContactForceMetaData();
   }
 
   void BaseSimulator::setPosition(const file_format::YarnRepr& yarn) {
@@ -191,90 +193,137 @@ namespace simulator {
   ///////////////
   // Contact Force
 
-  static inline Eigen::Vector3d contactForce(Eigen::Vector3d direction,
-      double distance2, double threshold2) {
-    return (-threshold2 / distance2 / distance2 + 1 / threshold2) * direction;
+  void BaseSimulator::initializeContactForceMetaData() {
+    catmullRomCoefficient.resize(params.contactForceSamples, 4);
+
+    const double halfStep = 0.5 / params.contactForceSamples;
+
+    Eigen::VectorXd one = Eigen::VectorXd::Ones(params.contactForceSamples);
+    // Curve parameter
+    Eigen::VectorXd s =
+      Eigen::VectorXd::LinSpaced(params.contactForceSamples, 0 + halfStep, 1 - halfStep);
+    // s^2
+    Eigen::VectorXd s2 = s.cwiseProduct(s);
+    // s^3
+    Eigen::VectorXd s3 = s2.cwiseProduct(s);
+
+    // Fill in `catmullRomCoefficient`
+    catmullRomCoefficient.col(0) = -0.5 * s + s2 - 0.5 * s3;
+    catmullRomCoefficient.col(1) = one - 2.5 * s2 + 1.5 * s3;
+    catmullRomCoefficient.col(2) = s / 2 + 2 * s2 - 1.5 * s3;
+    catmullRomCoefficient.col(3) = -0.5 * s2 + 0.5 * s3;
   }
 
   void BaseSimulator::contactForceBetweenSegments
       (int thread_id,
       std::vector<Eigen::MatrixXd> *forces,
       int ii, int jj) {
+    // EASY_FUNCTION();
+
     Eigen::MatrixXd &F = (*forces)[thread_id];
-    int iIndex = ii * 3;
-    int jIndex = jj * 3;
 
-    DECLARE_POINTS2(pi, Q, iIndex);
-    DECLARE_POINTS2(pj, Q, jIndex);
-    DECLARE_POINTS2(piD, dQ, iIndex);
-    DECLARE_POINTS2(pjD, dQ, jIndex);
+    const double step = 1.0 / params.contactForceSamples;
 
-    double coeffE = params.kContact * catmullRomLength[ii] * catmullRomLength[jj];
-    double coeffD = catmullRomLength[ii] * catmullRomLength[jj];
-    double kDt = params.kDt;
-    double kDn = params.kDn;
-    //dataLock.unlock();
+    const double kDt = params.kDt;
+    const double kDn = params.kDn;
 
-    double r = yarns.yarns[0].radius;
-    double thresh2 = 4.0 * r * r;
-
-    double step = 1.0 / params.contactForceSamples;
-    double halfStep = step / 2;
-
+    // Contact energy gradient
     Eigen::MatrixXd gradEi = Eigen::MatrixXd::Zero(12, 1);
     Eigen::MatrixXd gradEj = Eigen::MatrixXd::Zero(12, 1);
 
+    // Contact force gradient
     Eigen::MatrixXd gradDi = Eigen::MatrixXd::Zero(12, 1);
     Eigen::MatrixXd gradDj = Eigen::MatrixXd::Zero(12, 1);
 
+    // A list of control points position
+    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
+      controlPointsI(Q.data() + ii*3);
+    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
+      controlPointsJ(Q.data() + jj*3);
+
+    // A list of control points velocity
+    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
+      controlPointsVI(dQ.data() + ii*3);
+    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
+      controlPointsVJ(dQ.data() + jj*3);
+
+    // A list of sample points position
+    Eigen::Matrix3Xd curveI(3, params.contactForceSamples);
+    Eigen::Matrix3Xd curveJ(3, params.contactForceSamples);
+
+    // A list of sample points velocity
+    Eigen::Matrix3Xd curveVI(3, params.contactForceSamples);
+    Eigen::Matrix3Xd curveVJ(3, params.contactForceSamples);
+
+    // Sample the curve
+    for (int s = 0; s < params.contactForceSamples; s++) {
+      curveI.col(s) = (catmullRomCoefficient.row(s) * controlPointsI).transpose();
+      curveJ.col(s) = (catmullRomCoefficient.row(s) * controlPointsJ).transpose();
+      curveVI.col(s) = (catmullRomCoefficient.row(s) * controlPointsVI).transpose();
+      curveVJ.col(s) = (catmullRomCoefficient.row(s) * controlPointsVJ).transpose();
+    }
+
+    // Integrate the force
+    const double r = yarns.yarns[0].radius;
+    const double thresh2 = 4.0 * r * r; // (2r)^2
+
     for (int i = 0; i < params.contactForceSamples; i++) {
-      double si = i * step + halfStep;
-      DECLARE_BASIS2(bi, si);
-      Eigen::Vector3d Pi = POINT_FROM_BASIS(pi, bi);
-      Eigen::Vector3d PiD = POINT_FROM_BASIS(piD, bi);
+      auto Pi = curveI.col(i);
+      auto Vi = curveVI.col(i);
 
       for (int j = 0; j < params.contactForceSamples; j++) {
-        double sj = j * step + halfStep;
-        DECLARE_BASIS2(bj, sj);
+        auto Pj = curveJ.col(j);
+        auto Vj = curveVJ.col(j);
 
-        Eigen::Vector3d Pj = POINT_FROM_BASIS(pj, bj);
-        Eigen::Vector3d diff = Pj - Pi;
+        Eigen::Vector3d Pdiff = Pj - Pi;
+        double distance = Pdiff.squaredNorm();
+        if (distance >= thresh2)
+          continue;
 
-        double norm2 = diff.squaredNorm();
-        if (norm2 >= thresh2) continue;
+        Eigen::Vector3d Vdiff = Vj - Vi;
 
-        Eigen::Vector3d PjD = POINT_FROM_BASIS(pjD, bj);
-        Eigen::Vector3d diffD = PjD - PiD;
-
-        double tmp = -2 * (kDt - kDn) / sqrt(norm2);
+        double tmp = -2 * (kDt - kDn) / sqrt(distance);
+        double coeff = -thresh2 / distance / distance + 1 / thresh2;
 
         for (int kk = 0; kk < 4; kk++) {
           // Contact Energy
-          gradEi.block<3, 1>(3ll * kk, 0) += contactForce(-2 * bi[kk] * diff, norm2, thresh2);
-          gradEj.block<3, 1>(3ll * kk, 0) += contactForce(2 * bj[kk] * diff, norm2, thresh2);
+          gradEi.block<3, 1>(3ll * kk, 0)
+            += -2 * catmullRomCoefficient(i, kk) * coeff * Pdiff;
+          gradEj.block<3, 1>(3ll * kk, 0)
+            += 2 * catmullRomCoefficient(j, kk) * coeff * Pdiff;
 
           // Contact Damping
-          gradDi.block<3, 1>(3ll * kk, 0) += kDt * (-2 * bi[kk] * diffD) + tmp * (-bi[kk] * diff);
-          gradDj.block<3, 1>(3ll * kk, 0) += kDt * (2 * bi[kk] * diffD) + tmp * (bi[kk] * diff);
+          gradDi.block<3, 1>(3ll * kk, 0)
+            += kDt * (-2) * catmullRomCoefficient(i, kk) * Vdiff
+              + tmp * (-catmullRomCoefficient(i, kk)) * Pdiff;
+          gradDj.block<3, 1>(3ll * kk, 0)
+            += kDt * 2 * catmullRomCoefficient(j, kk) * Vdiff
+              + tmp * (catmullRomCoefficient(j, kk) * Pdiff);
         }
       }
     }
-    F.block<12, 1>(iIndex, 0) -= coeffE * gradEi * step * step;
-    F.block<12, 1>(iIndex, 0) -= coeffD * gradDi * step * step;
 
-    F.block<12, 1>(jIndex, 0) -= coeffE * gradEj * step * step;
-    F.block<12, 1>(jIndex, 0) -= coeffD * gradDj * step * step;
+    double coeffE = params.kContact * catmullRomLength[ii] * catmullRomLength[jj];
+    double coeffD = catmullRomLength[ii] * catmullRomLength[jj];
+
+    F.block<12, 1>(ii * 3, 0) -= coeffE * step * step * gradEi;
+    F.block<12, 1>(ii * 3, 0) -= coeffD * step * step * gradDi;
+
+    F.block<12, 1>(jj * 3, 0) -= coeffE * step * step * gradEj;
+    F.block<12, 1>(jj * 3, 0) -= coeffD * step * step * gradDj;
   }
   
   void BaseSimulator::applyContactForce(const StateGetter& cancelled) {
     EASY_FUNCTION();
 
+    // Initialize accumulator for each thread
     std::vector<Eigen::MatrixXd> forces;
     for (int i = 0; i < thread_pool.size(); i++) {
       forces.push_back(std::move(Eigen::MatrixXd(Q.rows(), Q.cols())));
       forces[i].setZero();
     }
 
+    // Find all intersecting segments
     threading::submitProducerAndWait(thread_pool,
       [this, &forces](int, ctpl::thread_pool *thread_pool){
         int N = m - 3;
@@ -293,6 +342,7 @@ namespace simulator {
         }
       });
 
+    // Summarize the result of all threads
     for (auto force : forces) {
       F += force;
     }

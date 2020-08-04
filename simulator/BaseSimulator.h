@@ -108,6 +108,12 @@ protected:
   ///////////////////////
   // Contact Force
 
+  // catmullRomCoefficient(i, j) is the coefficient of the j^th control point
+  // when the curve paramter s = (i + 0.5) / <number of samples>
+  Eigen::Matrix<double, Eigen::Dynamic, 4, Eigen::RowMajor>
+    catmullRomCoefficient;
+  // Initialize `catmullRomCoefficient`
+  void initializeContactForceMetaData();
   void applyContactForce(const StateGetter& cancelled);
   void contactForceBetweenSegments
       (int thread_id,
