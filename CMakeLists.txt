@@ -29,4 +29,4 @@ find_package(easy_profiler REQUIRED)
 # Add your project files
 file(GLOB SRCFILES *.cpp */*.cpp simulator/*/*.cpp)
 add_executable(${PROJECT_NAME} ${SRCFILES})
-target_link_libraries(${PROJECT_NAME} easy_profiler igl::core igl::opengl_glfw igl::opengl_glfw_imgui)
+target_link_libraries(${PROJECT_NAME} easy_profiler igl::core igl::opengl_glfw igl::opengl_glfw_imgui stdc++fs)
