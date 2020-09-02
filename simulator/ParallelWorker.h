@@ -1,5 +1,7 @@
 #pragma once
 
+#include "spdlog/spdlog.h"
+
 #include <vector>
 #include <thread>
 #include <memory>
@@ -28,7 +30,7 @@ public:
   }
 
   void run() {
-    log() << "[ParallelWorker] Running " << m_workQueue.size() << " tasks with " << m_numThreads << " threads" << std::endl;
+    SPDLOG_INFO("[ParallelWorker] Running {}  tasks with {} threads", m_workQueue.size(), m_numThreads);
     reportInterval = m_workQueue.size() / 20;
     for (size_t i = 0; i < m_numThreads; ++i)
       m_threads.emplace_back(std::thread([this]() {
@@ -39,7 +41,7 @@ public:
           workItem();
         }
         else {
-          log() << "[ParallelWorker] Failed To Run" << std::endl;
+          SPDLOG_INFO("[ParallelWorker] Failed To Run");
         }
       }
         }));
@@ -61,7 +63,7 @@ private:
     std::lock_guard<std::mutex> lock(m_queueLock);
     if (!m_workQueue.empty()) {
       if (m_workQueue.size() % reportInterval == 0) {
-        log() << "[ParallelWorker] " << m_workQueue.size() << " tasks remain" << std::endl;
+        SPDLOG_INFO("[ParallelWorker] {} tasks remain", m_workQueue.size());
       }
 
       res = m_workQueue.front();

@@ -132,19 +132,6 @@ Eigen::MatrixXd simulator::inflate(const Eigen::MatrixXd& v, size_t col) {
 	return res;
 }
 
-std::ostream& simulator::log()
-{
-	char buf[20];
-	time_t rawTime;
-	struct tm* timeInfo;
-
-	time(&rawTime);
-  timeInfo = localtime(&rawTime);
-
-	strftime(buf, 20, "%D %T", timeInfo);
-	return std::cout << "[" << buf << "] ";
-}
-
 Eigen::Block<Eigen::MatrixXd, 3, 1> simulator::pointAt(Eigen::MatrixXd& q, int index) {
   return q.block<3, 1>(index * 3ll, 0);
 }

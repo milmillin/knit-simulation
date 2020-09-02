@@ -4,6 +4,8 @@
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem;
 
+#include "spdlog/spdlog.h"
+
 #include "file_format/yarns.h"
 #include "file_format/yarnRepr.h"
 #include "simulator/SimulatorParams.h"
@@ -150,12 +152,12 @@ void Viewer::createSimulator() {
   switch (simulatorType)
   {
   case simulator::SimulatorType::Continuous:
-    std::cout << "Using continuous simulator" << std::endl;
+    SPDLOG_INFO("Using continuous simulator");
     _simulator.reset(new simulator::Simulator(_yarnsRepr, params));
     break;
 
   case simulator::SimulatorType::Discrete:
-    std::cout << "Using discrete simulator" << std::endl;
+    SPDLOG_INFO("Using discrete simulator");
     _simulator.reset(new simulator::DiscreteSimulator(_yarnsRepr, params));
     break;
 
@@ -175,22 +177,20 @@ void Viewer::createSimulator() {
 
 void Viewer::loadYarn(const std::string& filename) {
   // Load .yarns file
-  simulator::log() << "Loading model: " << filename << std::endl;
+  SPDLOG_INFO("Loading model: {}", filename);
   file_format::Yarns::Yarns yarns;
   try {
     yarns = file_format::Yarns::Yarns::load(filename);
-  }
-  catch (const std::runtime_error& e) {
-    std::cout << "Failed to load " << filename << std::endl;
-    std::cout << e.what() << std::endl;
+  } catch (const std::runtime_error& e) {
+    SPDLOG_ERROR("Runtime error while loading \"{}\": {}", filename, e.what());
   }
 
   _yarnsRepr = file_format::YarnRepr(yarns);
 
   if (_reload) {
     // Restoring State
-    simulator::log() << "Try restoring state and history from " << _outputDirectory << std::endl;
-    fs::create_directory(_outputDirectory);
+    SPDLOG_INFO("Try restoring state and history from \"{}\"", _outputDirectory);
+    stdfs::create_directory(_outputDirectory);
 
     file_format::ViewerState state(_outputDirectory + VIEWER_STATE_NAME);
     simulatorType = state.getType();
@@ -206,7 +206,7 @@ void Viewer::loadYarn(const std::string& filename) {
       snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), i);
       if (!fs::exists(positionName)
         || !fs::exists(velocityName)) {
-        std::cout << "WARNING: " << i - 1 << "frames out of " << numSteps << " restored." << std::endl;
+        SPDLOG_WARN("{} frames out of {} restored.", i - 1, numSteps);
         numSteps = i - 1;
         break;
       }
@@ -223,7 +223,7 @@ void Viewer::loadYarn(const std::string& filename) {
       _simulator->setPosition(_history->getFrame(_history->totalFrameNumber() - 1));
     }
 
-    simulator::log() << "> Frame 1 to " << numSteps << " restored." << std::endl;
+    SPDLOG_INFO("> Frame 1 to {} restored.", numSteps);
   }
   else {
     createSimulator();

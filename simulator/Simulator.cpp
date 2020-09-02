@@ -10,6 +10,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include "spdlog/spdlog.h"
 #include "easy_profiler_stub.h"
 
 #include "file_format/yarnRepr.h"
@@ -70,7 +71,7 @@ void Simulator::constructMassMatrix() {
   Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
   solver.compute(M);
   if (solver.info() != Eigen::Success) {
-    log() << "Decomposition Failed" << std::endl;
+    SPDLOG_ERROR("Decomposition Failed");
     return;
   }
 
@@ -79,7 +80,7 @@ void Simulator::constructMassMatrix() {
 
   invM = solver.solve(I);
   if (solver.info() != Eigen::Success) {
-    log() << "Solve Failed" << std::endl;
+    SPDLOG_ERROR("Solve Failed");
     return;
   }
 }
@@ -118,13 +119,15 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   F.setZero();
 
   // update gradE, gradD, f
-  IFDEBUG log() << "Calculating Gradient" << std::endl;
+  if (params.debug)
+    SPDLOG_INFO("Calculating Gradient");
   int N = m - 3;
 
   // Energy
   if (params.kLen != 0) {
     if (cancelled()) return;
-    IFDEBUG log() << "- Length Energy" << std::endl;
+    if (params.debug)
+      SPDLOG_INFO("- Length Energy");
     EASY_BLOCK("Length Energy");
     calculate(&Simulator::calculateLengthEnergy, 0, N);
     EASY_END_BLOCK;
@@ -132,27 +135,31 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
 
   if (params.kBend != 0) {
     if (cancelled()) return;
-    IFDEBUG log() << "- Bending Energy" << std::endl;
+    if (params.debug)
+      SPDLOG_INFO("- Bending Energy");
     EASY_BLOCK("Bending Energy");
     calculate(&Simulator::calculateBendingEnergy, 0, N);
     EASY_END_BLOCK;
   }
 
   if (cancelled()) return;
-  IFDEBUG log() << "- Collision Energy" << std::endl;
+  if (params.debug)
+    SPDLOG_INFO("- Collision Energy");
   applyContactForce(cancelled);
 
   // Damping
   if (params.kGlobal != 0) {
     if (cancelled()) return;
-    IFDEBUG log() << "- Global Damping" << std::endl;
+    if (params.debug)
+      SPDLOG_INFO("- Global Damping");
     EASY_BLOCK("Global Damping");
     calculate(&Simulator::calculateGlobalDamping, 0, N);
     EASY_END_BLOCK;
   }
 
   if (cancelled()) return;
-  IFDEBUG log() << "- Gravity" << std::endl;
+  if (params.debug)
+    SPDLOG_INFO("- Gravity");
   EASY_BLOCK("Gravity");
   calculateGravity();
   EASY_END_BLOCK;

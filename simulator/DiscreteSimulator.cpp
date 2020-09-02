@@ -4,6 +4,7 @@
 #include <functional>
 
 #include <Eigen/SparseLU>
+#include <spdlog/spdlog.h>
 #include "easy_profiler_stub.h"
 
 #include "./threading/threading.h"
@@ -322,7 +323,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     }
 
     if (params.debug) {
-      std::cout << "Solve for material frame iteration " << iter << " " << maxUpdate << std::endl;
+      SPDLOG_INFO("Solve for material frame iteration {}, maximum update is {}", iter, maxUpdate);
     }
   }
   EASY_END_BLOCK;

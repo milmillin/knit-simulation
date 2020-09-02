@@ -1,5 +1,7 @@
 #include "./menu.h"
 
+#include <spdlog/spdlog.h>
+
 #include <iostream>
 #include <string>
 
@@ -184,7 +186,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         reinterpret_cast<int*>(&yarnViewer->simulatorType),
         "Simulator\0"
         "Discrete Simulator\0\0")) {
-        std::cout << "Simulator Changed" << std::endl;
+        SPDLOG_INFO("Simulator Changed");
       }
       ImGui::Checkbox("Debug mode", &(params.debug));
       ImGui::InputDouble("Time resolution", &(params.h),

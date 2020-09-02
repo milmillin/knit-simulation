@@ -17,8 +17,6 @@
 namespace simulator
 {
 
-#define IFDEBUG if (params.debug)
-
 class BaseSimulator {
 public:
   using StateGetter = std::function<bool()>;

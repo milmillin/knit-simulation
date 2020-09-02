@@ -7,7 +7,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
-#include "../easy_profiler_stub.h"
+#include "easy_profiler_stub.h"
+#include "spdlog/spdlog.h"
 
 #include "file_format/yarnRepr.h"
 #include "threading/threading.h"
@@ -26,31 +27,34 @@ namespace simulator {
     F(Eigen::MatrixXd::Zero(3ll * m, 1)),
     constraints(m, &thread_pool)
   {
-    log() << "Initializing Simulator" << std::endl;
-    log() << "> Found " << m << " control points" << std::endl;
+    SPDLOG_INFO("Initializing Simulator");
+    SPDLOG_INFO("> Found {} control points", m);
 
-    log() << "Calculating Segment Length" << std::endl;
+    SPDLOG_INFO("Calculating Segment Length");
     segmentLength.resize(m - 1ll);
     for (int i = 0; i < m - 1; i++) {
       segmentLength[i] = params.cInit * (pointAt(Q, i) - pointAt(Q, i + 1)).norm();
     }
 
-    int N = m - 3;
-    double totalLength = 0;
-    catmullRomLength.resize(N);
-    for (int i = 0; i < N; i++) {
+    catmullRomLength.resize(m - 3);
+    for (int i = 0; i < m - 3; i++) {
       int index = i * 3;
       DECLARE_POINTS2(p, Q, index);
 
-      totalLength += catmullRomLength[i] = params.cInit * integrate<double>([&](double s)->double {
+      catmullRomLength[i] = params.cInit * integrate<double>([&](double s)->double {
         DECLARE_BASIS_D2(bD, s);
         return POINT_FROM_BASIS(p, bD).norm();
         }, 0, 1);
     }
-    log() << "> Total Length: " << totalLength << std::endl;
+
+    double totalLength = 0;
+    for (double length : catmullRomLength) {
+      totalLength += length;
+    }
+    SPDLOG_INFO("> Total Length: {}", totalLength);
 
 
-    log() << "Initializing AABB tree" << std::endl;
+    SPDLOG_INFO("Initializing AABB tree");
     collisionTree = aabb::Tree(3, 0.05, Q.rows() - 4, true);
     std::vector<double> lowerBound;
     std::vector<double> upperBound;
@@ -69,9 +73,9 @@ namespace simulator {
   }
 
   void BaseSimulator::initialize() {
-    log() << "Constructing Mass Matrix and Inverse" << std::endl;
+    SPDLOG_INFO("Constructing Mass Matrix and Inverse");
     this->constructMassMatrix();
-    log() << "Setting-up constraints" << std::endl;
+    SPDLOG_INFO("Setting-up constraints");
     this->setUpConstraints();
 
     initializeContactForceMetaData();
@@ -108,7 +112,8 @@ namespace simulator {
     EASY_FUNCTION();
 
     for (int i = 0; i < params.steps; i++) {
-      IFDEBUG log() << "Step " << i << std::endl;
+      if (params.debug)
+        SPDLOG_INFO("Step {}", i);
 
       Eigen::MatrixXd originalQ = Q;
 
@@ -133,7 +138,9 @@ namespace simulator {
   void BaseSimulator::updateCollisionTree(const StateGetter& cancelled) {
     EASY_FUNCTION();
 
-    IFDEBUG log() << "Updating collision tree" << std::endl;
+    if (params.debug)
+      SPDLOG_INFO("Updating collision tree");
+
     // Update AABB tree
     std::vector<double> lowerBound;
     std::vector<double> upperBound;
@@ -153,7 +160,8 @@ namespace simulator {
     double cValue;
     while ((cValue = maxCoeff(constraint = constraints.calculate(Qj))) > params.fastProjErrorCutoff
       && nIter < params.fastProjMaxIter && !cancelled()) {
-      IFDEBUG log() << "- iter: " << nIter << ", constraint: " << cValue << std::endl;
+      if (params.debug)
+        SPDLOG_INFO("- iter: {}, constraint: {}", nIter, cValue);
 
       Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
 
@@ -170,15 +178,13 @@ namespace simulator {
       // Solve
       solver.compute(leftHandSide);
       if (solver.info() != Eigen::Success) {
-        log() << "--- solve failed (1)"
-          << " iter " << nIter << " STOPPING" << std::endl;
+        SPDLOG_ERROR("--- solve failed (1) at iteration {}, skippking this step", nIter);
         break;
       }
 
       Eigen::MatrixXd lambda = solver.solve(constraint);
       if (solver.info() != Eigen::Success) {
-        log() << "--- solve failed (2)"
-          << " iter " << nIter << " STOPPING" << std::endl;
+        SPDLOG_ERROR("--- solve failed (2) at iteration {}, skippking this step", nIter);
         break;
       }
       EASY_END_BLOCK;
