@@ -11,7 +11,6 @@
 #include "./SimulatorParams.h"
 #include "./Constraints.h"
 #include "./macros.h"
-#include "./ParallelWorker.h"
 #include "./BaseSimulator.h"
 
 namespace simulator{
