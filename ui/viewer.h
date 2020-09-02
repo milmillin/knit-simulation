@@ -48,7 +48,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   // Animation playback interval (millisecond)
   int animationPlaybackInterval = 1000/10;
   // Type of simulator to use
-  simulator::SimulatorType simulatorType = simulator::SimulatorType::Continuous;
+  simulator::SimulatorType simulatorType = simulator::SimulatorType::Discrete;
 
   simulator::SimulatorParams params;
 
