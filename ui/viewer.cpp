@@ -1,8 +1,7 @@
 #include "./viewer.h"
 
-#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
+#include <filesystem>
+namespace stdfs = std::filesystem;
 
 #include "spdlog/spdlog.h"
 
@@ -204,8 +203,8 @@ void Viewer::loadYarn(const std::string& filename) {
     for (int i = 2; i <= numSteps; i++) {
       snprintf(positionName, 200, "%sposition-%05d.yarns", _outputDirectory.c_str(), i);
       snprintf(velocityName, 200, "%svelocity-%05d.yarns", _outputDirectory.c_str(), i);
-      if (!fs::exists(positionName)
-        || !fs::exists(velocityName)) {
+      if (!stdfs::exists(positionName)
+        || !stdfs::exists(velocityName)) {
         SPDLOG_WARN("{} frames out of {} restored.", i - 1, numSteps);
         numSteps = i - 1;
         break;
