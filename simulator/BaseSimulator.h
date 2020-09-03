@@ -118,6 +118,12 @@ protected:
       int ii, int jj);
 
   ///////////////////////
+  // Length spring
+
+  // Use springs to constrain the segment length of each segments
+  void applyLengthSpringForce();
+
+  ///////////////////////
   // Constraints
 
   // Add length constraint of line segment defined by points i and i + 1.

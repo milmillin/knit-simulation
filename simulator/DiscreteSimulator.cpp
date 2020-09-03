@@ -32,6 +32,10 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
   applyGravity();
   applyContactForce(cancelled);
   applyBendingForce();
+  applyLengthSpringForce();
+  if (params.kLen >= 1e-6) {
+    applyLengthSpringForce();
+  }
 
   Eigen::MatrixXd ddQ = F; // invM * F
 

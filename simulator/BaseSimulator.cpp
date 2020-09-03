@@ -354,6 +354,18 @@ namespace simulator {
     }
   }
 
+  ///////////////////////
+  // Length spring
+  void BaseSimulator::applyLengthSpringForce() {
+    for (int i = 0; i < m - 1; i++) {
+      Eigen::Vector3d force = pointAt(Q, i + 1) - pointAt(Q, i);
+      double distance = force.norm();
+      force *= (distance - segmentLength[i]);
+      F.block<3, 1>(i * 3, 0) += force;
+      F.block<3, 1>((i + 1)*3, 0) -= force;
+    }
+  }
+
   ///////////////
   // Constraints
 
