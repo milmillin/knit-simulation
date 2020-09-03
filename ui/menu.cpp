@@ -189,6 +189,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         SPDLOG_INFO("Simulator Changed");
       }
       ImGui::Checkbox("Debug mode", &(params.debug));
+      ImGui::Checkbox("Enable ground", &(params.enableGround));
       ImGui::InputDouble("Time resolution", &(params.h),
         0.00001, 0.001, "%.7f");
       ImGui::InputInt("steps per frame", &(params.steps),

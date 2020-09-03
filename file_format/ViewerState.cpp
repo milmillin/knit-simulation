@@ -15,6 +15,7 @@ ViewerState::ViewerState(simulator::SimulatorType type, simulator::SimulatorPara
   ADD_ENTRY("numSteps", _numSteps);
   ADD_ENTRY("simulatorType", _type);
   ADD_ENTRY("debug", _params.debug);
+  ADD_ENTRY("ground", _params.enableGround);
   ADD_ENTRY("m", _params.m);
   ADD_ENTRY("kLen", _params.kLen);
   ADD_ENTRY("kBend", _params.kBend);

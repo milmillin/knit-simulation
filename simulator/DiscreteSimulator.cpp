@@ -37,7 +37,9 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
 
   // Calculate velocity
   dQ += ddQ * params.h;
-  applyGroundVelocityFilter();
+  if (params.enableGround) {
+    applyGroundVelocityFilter();
+  }
   applyGlobalDamping();
 
   // Calculate position

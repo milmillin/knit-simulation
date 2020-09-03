@@ -78,17 +78,19 @@ void Viewer::refresh() {
   const simulator::SimulatorParams& params = _simulator->getParams();
 
   // Draw ground
-  this->selected_data_index = 0;
-  Eigen::MatrixXd groundPoints(4, 3);
-  groundPoints << 10, params.groundHeight, 10,
-    10, params.groundHeight, -10,
-    -10, params.groundHeight, -10,
-    -10, params.groundHeight, 10;
-  Eigen::MatrixXi groundTrianges(2, 3);
-  groundTrianges << 2, 0, 1,
-    3, 0, 2;
-  this->data().clear();
-  this->data().set_mesh(groundPoints.cast<double>(), groundTrianges);
+  if (_simulator.get()->getParams().enableGround) {
+    this->selected_data_index = 0;
+    Eigen::MatrixXd groundPoints(4, 3);
+    groundPoints << 10, params.groundHeight, 10,
+      10, params.groundHeight, -10,
+      -10, params.groundHeight, -10,
+      -10, params.groundHeight, 10;
+    Eigen::MatrixXi groundTrianges(2, 3);
+    groundTrianges << 2, 0, 1,
+      3, 0, 2;
+    this->data().clear();
+    this->data().set_mesh(groundPoints.cast<double>(), groundTrianges);
+  }
 
   // Create new mesh
   while (this->data_list.size() <= yarns.yarns.size()) {

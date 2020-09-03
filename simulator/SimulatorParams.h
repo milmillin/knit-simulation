@@ -6,6 +6,8 @@ namespace simulator {
 struct SimulatorParams {
   // Debug mode
   bool debug = false;
+  // Enable ground collision
+  bool enableGround = false;
 
   double m = 0.006;
   double kLen = 10000;
@@ -29,7 +31,7 @@ struct SimulatorParams {
   // Number of steps to run for each button click
   int steps = 100;
   // Gravity acceleration
-  double gravity = 9.8;
+  double gravity = 0;
   // y coordinate of the ground
   double groundHeight = -5.0;
   // Ground fiction
