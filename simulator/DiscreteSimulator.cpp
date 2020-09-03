@@ -29,10 +29,16 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
 
   // Calculate acceleration
   F.setZero();
-  applyGravity();
-  applyContactForce(cancelled);
-  applyBendingForce();
-  applyLengthSpringForce();
+
+  if (params.gravity >= 1e-6) {
+    applyGravity();
+  }
+  if (params.kContact >= 1e-6) {
+    applyContactForce(cancelled);
+  }
+  if (params.kBend >= 1e-6) {
+    applyBendingForce();
+  }
   if (params.kLen >= 1e-6) {
     applyLengthSpringForce();
   }
@@ -44,14 +50,18 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
   if (params.enableGround) {
     applyGroundVelocityFilter();
   }
-  applyGlobalDamping();
+  if (params.kGlobal >= 1e-6) {
+    applyGlobalDamping();
+  }
 
   // Calculate position
   Q += dQ * params.h;
 }
 
 void DiscreteSimulator::postStep(const StateGetter& cancelled) {
-  updateBendingForceMetadata();
+  if (params.kBend >= 1e-6) {
+    updateBendingForceMetadata();
+  }
 }
 
 void DiscreteSimulator::applyGravity() {
@@ -369,29 +379,14 @@ void DiscreteSimulator::applyGlobalDamping() {
 
 void DiscreteSimulator::setUpConstraints() {
   // Length Constraints
-  for (int i = 0; i < m - 1; i++) {
-    addSegmentLengthConstraint(i);
+  if (params.enableLenghConstrain) {
+    for (int i = 0; i < m - 1; i++) {
+      addSegmentLengthConstraint(i);
+    }
   }
 
-  // Add pin constraints. TODO: remove hard-coded pin
-  // addPinConstraint(0, pointAt(Q, 0));
-  // addPinConstraint(81-59, pointAt(Q, 81-59));
-  // addPinConstraint(88-59, pointAt(Q, 88-59));
-  // addPinConstraint(74-59, pointAt(Q, 74-59));
-
+  // TODO: remove hard-coded pin
   std::vector<int> pins;
-  // pins.push_back(0);
-  // pins.push_back(153);
-  // pins.push_back(230);
-  // pins.push_back(237);
-  // pins.push_back(249);
-  // pins.push_back(261);
-  // pins.push_back(273);
-  // pins.push_back(285);
-  // pins.push_back(297);
-  // pins.push_back(80);
-  // pins.push_back(303);
-  // pins.push_back(74);
 
   pins.push_back(0);
   pins.push_back(152);

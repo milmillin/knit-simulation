@@ -194,12 +194,19 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         0.00001, 0.001, "%.7f");
       ImGui::InputInt("steps per frame", &(params.steps),
         10, 100);
+
       ImGui::Separator();
+
       ImGui::Text("Constraint and Fast Projection");
-      ImGui::InputDouble("Target Error", &(params.fastProjErrorCutoff),
+      ImGui::InputDouble("Scale fator", &(params.cInit),
+        1e-6, 1e-3, "%.7f");
+      ImGui::Checkbox("Enable length constrain", &(params.enableLenghConstrain));
+      ImGui::InputDouble("Target error", &(params.fastProjErrorCutoff),
         1e-6, 1e-3, "%.7f");
       ImGui::InputInt("Max iterations", &(params.fastProjMaxIter));
+
       ImGui::Separator();
+
       ImGui::Text("Parameters");
       ImGui::InputDouble("Gravity", &(params.gravity),
         0.1, 1);

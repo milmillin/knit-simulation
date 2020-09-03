@@ -8,6 +8,8 @@ struct SimulatorParams {
   bool debug = false;
   // Enable ground collision
   bool enableGround = false;
+  // Enable length constrain;
+  bool enableLenghConstrain = false;
 
   double m = 0.006;
   double kLen = 10000;
