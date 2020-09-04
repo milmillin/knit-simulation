@@ -6,6 +6,8 @@ namespace simulator {
 struct SimulatorParams {
   // Debug mode
   bool debug = false;
+  // Show statistics
+  bool statistics = true;
   // Enable ground collision
   bool enableGround = false;
   // Enable length constrain;

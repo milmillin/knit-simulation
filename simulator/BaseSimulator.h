@@ -4,9 +4,11 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include "spdlog/spdlog.h"
 
 #include <functional>
 #include <mutex>
+#include <atomic>
 
 #include "file_format/yarnRepr.h"
 #include "./threading/ctpl_stl.h"
@@ -105,6 +107,7 @@ protected:
   ///////////////////////
   // Contact Force
 
+  void contactForce(int i, int j, ControlPoints *forceI, ControlPoints *forceJ);
   // catmullRomCoefficient(i, j) is the coefficient of the j^th control point
   // when the curve paramter s = (i + 0.5) / <number of samples>
   Eigen::Matrix<double, Eigen::Dynamic, 4, Eigen::RowMajor>
@@ -132,6 +135,44 @@ protected:
   void addCatmullRomLengthConstraint(int i);
   // Add pin constraint of point i to a fixed position
   void addPinConstraint(int i, Eigen::Vector3d position);
+
+  ///////////////////////
+  // Statistics
+
+  struct Statistics {
+    std::atomic<int> totalContactCount;
+    std::atomic<int> linearizedModelRebuildCount;
+    std::atomic<int> approximationUsedCount;
+    std::atomic<double> contactForceTotalError;
+    std::atomic<int> contactForceErrorDivider;
+
+   public:
+    Statistics() {
+      clear();
+    }
+
+    void clear() {
+      totalContactCount = 0;
+      linearizedModelRebuildCount = 0;
+      approximationUsedCount = 0;
+      contactForceTotalError = 0;
+      contactForceErrorDivider = 0;
+    }
+  } statistics;
+
+  void printStatistics() {
+    auto &stat = statistics;
+    SPDLOG_INFO("* Total contacts: {}", stat.totalContactCount);
+    SPDLOG_INFO("* Rebuild: {} ({}%)",
+      stat.linearizedModelRebuildCount,
+      100.0 * stat.linearizedModelRebuildCount / stat.totalContactCount);
+    SPDLOG_INFO("* Approximation used: {} ({}%)",
+      stat.approximationUsedCount,
+      100.0 * stat.approximationUsedCount / stat.totalContactCount);
+    SPDLOG_INFO("* Approximation error: {} ({})",
+      stat.contactForceTotalError / stat.contactForceErrorDivider,
+      stat.contactForceErrorDivider);
+  }
 };
 
 } // namespace simulator
