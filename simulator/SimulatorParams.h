@@ -11,7 +11,7 @@ struct SimulatorParams {
   // Enable ground collision
   bool enableGround = false;
   // Enable length constrain;
-  bool enableLenghConstrain = false;
+  bool enableLenghConstrain = true;
 
   double m = 0.006;
   double kLen = 10000;
@@ -30,12 +30,14 @@ struct SimulatorParams {
   int contactForceSamples = 11;
   double aSmall = 0.3;
   double aLarge = 0.3;
+  // Allowed deviation for linearized contact force approximation
+  double contactModelTolerance = 0.01;
   // Time delta for each step (time resolution)
   double h = 0.001;
   // Number of steps to run for each button click
   int steps = 100;
   // Gravity acceleration
-  double gravity = 0;
+  double gravity = 10.0;
   // y coordinate of the ground
   double groundHeight = -5.0;
   // Ground fiction

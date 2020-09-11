@@ -234,9 +234,6 @@ namespace simulator {
 
     const double step = 1.0 / params.contactForceSamples;
 
-    const double kDt = params.kDt;
-    const double kDn = params.kDn;
-
     // A list of control points position
     Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
       controlPointsI(Q.data() + i*3);
@@ -268,7 +265,6 @@ namespace simulator {
         if (distance >= thresh2)
           continue;
 
-        double tmp = -2 * (kDt - kDn) / sqrt(distance);
         double coeff = -thresh2 / distance / distance + 1 / thresh2;
 
         for (int kk = 0; kk < 4; kk++) {
@@ -285,28 +281,152 @@ namespace simulator {
 
     (*forceI) *= -coeffE * step * step;
     (*forceJ) *= -coeffE * step * step;
+  }
+
+  void BaseSimulator::buildLinearModel(int i, int j, ContactCacheData *cache) {
+    cache->dForceII.setZero();
+    cache->dForceIJ.setZero();
+    cache->dForceJI.setZero();
+    cache->dForceJJ.setZero();
+
+    const double step = 1.0 / params.contactForceSamples;
+
+    // A list of control points position
+    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
+      controlPointsI(Q.data() + i*3);
+    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
+      controlPointsJ(Q.data() + j*3);
+
+    cache->baseLocationI = Q.block<12, 1>(i * 3, 0);
+    cache->baseLocationJ = Q.block<12, 1>(j * 3, 0);
+
+    contactForce(i, j, &cache->baseForceI, &cache->baseForceJ);
+
+    // A list of sample points position
+    Eigen::Matrix3Xd curveI(3, params.contactForceSamples);
+    Eigen::Matrix3Xd curveJ(3, params.contactForceSamples);
+
+    // Sample the curve
+    for (int s = 0; s < params.contactForceSamples; s++) {
+      curveI.col(s) = (catmullRomCoefficient.row(s) * controlPointsI).transpose();
+      curveJ.col(s) = (catmullRomCoefficient.row(s) * controlPointsJ).transpose();
+    }
+
+    // Integrate the force
+    const double r = yarns.yarns[0].radius;
+    const double thresh2 = 4.0 * r * r; // (2r)^2
+
+    for (int i = 0; i < params.contactForceSamples; i++) {
+      auto Pi = curveI.col(i);
+
+      for (int j = 0; j < params.contactForceSamples; j++) {
+        auto Pj = curveJ.col(j);
+
+        Eigen::Vector3d Pdiff = Pj - Pi;
+        double distance2 = Pdiff.squaredNorm();
+        if (distance2 >= thresh2)
+          continue;
+
+        double coeff = -thresh2 / distance2 / distance2 + 1 / thresh2;
+
+        for (int kf = 0; kf < 4; kf++) {
+          for (int kx = 0; kx < 4; kx++) {
+            cache->dForceII.block<3, 3>(kf * 3, kx * 3)
+              += 2.0 * catmullRomCoefficient(i, kf) * catmullRomCoefficient(i, kx) *
+                (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
+                + coeff * Eigen::Matrix3d::Identity());
+            cache->dForceIJ.block<3, 3>(kf * 3, kx * 3)
+              += -2.0 * catmullRomCoefficient(i, kf) * catmullRomCoefficient(j, kx) *
+                (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
+                + coeff * Eigen::Matrix3d::Identity());
+
+            cache->dForceJI.block<3, 3>(kf * 3, kx * 3)
+              += -2.0 * catmullRomCoefficient(j, kf) * catmullRomCoefficient(i, kx) *
+                (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
+                + coeff * Eigen::Matrix3d::Identity());
+            cache->dForceJJ.block<3, 3>(kf * 3, kx * 3)
+              += 2.0 * catmullRomCoefficient(j, kf) * catmullRomCoefficient(j, kx) *
+                (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
+                + coeff * Eigen::Matrix3d::Identity());
+          }
+        }
+      }
+    }
+
+    double coeffE = params.kContact * catmullRomLength[i] * catmullRomLength[j];
+
+    (cache->dForceII) *= -coeffE * step * step;
+    (cache->dForceIJ) *= -coeffE * step * step;
+    (cache->dForceJI) *= -coeffE * step * step;
+    (cache->dForceJJ) *= -coeffE * step * step;
 
     if (params.statistics) {
       statistics.linearizedModelRebuildCount++;
     }
   }
 
+  bool BaseSimulator::applyApproxContactForce(int i, int j, Eigen::MatrixXd &forces, ContactCacheData *cache) {
+    ControlPoints forceI = cache->baseForceI;
+    ControlPoints forceJ = cache->baseForceJ;
+
+    ControlPoints dQI(Q.block<12, 1>(i * 3, 0));
+    ControlPoints dQJ(Q.block<12, 1>(j * 3, 0));
+
+    dQI -= cache->baseLocationI;
+    dQJ -= cache->baseLocationJ;
+
+    double deviation = dQI.cwiseAbs().maxCoeff() + dQJ.cwiseAbs().maxCoeff();
+    const double r = yarns.yarns[0].radius;
+    if (deviation >= params.contactModelTolerance * r) {
+      return false;
+    }
+
+    forceI += cache->dForceII * dQI;
+    forceI += cache->dForceIJ * dQJ;
+    forceJ += cache->dForceJI * dQI;
+    forceJ += cache->dForceJJ * dQJ;
+
+    forces.block<12, 1>(i * 3, 0) += forceI;
+    forces.block<12, 1>(j * 3, 0) += forceJ;
+
+    if (params.statistics) {
+      ControlPoints realForceI;
+      ControlPoints realForceJ;
+      contactForce(i, j, &realForceI, &realForceJ);
+
+      double error = (realForceI - forceI).cwiseAbs().sum()
+        + (realForceI - forceI).cwiseAbs().sum();
+
+      statistics.contactForceErrorDivider += 1;
+      double oldError = statistics.contactForceTotalError;
+      while (!statistics.contactForceTotalError
+          .compare_exchange_weak(oldError, oldError + error)) {
+        oldError = statistics.contactForceTotalError;
+      }
+    }
+    return true;
+  }
+
   void BaseSimulator::contactForceBetweenSegments
       (int thread_id,
       std::vector<Eigen::MatrixXd> *forces,
       int ii, int jj) {
-    // EASY_FUNCTION();
+    EASY_FUNCTION();
+
     if (params.statistics) {
       statistics.totalContactCount++;
     }
 
-    ControlPoints forceI;
-    ControlPoints forceJ;
-
-    contactForce(ii, jj, &forceI, &forceJ);
-
-    F.block<12, 1>(ii * 3, 0) += forceI;
-    F.block<12, 1>(jj * 3, 0) += forceJ;
+    if (contactCache[ii].find(jj) == contactCache[ii].end()) {
+      buildLinearModel(ii, jj, &contactCache[ii][jj]);
+    }
+    auto &model = contactCache[ii][jj];
+    if (applyApproxContactForce(ii, jj, (*forces)[thread_id], &model)) {
+      statistics.approximationUsedCount++;
+    } else {
+      buildLinearModel(ii, jj, &model);
+      applyApproxContactForce(ii, jj, (*forces)[thread_id], &model);
+    }
   }
   
   void BaseSimulator::applyContactForce(const StateGetter& cancelled) {

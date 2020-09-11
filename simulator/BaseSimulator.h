@@ -107,7 +107,27 @@ protected:
   ///////////////////////
   // Contact Force
 
+  typedef Eigen::Matrix<double, 12, 1> ControlPoints;
+  typedef Eigen::Matrix<double, 12, 12> StiffnessMatrix;
+
+  struct ContactCacheData {
+    ControlPoints baseLocationI;
+    ControlPoints baseLocationJ;
+    ControlPoints baseForceI;
+    ControlPoints baseForceJ;
+    StiffnessMatrix dForceII;
+    StiffnessMatrix dForceIJ;
+    StiffnessMatrix dForceJI;
+    StiffnessMatrix dForceJJ;
+  };
+
+  std::unordered_map<int, std::unordered_map<int, ContactCacheData> >
+    contactCache;
+
   void contactForce(int i, int j, ControlPoints *forceI, ControlPoints *forceJ);
+  void buildLinearModel(int i, int j, ContactCacheData *cache);
+  bool applyApproxContactForce(int i, int j, Eigen::MatrixXd &forces, ContactCacheData *cache);
+
   // catmullRomCoefficient(i, j) is the coefficient of the j^th control point
   // when the curve paramter s = (i + 0.5) / <number of samples>
   Eigen::Matrix<double, Eigen::Dynamic, 4, Eigen::RowMajor>

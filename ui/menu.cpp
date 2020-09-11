@@ -189,6 +189,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         SPDLOG_INFO("Simulator Changed");
       }
       ImGui::Checkbox("Debug mode", &(params.debug));
+      ImGui::Checkbox("Print statistics", &(params.statistics));
       ImGui::Checkbox("Enable ground", &(params.enableGround));
       ImGui::InputDouble("Time resolution", &(params.h),
         0.00001, 0.001, "%.7f");
@@ -216,6 +217,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         0.01, 0.1, "%.2f");
       ImGui::InputInt("Contact force samples", &(params.contactForceSamples),
         1, 5);
+      ImGui::InputDouble("Contact force model tolerance", &(params.contactModelTolerance));
       ImGui::InputDouble("Contact force", &(params.kContact),
         100, 10, "%.1f");
       ImGui::InputDouble("Global damping", &(params.kGlobal),
