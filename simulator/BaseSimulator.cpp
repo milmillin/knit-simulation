@@ -371,7 +371,7 @@ namespace simulator {
     dQI -= cache->baseLocationI;
     dQJ -= cache->baseLocationJ;
 
-    double deviation = dQI.cwiseAbs().maxCoeff() + dQJ.cwiseAbs().maxCoeff();
+    double deviation = std::max(dQI.cwiseAbs().maxCoeff(), dQJ.cwiseAbs().maxCoeff());
     const double r = yarns.yarns[0].radius;
     if (deviation >= params.contactModelTolerance * r) {
       return false;
