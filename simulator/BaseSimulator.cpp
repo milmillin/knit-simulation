@@ -329,25 +329,21 @@ namespace simulator {
 
         double coeff = -thresh2 / distance2 / distance2 + 1 / thresh2;
 
+        Eigen::Matrix3d term =
+          2.0 * (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
+            + coeff * Eigen::Matrix3d::Identity());
+
         for (int kf = 0; kf < 4; kf++) {
           for (int kx = 0; kx < 4; kx++) {
             cache->dForceII.block<3, 3>(kf * 3, kx * 3)
-              += 2.0 * catmullRomCoefficient(i, kf) * catmullRomCoefficient(i, kx) *
-                (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
-                + coeff * Eigen::Matrix3d::Identity());
+              += catmullRomCoefficient(i, kf) * catmullRomCoefficient(i, kx) * term;
             cache->dForceIJ.block<3, 3>(kf * 3, kx * 3)
-              += -2.0 * catmullRomCoefficient(i, kf) * catmullRomCoefficient(j, kx) *
-                (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
-                + coeff * Eigen::Matrix3d::Identity());
+              += -catmullRomCoefficient(i, kf) * catmullRomCoefficient(j, kx) * term;
 
             cache->dForceJI.block<3, 3>(kf * 3, kx * 3)
-              += -2.0 * catmullRomCoefficient(j, kf) * catmullRomCoefficient(i, kx) *
-                (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
-                + coeff * Eigen::Matrix3d::Identity());
+              += -catmullRomCoefficient(j, kf) * catmullRomCoefficient(i, kx) * term;
             cache->dForceJJ.block<3, 3>(kf * 3, kx * 3)
-              += 2.0 * catmullRomCoefficient(j, kf) * catmullRomCoefficient(j, kx) *
-                (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
-                + coeff * Eigen::Matrix3d::Identity());
+              += catmullRomCoefficient(j, kf) * catmullRomCoefficient(j, kx) * term;
           }
         }
       }
