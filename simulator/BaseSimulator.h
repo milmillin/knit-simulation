@@ -15,6 +15,7 @@
 #include "./SimulatorParams.h"
 #include "./AABB.h"
 #include "./Constraints.h"
+#include "./Cache.h"
 
 namespace simulator
 {
@@ -121,8 +122,7 @@ protected:
     StiffnessMatrix dForceJJ;
   };
 
-  std::unordered_map<int, std::unordered_map<int, ContactCacheData> >
-    contactCache;
+  Cache<ContactCacheData> contactModelCache;
 
   void contactForce(int i, int j, ControlPoints *forceI, ControlPoints *forceJ);
   void buildLinearModel(int i, int j, ContactCacheData *cache);

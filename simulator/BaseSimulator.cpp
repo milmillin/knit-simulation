@@ -413,16 +413,14 @@ namespace simulator {
       statistics.totalContactCount++;
     }
 
-    if (contactCache[ii].find(jj) == contactCache[ii].end()) {
-      buildLinearModel(ii, jj, &contactCache[ii][jj]);
-    }
-    auto &model = contactCache[ii][jj];
+    auto &model = contactModelCache.lock(jj, ii);
     if (applyApproxContactForce(ii, jj, (*forces)[thread_id], &model)) {
       statistics.approximationUsedCount++;
     } else {
       buildLinearModel(ii, jj, &model);
       applyApproxContactForce(ii, jj, (*forces)[thread_id], &model);
     }
+    contactModelCache.unlock(jj, ii);
   }
   
   void BaseSimulator::applyContactForce(const StateGetter& cancelled) {
