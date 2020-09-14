@@ -15,7 +15,7 @@
 #include "./SimulatorParams.h"
 #include "./AABB.h"
 #include "./Constraints.h"
-#include "./Cache.h"
+#include "./CacheArray2D.h"
 
 namespace simulator
 {
@@ -111,24 +111,42 @@ protected:
   typedef Eigen::Matrix<double, 12, 1> ControlPoints;
   typedef Eigen::Matrix<double, 12, 12> StiffnessMatrix;
 
-  struct ContactCacheData {
-    ControlPoints baseLocationI;
-    ControlPoints baseLocationJ;
+  struct LinearizedContactModel {
+    // Original segment location
+    ControlPoints baseQI;
+    ControlPoints baseQJ;
+
+    // Original location relative to the center
     ControlPoints RelativeQI;
     ControlPoints RelativeQJ;
+
+    // Original force
     ControlPoints baseForceI;
     ControlPoints baseForceJ;
+
+    // Jecobian of force field.
+    // `dForceIJ` means dF_i/dQ_j
     StiffnessMatrix dForceII;
     StiffnessMatrix dForceIJ;
     StiffnessMatrix dForceJI;
     StiffnessMatrix dForceJJ;
+
+    // Is the model valid
+    bool valid = false;
   };
 
-  Cache<ContactCacheData> contactModelCache;
+  CacheArray2D<LinearizedContactModel> contactModelCache;
 
+  // Calculate the contact force between segment `i` and `j`
+  // Save the result in `forceI` and `forceJ`
   void contactForce(int i, int j, ControlPoints *forceI, ControlPoints *forceJ);
-  void buildLinearModel(int i, int j, ContactCacheData *cache);
-  bool applyApproxContactForce(int i, int j, Eigen::MatrixXd &forces, ContactCacheData *cache);
+  // Build the linearized contact force model between segment `i` and `j`
+  // Save the result in `model`
+  void buildLinearModel(int i, int j, LinearizedContactModel *model);
+  // Apply the force between segment `i` and `j` to the accumulator `forces`,
+  // using the linearized model in `model`
+  // Return `true` iff the approximation is valid
+  bool applyApproxContactForce(int i, int j, Eigen::MatrixXd &forces, LinearizedContactModel *model);
 
   // catmullRomCoefficient(i, j) is the coefficient of the j^th control point
   // when the curve paramter s = (i + 0.5) / <number of samples>
@@ -137,7 +155,7 @@ protected:
   // Initialize `catmullRomCoefficient`
   void initializeContactForceMetaData();
   void applyContactForce(const StateGetter& cancelled);
-  void contactForceBetweenSegments
+  void applyContactForceBetweenSegments
       (int thread_id,
       std::vector<Eigen::MatrixXd> *forces,
       int ii, int jj);

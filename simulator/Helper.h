@@ -75,8 +75,7 @@ Eigen::MatrixXd flatten(const Eigen::MatrixXd& v);
 // Returns a new matrix.
 Eigen::MatrixXd inflate(const Eigen::MatrixXd& v, size_t col = 3);
 
-Eigen::Block<Eigen::MatrixXd, 3, 1> pointAt(Eigen::MatrixXd& q, int index);
-Eigen::Block<const Eigen::MatrixXd, 3, 1> pointAt(const Eigen::MatrixXd& q, int index);
+#define pointAt(q, index) (q).block<3,1>((index) * 3, 0)
 
 double& coordAt(Eigen::MatrixXd& q, int index, int axis);
 const double& coordAt(const Eigen::MatrixXd& q, int index, int axis);

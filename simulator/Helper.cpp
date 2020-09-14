@@ -132,14 +132,6 @@ Eigen::MatrixXd simulator::inflate(const Eigen::MatrixXd& v, size_t col) {
 	return res;
 }
 
-Eigen::Block<Eigen::MatrixXd, 3, 1> simulator::pointAt(Eigen::MatrixXd& q, int index) {
-  return q.block<3, 1>(index * 3ll, 0);
-}
-
-Eigen::Block<const Eigen::MatrixXd, 3, 1> simulator::pointAt(const Eigen::MatrixXd& q, int index) {
-  return q.block<3, 1>(index * 3ll, 0);
-}
-
 double& simulator::coordAt(Eigen::MatrixXd& q, int index, int axis) {
   return q(index * 3ll + axis);
 }
