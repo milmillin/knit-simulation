@@ -131,6 +131,9 @@ protected:
     StiffnessMatrix dForceJI;
     StiffnessMatrix dForceJJ;
 
+    // number of timesteps since last update
+    int lastUpdate;
+
     // Is the model valid
     bool valid = false;
   };

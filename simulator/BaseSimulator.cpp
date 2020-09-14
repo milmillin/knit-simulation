@@ -375,6 +375,7 @@ namespace simulator {
     (model->dForceJJ) *= coefficient;
 
     // Mark as valid
+    model->lastUpdate = 0;
     model->valid = true;
 
     // Update statistics
@@ -481,6 +482,7 @@ namespace simulator {
     }
 
     // Estimation applied
+    model->lastUpdate++;
     return true;
   }
 
@@ -500,7 +502,7 @@ namespace simulator {
     auto &model = contactModelCache.lock(jj, ii);
 
     // Try to use approximation
-    if (model.valid
+    if (model.valid && model.lastUpdate < params.maxContactModelUpdateInternal
         && applyApproxContactForce(ii, jj, (*forces)[thread_id], &model)) {
       statistics.approximationUsedCount++;
     } else {

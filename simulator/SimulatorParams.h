@@ -31,7 +31,8 @@ struct SimulatorParams {
   double aSmall = 0.3;
   double aLarge = 0.3;
   // Allowed deviation for linearized contact force approximation
-  double contactModelTolerance = 0.01;
+  double contactModelTolerance = 0.1;
+  int maxContactModelUpdateInternal = 100;
   // Time delta for each step (time resolution)
   double h = 0.001;
   // Number of steps to run for each button click

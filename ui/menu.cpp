@@ -218,6 +218,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
       ImGui::InputInt("Contact force samples", &(params.contactForceSamples),
         1, 5);
       ImGui::InputDouble("Contact force model tolerance", &(params.contactModelTolerance));
+      ImGui::InputInt("Max model update interval", &(params.maxContactModelUpdateInternal));
       ImGui::InputDouble("Contact force", &(params.kContact),
         100, 10, "%.1f");
       ImGui::InputDouble("Global damping", &(params.kGlobal),
