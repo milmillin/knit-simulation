@@ -25,7 +25,8 @@ namespace simulator {
     Q(flatten(_yarns.yarns[0].points)),
     dQ(Eigen::MatrixXd::Zero(3ll * m, 1)),
     F(Eigen::MatrixXd::Zero(3ll * m, 1)),
-    constraints(m, &thread_pool)
+    constraints(m, &thread_pool),
+    contactModelCache(m, m)
   {
     SPDLOG_INFO("Initializing Simulator");
     SPDLOG_INFO("> Found {} control points", m);
