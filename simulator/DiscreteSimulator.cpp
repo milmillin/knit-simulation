@@ -4,7 +4,7 @@
 #include <functional>
 
 #include <Eigen/SparseLU>
-#include <spdlog/spdlog.h>
+#include "spdlog/spdlog.h"
 #include "easy_profiler_stub.h"
 
 #include "./threading/threading.h"

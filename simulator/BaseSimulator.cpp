@@ -230,6 +230,7 @@ namespace simulator {
   }
 
   void BaseSimulator::contactForce(int i, int j, ControlPoints *forceI, ControlPoints *forceJ) {
+    // EASY_FUNCTION();
     forceI->setZero();
     forceJ->setZero();
 
@@ -285,6 +286,8 @@ namespace simulator {
   }
 
   void BaseSimulator::buildLinearModel(int i, int j, ContactCacheData *cache) {
+    // EASY_FUNCTION();
+
     cache->dForceII.setZero();
     cache->dForceIJ.setZero();
     cache->dForceJI.setZero();
@@ -363,29 +366,37 @@ namespace simulator {
   }
 
   bool BaseSimulator::applyApproxContactForce(int i, int j, Eigen::MatrixXd &forces, ContactCacheData *cache) {
+    // EASY_FUNCTION();
+
+    // EASY_BLOCK("1");
     ControlPoints forceI = cache->baseForceI;
     ControlPoints forceJ = cache->baseForceJ;
 
     ControlPoints dQI(Q.block<12, 1>(i * 3, 0));
     ControlPoints dQJ(Q.block<12, 1>(j * 3, 0));
 
+    // EASY_END_BLOCK; EASY_BLOCK("2");
     dQI -= cache->baseLocationI;
     dQJ -= cache->baseLocationJ;
 
+    // EASY_END_BLOCK; EASY_BLOCK("3");
     double deviation = std::max(dQI.cwiseAbs().maxCoeff(), dQJ.cwiseAbs().maxCoeff());
     const double r = yarns.yarns[0].radius;
     if (deviation >= params.contactModelTolerance * r) {
       return false;
     }
 
+    // EASY_END_BLOCK; EASY_BLOCK("4");
     forceI += cache->dForceII * dQI;
     forceI += cache->dForceIJ * dQJ;
     forceJ += cache->dForceJI * dQI;
     forceJ += cache->dForceJJ * dQJ;
 
+    // EASY_END_BLOCK; EASY_BLOCK("5");
     forces.block<12, 1>(i * 3, 0) += forceI;
     forces.block<12, 1>(j * 3, 0) += forceJ;
 
+    // EASY_END_BLOCK; EASY_BLOCK("6");
     if (params.statistics) {
       ControlPoints realForceI;
       ControlPoints realForceJ;
