@@ -434,10 +434,9 @@ namespace simulator {
     }
 
     // Find all intersecting segments
-    threading::submitProducerAndWait(thread_pool,
-      [this, &forces](int, ctpl::thread_pool *thread_pool){
-        int N = m - 3;
-        for (int i = 0; i < N; i++) {
+    auto task =
+      [this, &forces](int threadID, int start, int end){
+        for (int i = start; i < end; i++) {
           std::vector<unsigned int> intersections = collisionTree.query(i);
           for (int j : intersections) {
             if (j > i + 1) {
@@ -446,11 +445,12 @@ namespace simulator {
                                     this, _1,
                                     &forces,
                                     i, j);
-              thread_pool->push(task);
+              thread_pool.push(task);
             }
           }
         }
-      });
+      };
+    threading::runSequentialJob(thread_pool, task, 0, m - 3);
 
     // Summarize the result of all threads
     for (auto force : forces) {
