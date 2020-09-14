@@ -369,15 +369,25 @@ namespace simulator {
     // EASY_FUNCTION();
 
     // EASY_BLOCK("1");
-    ControlPoints forceI = cache->baseForceI;
-    ControlPoints forceJ = cache->baseForceJ;
-
-    ControlPoints dQI(Q.block<12, 1>(i * 3, 0));
-    ControlPoints dQJ(Q.block<12, 1>(j * 3, 0));
+    auto QI = Q.block<12, 1>(i * 3, 0);
+    auto QJ = Q.block<12, 1>(j * 3, 0);
 
     // EASY_END_BLOCK; EASY_BLOCK("2");
-    dQI -= cache->baseLocationI;
-    dQJ -= cache->baseLocationJ;
+    ControlPoints dQI = QI - cache->baseLocationI;
+    ControlPoints dQJ = QJ - cache->baseLocationJ;
+
+    Eigen::RowVector3d positionOffset(Eigen::Vector3d::Zero());
+
+    for (int k = 0; k < 4; k++) {
+      positionOffset += dQI.block<3, 1>(k * 3, 0);
+      positionOffset += dQJ.block<3, 1>(k * 3, 0);
+    }
+    positionOffset /= 8.0;
+
+    for (int k = 0; k < 4; k++) {
+      dQI.block<3, 1>(k * 3, 0) -= positionOffset;
+      dQJ.block<3, 1>(k * 3, 0) -= positionOffset;
+    }
 
     // EASY_END_BLOCK; EASY_BLOCK("3");
     double deviation = std::max(dQI.cwiseAbs().maxCoeff(), dQJ.cwiseAbs().maxCoeff());
@@ -387,10 +397,8 @@ namespace simulator {
     }
 
     // EASY_END_BLOCK; EASY_BLOCK("4");
-    forceI += cache->dForceII * dQI;
-    forceI += cache->dForceIJ * dQJ;
-    forceJ += cache->dForceJI * dQI;
-    forceJ += cache->dForceJJ * dQJ;
+    ControlPoints forceI = cache->baseForceI + cache->dForceII * dQI + cache->dForceIJ * dQJ;
+    ControlPoints forceJ = cache->baseForceJ + cache->dForceJI * dQI + cache->dForceJJ * dQJ;
 
     // EASY_END_BLOCK; EASY_BLOCK("5");
     forces.block<12, 1>(i * 3, 0) += forceI;
