@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include <Eigen/Eigenvalues>
 #include "easy_profiler_stub.h"
 #include "spdlog/spdlog.h"
 
@@ -288,21 +289,23 @@ namespace simulator {
   void BaseSimulator::buildLinearModel(int i, int j, ContactCacheData *cache) {
     // EASY_FUNCTION();
 
-    cache->dForceII.setZero();
-    cache->dForceIJ.setZero();
-    cache->dForceJI.setZero();
-    cache->dForceJJ.setZero();
-
     const double step = 1.0 / params.contactForceSamples;
 
-    // A list of control points position
-    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
-      controlPointsI(Q.data() + i*3);
-    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
-      controlPointsJ(Q.data() + j*3);
-
+    // Save location
     cache->baseLocationI = Q.block<12, 1>(i * 3, 0);
     cache->baseLocationJ = Q.block<12, 1>(j * 3, 0);
+
+    // Save offset from center
+    Eigen::Vector3d center = Eigen::Vector3d::Zero();
+    for (int k = 0; k < 4; k++) {
+      center += cache->baseLocationI.block<3, 1>(k * 3, 0);
+      center += cache->baseLocationJ.block<3, 1>(k * 3, 0);
+    }
+    center /= 8.0;
+    for (int k = 0; k < 4; k++) {
+      cache->RelativeQI.block<3,1>(k*3, 0) = cache->baseLocationI.block<3, 1>(k * 3, 0) - center;
+      cache->RelativeQJ.block<3,1>(k*3, 0) = cache->baseLocationJ.block<3, 1>(k * 3, 0) - center;
+    }
 
     contactForce(i, j, &cache->baseForceI, &cache->baseForceJ);
 
@@ -311,12 +314,21 @@ namespace simulator {
     Eigen::Matrix3Xd curveJ(3, params.contactForceSamples);
 
     // Sample the curve
+    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
+      controlPointsI(Q.data() + i*3);
+    Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
+      controlPointsJ(Q.data() + j*3);
     for (int s = 0; s < params.contactForceSamples; s++) {
       curveI.col(s) = (catmullRomCoefficient.row(s) * controlPointsI).transpose();
       curveJ.col(s) = (catmullRomCoefficient.row(s) * controlPointsJ).transpose();
     }
 
     // Integrate the force
+    cache->dForceII.setZero();
+    cache->dForceIJ.setZero();
+    cache->dForceJI.setZero();
+    cache->dForceJJ.setZero();
+
     const double r = yarns.yarns[0].radius;
     const double thresh2 = 4.0 * r * r; // (2r)^2
 
@@ -376,8 +388,8 @@ namespace simulator {
     ControlPoints dQI = QI - cache->baseLocationI;
     ControlPoints dQJ = QJ - cache->baseLocationJ;
 
-    Eigen::RowVector3d positionOffset(Eigen::Vector3d::Zero());
-
+    // Apply offset
+    Eigen::Vector3d positionOffset = Eigen::Vector3d::Zero();
     for (int k = 0; k < 4; k++) {
       positionOffset += dQI.block<3, 1>(k * 3, 0);
       positionOffset += dQJ.block<3, 1>(k * 3, 0);
@@ -396,11 +408,51 @@ namespace simulator {
       return false;
     }
 
+    // Apply rotation
+    Eigen::Vector3d center = Eigen::Vector3d::Zero();
+    for (int k = 0; k < 4; k++) {
+      center += QI.block<3, 1>(k * 3, 0);
+      center += QJ.block<3, 1>(k * 3, 0);
+    }
+    center /= 8.0;
+
+    Eigen::Matrix3d Apq = Eigen::Matrix3d::Zero();
+    for (int k = 0; k < 4; k++) {
+      Apq += (QI.block<3,1>(k*3, 0) - center) * cache->RelativeQI.block<3,1>(k*3, 0).transpose();
+      Apq += (QJ.block<3,1>(k*3, 0) - center) * cache->RelativeQJ.block<3,1>(k*3, 0).transpose();
+    }
+
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(Apq.transpose() * Apq);
+    Eigen::Matrix3d rotation;
+    bool applyRotation = false;
+    if (solver.info() != Eigen::Success) {
+      SPDLOG_ERROR("Failed to solve for lineared model rotation");
+    } else {
+      rotation = Apq * solver.operatorInverseSqrt();
+      applyRotation = true;
+
+      Eigen::Matrix3d inverseRotation = rotation.inverse();
+      for (int k = 0; k < 4; k++) {
+        dQI.block<3,1>(k * 3, 0) = inverseRotation * dQI.block<3,1>(k * 3, 0);
+        dQJ.block<3,1>(k * 3, 0) = inverseRotation * dQJ.block<3,1>(k * 3, 0);
+      }
+    }
+
     // EASY_END_BLOCK; EASY_BLOCK("4");
+    // Calculate force
     ControlPoints forceI = cache->baseForceI + cache->dForceII * dQI + cache->dForceIJ * dQJ;
     ControlPoints forceJ = cache->baseForceJ + cache->dForceJI * dQI + cache->dForceJJ * dQJ;
 
+    // Revert rotation
+    if (applyRotation) {
+      for (int k = 0; k < 4; k++) {
+        forceI.block<3,1>(k * 3, 0) = rotation * forceI.block<3,1>(k * 3, 0);
+        forceJ.block<3,1>(k * 3, 0) = rotation * forceJ.block<3,1>(k * 3, 0);
+      }
+    }
+
     // EASY_END_BLOCK; EASY_BLOCK("5");
+    // Apply force
     forces.block<12, 1>(i * 3, 0) += forceI;
     forces.block<12, 1>(j * 3, 0) += forceJ;
 

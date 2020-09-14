@@ -114,6 +114,8 @@ protected:
   struct ContactCacheData {
     ControlPoints baseLocationI;
     ControlPoints baseLocationJ;
+    ControlPoints RelativeQI;
+    ControlPoints RelativeQJ;
     ControlPoints baseForceI;
     ControlPoints baseForceJ;
     StiffnessMatrix dForceII;
