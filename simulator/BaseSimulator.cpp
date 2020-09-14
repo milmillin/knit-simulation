@@ -286,48 +286,48 @@ namespace simulator {
     (*forceJ) *= -coeffE * step * step;
   }
 
-  void BaseSimulator::buildLinearModel(int i, int j, ContactCacheData *cache) {
+  void BaseSimulator::buildLinearModel(int i, int j, LinearizedContactModel *model) {
     // EASY_FUNCTION();
-
     const double step = 1.0 / params.contactForceSamples;
 
     // Save location
-    cache->baseLocationI = Q.block<12, 1>(i * 3, 0);
-    cache->baseLocationJ = Q.block<12, 1>(j * 3, 0);
+    model->baseQI = Q.block<12, 1>(i * 3, 0);
+    model->baseQJ = Q.block<12, 1>(j * 3, 0);
 
-    // Save offset from center
-    Eigen::Vector3d center = Eigen::Vector3d::Zero();
+    // Save offset
+    Eigen::Vector3d center = Eigen::Vector3d::Zero();  // Center of control points
     for (int k = 0; k < 4; k++) {
-      center += cache->baseLocationI.block<3, 1>(k * 3, 0);
-      center += cache->baseLocationJ.block<3, 1>(k * 3, 0);
+      center += pointAt(model->baseQI, k);
+      center += pointAt(model->baseQJ, k);
     }
-    center /= 8.0;
+    center /= 8;
+
     for (int k = 0; k < 4; k++) {
-      cache->RelativeQI.block<3,1>(k*3, 0) = cache->baseLocationI.block<3, 1>(k * 3, 0) - center;
-      cache->RelativeQJ.block<3,1>(k*3, 0) = cache->baseLocationJ.block<3, 1>(k * 3, 0) - center;
+      pointAt(model->RelativeQI, k) = pointAt(model->baseQI, k) - center;
+      pointAt(model->RelativeQJ, k) = pointAt(model->baseQJ, k) - center;
     }
 
-    contactForce(i, j, &cache->baseForceI, &cache->baseForceJ);
-
-    // A list of sample points position
-    Eigen::Matrix3Xd curveI(3, params.contactForceSamples);
-    Eigen::Matrix3Xd curveJ(3, params.contactForceSamples);
+    // Save contact force
+    contactForce(i, j, &model->baseForceI, &model->baseForceJ);
 
     // Sample the curve
     Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
       controlPointsI(Q.data() + i*3);
     Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor>>
       controlPointsJ(Q.data() + j*3);
+
+    Eigen::Matrix3Xd curveI(3, params.contactForceSamples);
+    Eigen::Matrix3Xd curveJ(3, params.contactForceSamples);
     for (int s = 0; s < params.contactForceSamples; s++) {
       curveI.col(s) = (catmullRomCoefficient.row(s) * controlPointsI).transpose();
       curveJ.col(s) = (catmullRomCoefficient.row(s) * controlPointsJ).transpose();
     }
 
-    // Integrate the force
-    cache->dForceII.setZero();
-    cache->dForceIJ.setZero();
-    cache->dForceJI.setZero();
-    cache->dForceJJ.setZero();
+    // Integrate the jecobian using samples
+    model->dForceII.setZero();
+    model->dForceIJ.setZero();
+    model->dForceJI.setZero();
+    model->dForceJJ.setZero();
 
     const double r = yarns.yarns[0].radius;
     const double thresh2 = 4.0 * r * r; // (2r)^2
@@ -346,117 +346,124 @@ namespace simulator {
         double coeff = -thresh2 / distance2 / distance2 + 1 / thresh2;
 
         Eigen::Matrix3d term =
-          2.0 * (16.0 * r * r / distance2 / distance2 / distance2 * Pdiff * Pdiff.transpose()
+          2.0 * (16.0 * r * r / distance2 / distance2 / distance2
+              * Pdiff * Pdiff.transpose()
             + coeff * Eigen::Matrix3d::Identity());
 
         for (int kf = 0; kf < 4; kf++) {
           for (int kx = 0; kx < 4; kx++) {
-            cache->dForceII.block<3, 3>(kf * 3, kx * 3)
+            model->dForceII.block<3, 3>(kf * 3, kx * 3)
               += catmullRomCoefficient(i, kf) * catmullRomCoefficient(i, kx) * term;
-            cache->dForceIJ.block<3, 3>(kf * 3, kx * 3)
+            model->dForceIJ.block<3, 3>(kf * 3, kx * 3)
               += -catmullRomCoefficient(i, kf) * catmullRomCoefficient(j, kx) * term;
 
-            cache->dForceJI.block<3, 3>(kf * 3, kx * 3)
+            model->dForceJI.block<3, 3>(kf * 3, kx * 3)
               += -catmullRomCoefficient(j, kf) * catmullRomCoefficient(i, kx) * term;
-            cache->dForceJJ.block<3, 3>(kf * 3, kx * 3)
+            model->dForceJJ.block<3, 3>(kf * 3, kx * 3)
               += catmullRomCoefficient(j, kf) * catmullRomCoefficient(j, kx) * term;
           }
         }
       }
     }
 
-    double coeffE = params.kContact * catmullRomLength[i] * catmullRomLength[j];
+    double coefficient = -params.kContact * catmullRomLength[i] * catmullRomLength[j]
+      * step * step;
 
-    (cache->dForceII) *= -coeffE * step * step;
-    (cache->dForceIJ) *= -coeffE * step * step;
-    (cache->dForceJI) *= -coeffE * step * step;
-    (cache->dForceJJ) *= -coeffE * step * step;
+    (model->dForceII) *= coefficient;
+    (model->dForceIJ) *= coefficient;
+    (model->dForceJI) *= coefficient;
+    (model->dForceJJ) *= coefficient;
 
+    // Mark as valid
+    model->valid = true;
+
+    // Update statistics
     if (params.statistics) {
       statistics.linearizedModelRebuildCount++;
     }
   }
 
-  bool BaseSimulator::applyApproxContactForce(int i, int j, Eigen::MatrixXd &forces, ContactCacheData *cache) {
+  bool BaseSimulator::applyApproxContactForce(int i, int j,
+      Eigen::MatrixXd &forces, LinearizedContactModel *model) {
     // EASY_FUNCTION();
 
-    // EASY_BLOCK("1");
     auto QI = Q.block<12, 1>(i * 3, 0);
     auto QJ = Q.block<12, 1>(j * 3, 0);
+    ControlPoints dQI = QI - model->baseQI;
+    ControlPoints dQJ = QJ - model->baseQJ;
 
-    // EASY_END_BLOCK; EASY_BLOCK("2");
-    ControlPoints dQI = QI - cache->baseLocationI;
-    ControlPoints dQJ = QJ - cache->baseLocationJ;
-
-    // Apply offset
+    // Apply offset to the model to adjust for moving
     Eigen::Vector3d positionOffset = Eigen::Vector3d::Zero();
     for (int k = 0; k < 4; k++) {
-      positionOffset += dQI.block<3, 1>(k * 3, 0);
-      positionOffset += dQJ.block<3, 1>(k * 3, 0);
+      positionOffset += pointAt(dQI, k);
+      positionOffset += pointAt(dQJ, k);
     }
     positionOffset /= 8.0;
 
     for (int k = 0; k < 4; k++) {
-      dQI.block<3, 1>(k * 3, 0) -= positionOffset;
-      dQJ.block<3, 1>(k * 3, 0) -= positionOffset;
+      pointAt(dQI, k) -= positionOffset;
+      pointAt(dQJ, k) -= positionOffset;
     }
 
-    // EASY_END_BLOCK; EASY_BLOCK("3");
-    double deviation = std::max(dQI.cwiseAbs().maxCoeff(), dQJ.cwiseAbs().maxCoeff());
-    const double r = yarns.yarns[0].radius;
-    if (deviation >= params.contactModelTolerance * r) {
-      return false;
-    }
-
-    // Apply rotation
+    // Apply rotation to the model to adjust for rotation
     Eigen::Vector3d center = Eigen::Vector3d::Zero();
     for (int k = 0; k < 4; k++) {
-      center += QI.block<3, 1>(k * 3, 0);
-      center += QJ.block<3, 1>(k * 3, 0);
+      center += pointAt(QI, k);
+      center += pointAt(QJ, k);
     }
     center /= 8.0;
 
     Eigen::Matrix3d Apq = Eigen::Matrix3d::Zero();
     for (int k = 0; k < 4; k++) {
-      Apq += (QI.block<3,1>(k*3, 0) - center) * cache->RelativeQI.block<3,1>(k*3, 0).transpose();
-      Apq += (QJ.block<3,1>(k*3, 0) - center) * cache->RelativeQJ.block<3,1>(k*3, 0).transpose();
+      Apq += (pointAt(QI, k) - center) * pointAt(model->RelativeQI, k).transpose();
+      Apq += (pointAt(QJ, k) - center) * pointAt(model->RelativeQJ, k).transpose();
     }
 
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(Apq.transpose() * Apq);
-    Eigen::Matrix3d rotation;
-    bool applyRotation = false;
+    Eigen::Matrix3d rotation;  // The estimated rotation matrix
+    bool appliedRotation = false;  // Is rotation successful
     if (solver.info() != Eigen::Success) {
-      SPDLOG_ERROR("Failed to solve for lineared model rotation");
+      SPDLOG_ERROR("Failed to solve for lineared model rotation (1)");
     } else {
       rotation = Apq * solver.operatorInverseSqrt();
-      applyRotation = true;
 
-      Eigen::Matrix3d inverseRotation = rotation.inverse();
-      for (int k = 0; k < 4; k++) {
-        dQI.block<3,1>(k * 3, 0) = inverseRotation * dQI.block<3,1>(k * 3, 0);
-        dQJ.block<3,1>(k * 3, 0) = inverseRotation * dQJ.block<3,1>(k * 3, 0);
+      if (solver.info() != Eigen::Success || rotation.maxCoeff() > 1e9) {
+        SPDLOG_ERROR("Failed to solve for lineared model rotation (2)");
+      } else {
+        Eigen::Matrix3d inverseRotation = rotation.inverse();
+        for (int k = 0; k < 4; k++) {
+          pointAt(dQI, k) = inverseRotation * pointAt(dQI, k);
+          pointAt(dQJ, k) = inverseRotation * pointAt(dQJ, k);
+        }
+        appliedRotation = true;
       }
     }
 
-    // EASY_END_BLOCK; EASY_BLOCK("4");
-    // Calculate force
-    ControlPoints forceI = cache->baseForceI + cache->dForceII * dQI + cache->dForceIJ * dQJ;
-    ControlPoints forceJ = cache->baseForceJ + cache->dForceJI * dQI + cache->dForceJJ * dQJ;
+    // Check if a model rebuild is needed
+    double deviation = std::max(dQI.cwiseAbs().maxCoeff(), dQJ.cwiseAbs().maxCoeff());
+    const double r = yarns.yarns[0].radius;
+    if (deviation >= params.contactModelTolerance * r) {
+      // Need a model rebuild
+      return false;
+    }
 
-    // Revert rotation
-    if (applyRotation) {
+    // Estimate the force
+    ControlPoints forceI = model->baseForceI + model->dForceII * dQI + model->dForceIJ * dQJ;
+    ControlPoints forceJ = model->baseForceJ + model->dForceJI * dQI + model->dForceJJ * dQJ;
+
+    // Revert the rotation
+    if (appliedRotation) {
       for (int k = 0; k < 4; k++) {
-        forceI.block<3,1>(k * 3, 0) = rotation * forceI.block<3,1>(k * 3, 0);
-        forceJ.block<3,1>(k * 3, 0) = rotation * forceJ.block<3,1>(k * 3, 0);
+        pointAt(forceI, k) = rotation * pointAt(forceI, k);
+        pointAt(forceJ, k) = rotation * pointAt(forceJ, k);
       }
     }
 
-    // EASY_END_BLOCK; EASY_BLOCK("5");
     // Apply force
     forces.block<12, 1>(i * 3, 0) += forceI;
     forces.block<12, 1>(j * 3, 0) += forceJ;
 
-    // EASY_END_BLOCK; EASY_BLOCK("6");
+    // Calculate statistics when needed
     if (params.statistics) {
       ControlPoints realForceI;
       ControlPoints realForceJ;
@@ -472,26 +479,37 @@ namespace simulator {
         oldError = statistics.contactForceTotalError;
       }
     }
+
+    // Estimation applied
     return true;
   }
 
-  void BaseSimulator::contactForceBetweenSegments
+  void BaseSimulator::applyContactForceBetweenSegments
       (int thread_id,
       std::vector<Eigen::MatrixXd> *forces,
       int ii, int jj) {
     EASY_FUNCTION();
 
+    // Update statistics
     if (params.statistics) {
       statistics.totalContactCount++;
     }
 
+    // Get linearized model
+    // We swap `ii` and `jj` so that there's less lock contention
     auto &model = contactModelCache.lock(jj, ii);
-    if (applyApproxContactForce(ii, jj, (*forces)[thread_id], &model)) {
+
+    // Try to use approximation
+    if (model.valid
+        && applyApproxContactForce(ii, jj, (*forces)[thread_id], &model)) {
       statistics.approximationUsedCount++;
     } else {
+      // Need to rebuild the linearized model
       buildLinearModel(ii, jj, &model);
       applyApproxContactForce(ii, jj, (*forces)[thread_id], &model);
     }
+
+    // Release the lock
     contactModelCache.unlock(jj, ii);
   }
   
@@ -513,7 +531,7 @@ namespace simulator {
           for (int j : intersections) {
             if (j > i + 1) {
               using namespace std::placeholders;
-              auto task = std::bind(&BaseSimulator::contactForceBetweenSegments,
+              auto task = std::bind(&BaseSimulator::applyContactForceBetweenSegments,
                                     this, _1,
                                     &forces,
                                     i, j);
