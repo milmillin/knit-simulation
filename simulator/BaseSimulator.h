@@ -216,6 +216,17 @@ protected:
       stat.contactForceTotalError / stat.contactForceErrorDivider,
       stat.contactForceErrorDivider);
   }
+
+  // === Debug helper ===
+
+  // idea: only print the first occurance of NaN
+  bool foundNaN = false;
+  // If there's a NaN in `x`, print error message
+  #define checkNaN(x) \
+    if (x.hasNaN() && !foundNaN) { \
+      SPDLOG_ERROR("NaN found!"); \
+      foundNaN = true; \
+    }
 };
 
 } // namespace simulator

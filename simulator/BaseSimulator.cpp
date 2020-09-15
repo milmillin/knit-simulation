@@ -401,6 +401,8 @@ namespace simulator {
     }
     positionOffset /= 8.0;
 
+    checkNaN(positionOffset);
+
     for (int k = 0; k < 4; k++) {
       pointAt(dQI, k) -= positionOffset;
       pointAt(dQJ, k) -= positionOffset;
@@ -413,12 +415,14 @@ namespace simulator {
       center += pointAt(QJ, k);
     }
     center /= 8.0;
+    checkNaN(center);
 
     Eigen::Matrix3d Apq = Eigen::Matrix3d::Zero();
     for (int k = 0; k < 4; k++) {
       Apq += (pointAt(QI, k) - center) * pointAt(model->RelativeQI, k).transpose();
       Apq += (pointAt(QJ, k) - center) * pointAt(model->RelativeQJ, k).transpose();
     }
+    checkNaN(Apq);
 
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(Apq.transpose() * Apq);
     Eigen::Matrix3d rotation;  // The estimated rotation matrix
@@ -428,10 +432,17 @@ namespace simulator {
     } else {
       rotation = Apq * solver.operatorInverseSqrt();
 
-      if (solver.info() != Eigen::Success || rotation.maxCoeff() > 1e9) {
-        SPDLOG_ERROR("Failed to solve for lineared model rotation (2)");
+      if (solver.info() != Eigen::Success || rotation.hasNaN()) {
+        if (!foundNaN) {
+          SPDLOG_ERROR("Failed to solve for lineared model rotation (2)");
+          SPDLOG_ERROR("Apq: {}", toString(Apq).c_str());
+          SPDLOG_ERROR("Inside solver: {}", toString(Apq.transpose() * Apq).c_str());
+        }
+        foundNaN = true;
       } else {
-        Eigen::Matrix3d inverseRotation = rotation.inverse();
+        // The inverse of a rotational matrix is the the transpose
+        Eigen::Matrix3d inverseRotation = rotation.transpose();
+        checkNaN(inverseRotation);
         for (int k = 0; k < 4; k++) {
           pointAt(dQI, k) = inverseRotation * pointAt(dQI, k);
           pointAt(dQJ, k) = inverseRotation * pointAt(dQJ, k);
@@ -460,9 +471,14 @@ namespace simulator {
       }
     }
 
+    checkNaN(forceI);
+    checkNaN(forceJ);
+
     // Apply force
     forces.block<12, 1>(i * 3, 0) += forceI;
     forces.block<12, 1>(j * 3, 0) += forceJ;
+
+    checkNaN(forces);
 
     // Calculate statistics when needed
     if (params.statistics) {
@@ -546,6 +562,8 @@ namespace simulator {
     // Summarize the result of all threads
     for (auto force : forces) {
       F += force;
+      checkNaN(force);
+      checkNaN(F);
     }
   }
 

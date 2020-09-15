@@ -82,4 +82,6 @@ const double& coordAt(const Eigen::MatrixXd& q, int index, int axis);
 
 double maxCoeff(const Eigen::MatrixXd& m);
 
+std::string toString(Eigen::MatrixXd x);
+
 } // namespace simulator

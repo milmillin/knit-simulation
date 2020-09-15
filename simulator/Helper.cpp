@@ -144,3 +144,19 @@ double simulator::maxCoeff(const Eigen::MatrixXd& m) {
 	if (m.rows() == 0 || m.cols() == 0) return 0;
 	return std::max(fabs(m.maxCoeff()), fabs(m.minCoeff()));
 }
+
+std::string simulator::toString(Eigen::MatrixXd x) {
+  std::string s = "[";
+  for (int r = 0; r < x.rows(); r++) {
+    s += "[";
+    for (int c = 0; c < x.cols(); c++) {
+      s += std::to_string(x(r, c)) + ", ";
+    }
+    s += "]";
+    if (r != x.rows() - 1) {
+      s += ", ";
+    }
+  }
+  s += "]";
+  return s;
+}

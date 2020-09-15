@@ -33,15 +33,27 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
   if (params.gravity >= 1e-6) {
     applyGravity();
   }
+
+  checkNaN(F);
+
   if (params.kContact >= 1e-6) {
     applyContactForce(cancelled);
   }
+
+  checkNaN(F);
+
   if (params.kBend >= 1e-6) {
     applyBendingForce();
   }
+
+  checkNaN(F);
+
   if (params.kLen >= 1e-6) {
     applyLengthSpringForce();
   }
+
+  checkNaN(F);
+
 
   Eigen::MatrixXd ddQ = F; // invM * F
 
@@ -50,12 +62,20 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
   if (params.enableGround) {
     applyGroundVelocityFilter();
   }
+
+  checkNaN(dQ);
+
   if (params.kGlobalDamping >= 1e-6) {
     applyGlobalDamping();
   }
 
+  checkNaN(dQ);
+
+
   // Calculate position
   Q += dQ * params.h;
+
+  checkNaN(Q);
 }
 
 void DiscreteSimulator::postStep(const StateGetter& cancelled) {
