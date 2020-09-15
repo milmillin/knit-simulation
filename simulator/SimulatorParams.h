@@ -14,9 +14,9 @@ struct SimulatorParams {
   bool enableLenghConstrain = true;
 
   double m = 0.006;
-  double kLen = 10000;
+  double kLen = 10;
   // Bending coefficient
-  double kBend = 0.05;
+  double kBend = 0.0;
   // Allowed tolerance when updating the material frame
   double materialFrameTolerance = 0.01;
   // Maximum update iteration then updating the material frame
@@ -24,7 +24,7 @@ struct SimulatorParams {
   // Twisting coefficient
   double kTwist = 0.05;
   // Global damping
-  double kGlobalDamping = 0.001;
+  double kGlobalDamping = 0.00001;
   // Contact force coefficient
   double kContact = 3250;
   // Contact force damping
@@ -43,13 +43,13 @@ struct SimulatorParams {
   // Number of steps to run for each button click
   int steps = 100;
   // Gravity acceleration
-  double gravity = 10.0;
+  double gravity = 0.0;
   // y coordinate of the ground
   double groundHeight = -5.0;
   // Ground fiction
   double groundFriction = 0.5;
 
-  double cInit = 1.0;
+  double cInit = 0.5;
 
   // === Fast projection ===
   // maximum iteration
