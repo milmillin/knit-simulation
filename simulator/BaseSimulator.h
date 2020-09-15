@@ -188,6 +188,7 @@ protected:
     std::atomic<int> approximationUsedCount;
     std::atomic<double> contactForceTotalError;
     std::atomic<int> contactForceErrorDivider;
+    std::atomic<int> materialFrameUpdateCount;
 
    public:
     Statistics() {
@@ -200,6 +201,7 @@ protected:
       approximationUsedCount = 0;
       contactForceTotalError = 0;
       contactForceErrorDivider = 0;
+      materialFrameUpdateCount = 0;
     }
   } statistics;
 
@@ -215,6 +217,7 @@ protected:
     SPDLOG_INFO("* Approximation error: {} ({})",
       stat.contactForceTotalError / stat.contactForceErrorDivider,
       stat.contactForceErrorDivider);
+    SPDLOG_INFO("* Material frame update: {}", stat.materialFrameUpdateCount);
   }
 
   // === Debug helper ===

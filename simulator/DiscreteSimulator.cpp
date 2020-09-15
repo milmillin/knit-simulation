@@ -361,6 +361,8 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     if (params.debug) {
       SPDLOG_INFO("Solve for material frame iteration {}, maximum update is {}", iter, maxUpdate);
     }
+
+    statistics.materialFrameUpdateCount++;
   }
   EASY_END_BLOCK;
 
