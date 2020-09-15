@@ -20,7 +20,7 @@ struct SimulatorParams {
   // Twisting coefficient
   double kTwist = 0.05;
   // Global damping
-  double kGlobal = 1.5;
+  double kGlobal = 0.001;
   // Contact force coefficient
   double kContact = 3250;
   // Contact force damping

@@ -521,8 +521,7 @@ namespace simulator {
     // Initialize accumulator for each thread
     std::vector<Eigen::MatrixXd> forces;
     for (int i = 0; i < thread_pool.size(); i++) {
-      forces.push_back(std::move(Eigen::MatrixXd(Q.rows(), Q.cols())));
-      forces[i].setZero();
+      forces.push_back(Eigen::MatrixXd::Zero(Q.rows(), Q.cols()));
     }
 
     // Find all intersecting segments
