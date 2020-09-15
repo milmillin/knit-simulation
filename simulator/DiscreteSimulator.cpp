@@ -374,7 +374,10 @@ void DiscreteSimulator::updateBendingForceMetadata() {
 void DiscreteSimulator::applyGlobalDamping() {
   EASY_FUNCTION();
 
-  dQ *= exp(-params.kGlobal * params.h);
+  for (int i = 0; i < m; i++) {
+    double v = pointAt(dQ, i).norm();
+    pointAt(dQ, i) *= std::max(0.0, v - params.kGlobalDamping) / v;
+  }
 }
 
 void DiscreteSimulator::setUpConstraints() {
