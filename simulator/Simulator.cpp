@@ -148,7 +148,7 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   applyContactForce(cancelled);
 
   // Damping
-  if (params.kGlobal != 0) {
+  if (params.kGlobalDamping != 0) {
     if (cancelled()) return;
     if (params.debug)
       SPDLOG_INFO("- Global Damping");

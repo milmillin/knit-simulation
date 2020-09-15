@@ -19,7 +19,7 @@ ViewerState::ViewerState(simulator::SimulatorType type, simulator::SimulatorPara
   ADD_ENTRY("m", _params.m);
   ADD_ENTRY("kLen", _params.kLen);
   ADD_ENTRY("kBend", _params.kBend);
-  ADD_ENTRY("kGlobal", _params.kGlobal);
+  ADD_ENTRY("kGlobalDamping", _params.kGlobalDamping);
   ADD_ENTRY("kContact", _params.kContact);
   ADD_ENTRY("kDt", _params.kDt);
   ADD_ENTRY("kDn", _params.kDn);

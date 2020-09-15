@@ -502,7 +502,7 @@ namespace simulator {
     auto &model = contactModelCache.lock(jj, ii);
 
     // Try to use approximation
-    if (model.valid && model.lastUpdate < params.maxContactModelUpdateInternal
+    if (model.valid && model.lastUpdate < params.maxContactModelUpdateInterval
         && applyApproxContactForce(ii, jj, (*forces)[thread_id], &model)) {
       statistics.approximationUsedCount++;
     } else {

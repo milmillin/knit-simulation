@@ -50,7 +50,7 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
   if (params.enableGround) {
     applyGroundVelocityFilter();
   }
-  if (params.kGlobal >= 1e-6) {
+  if (params.kGlobalDamping >= 1e-6) {
     applyGlobalDamping();
   }
 
@@ -313,7 +313,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
 
   EASY_BLOCK("Solve theta");
   bool shouldContinue = true;
-  for (int iter = 0; shouldContinue && iter < 100; iter++) {
+  for (int iter = 0; shouldContinue && iter < params.materialFrameMaxUpdate; iter++) {
     shouldContinue = false;
 
     std::vector<double> thetaUpdate(m - 1, 0.0);
@@ -334,7 +334,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
       maxUpdate = std::max(maxUpdate, thetaUpdate[i]);
     }
 
-    if (maxUpdate > 1e-4) {
+    if (maxUpdate > params.materialFrameTolerance) {
       shouldContinue = true;
     }
 

@@ -17,10 +17,14 @@ struct SimulatorParams {
   double kLen = 10000;
   // Bending coefficient
   double kBend = 0.05;
+  // Allowed tolerance when updating the material frame
+  double materialFrameTolerance = 0.01;
+  // Maximum update iteration then updating the material frame
+  int materialFrameMaxUpdate = 20;
   // Twisting coefficient
   double kTwist = 0.05;
   // Global damping
-  double kGlobal = 0.001;
+  double kGlobalDamping = 0.001;
   // Contact force coefficient
   double kContact = 3250;
   // Contact force damping
@@ -32,7 +36,8 @@ struct SimulatorParams {
   double aLarge = 0.3;
   // Allowed deviation for linearized contact force approximation
   double contactModelTolerance = 0.1;
-  int maxContactModelUpdateInternal = 100;
+  // Allowed update interval (steps) between linearized model update
+  int maxContactModelUpdateInterval = 100;
   // Time delta for each step (time resolution)
   double h = 0.001;
   // Number of steps to run for each button click
