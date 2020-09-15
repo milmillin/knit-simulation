@@ -573,7 +573,7 @@ namespace simulator {
     for (int i = 0; i < m - 1; i++) {
       Eigen::Vector3d force = pointAt(Q, i + 1) - pointAt(Q, i);
       double distance = force.norm();
-      force *= (distance - segmentLength[i]);
+      force *= params.kLen * (distance - segmentLength[i]) / distance;
       F.block<3, 1>(i * 3, 0) += force;
       F.block<3, 1>((i + 1)*3, 0) -= force;
     }
