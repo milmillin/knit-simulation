@@ -101,40 +101,37 @@ void Viewer::refresh() {
 
     // Get curve
     auto &yarn = yarns.yarns[i];
+    auto yarnPoints = yarns.getYarnPoints(i);
 
     // Use Catmull-Rom to smooth the curve
-    Eigen::MatrixXd points = simulator::catmullRomSequenceSample(yarn.points, curveSamples);
+    Eigen::MatrixXd points = simulator::catmullRomSequenceSample(yarnPoints, curveSamples);
 
     // Create mesh for tube
     Eigen::MatrixXd vertices;
     Eigen::MatrixXi triangles;
     circleSweep(points, yarn.radius, circleSamples, &vertices, &triangles);
-    this->data().set_mesh(vertices.cast<double>(), triangles);
+    this->data().set_mesh(vertices, triangles);
 
     // Set color
-    Eigen::MatrixXd color(1, 3);
-    color(0, 0) = yarn.color.r / 255.f;
-    color(0, 1) = yarn.color.g / 255.f;
-    color(0, 2) = yarn.color.b / 255.f;
-    this->data().set_colors(color);
+    this->data().set_colors(yarn.color);
 
     // Draw center line
-    if (yarn.points.rows() >= 2) {
-      Eigen::MatrixXi E(yarn.points.rows() - 1, 2);
-      for (int i = 0; i < yarn.points.rows() - 1; i++) {
+    if (yarnPoints.rows() >= 2) {
+      Eigen::MatrixXi E(yarnPoints.rows() - 1, 2);
+      for (int i = 0; i < yarnPoints.rows() - 1; i++) {
         E(i, 0) = i;
         E(i, 1) = i + 1;
       }
-      this->data().set_edges(yarn.points.cast<double>(),
+      this->data().set_edges(yarnPoints,
           E, Eigen::RowVector3d(1, 1, 1));
     }
 
     // Set vertex labels
     std::vector<std::string> labels;
-    for (int i = 0; i < yarn.points.rows(); i++) {
+    for (int i = 0; i < yarnPoints.rows(); i++) {
       labels.push_back(std::to_string(i));
     }
-    this->data().set_labels(yarn.points, labels);
+    this->data().set_labels(yarnPoints, labels);
     this->data().label_color = Eigen::Vector4f(1, 1, 1, 1);
   }
 

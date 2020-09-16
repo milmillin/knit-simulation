@@ -50,7 +50,7 @@ void DiscreteSimulator::postStep(const StateGetter& cancelled) {
 void DiscreteSimulator::applyGravity() {
   EASY_FUNCTION();
 
-	F += Eigen::Vector3d(0, -params.gravity, 0).replicate(m, 1);
+  F += Eigen::Vector3d(0, -params.gravity, 0).replicate(m, 1);
 }
 
 void DiscreteSimulator::applyGroundVelocityFilter() {
@@ -67,27 +67,27 @@ void DiscreteSimulator::applyGroundVelocityFilter() {
 }
 
 inline static Eigen::Vector3d parallelTransport(const Eigen::Vector3d& u, const Eigen::Vector3d& e1, const Eigen::Vector3d& e2) {
-    Eigen::Vector3d t1 = e1 / e1.norm();
-    Eigen::Vector3d t2 = e2 / e2.norm();
-    Eigen::Vector3d n = t1.cross(t2);
-    if (n.norm() < 1e-10)
-        return u;
-    n /= n.norm();
-    Eigen::Vector3d p1 = n.cross(t1);
-    Eigen::Vector3d p2 = n.cross(t2);
-    return u.dot(n)*n + u.dot(t1)*t2 + u.dot(p1)*p2;
+  Eigen::Vector3d t1 = e1 / e1.norm();
+  Eigen::Vector3d t2 = e2 / e2.norm();
+  Eigen::Vector3d n = t1.cross(t2);
+  if (n.norm() < 1e-10)
+    return u;
+  n /= n.norm();
+  Eigen::Vector3d p1 = n.cross(t1);
+  Eigen::Vector3d p2 = n.cross(t2);
+  return u.dot(n) * n + u.dot(t1) * t2 + u.dot(p1) * p2;
 }
 
-static inline Eigen::Vector3d vec(RowMatrixX3d &v, int index) {
+static inline Eigen::Vector3d vec(RowMatrixX3d& v, int index) {
   return Eigen::Vector3d(v.row(index).transpose());
 }
 
 void DiscreteSimulator::curvatureBinormalTask
-    (int thread_id, int start_index, int end_index) {
+(int thread_id, int start_index, int end_index) {
   for (int i = start_index; i < end_index; i++) {
     Eigen::Vector3d a = 2 * vec(e, i - 1).cross(vec(e, i));
-    double b = segmentLength[i-1] * segmentLength[i];
-    double c = e.row(i-1).dot(e.row(i));
+    double b = segmentLength[i - 1] * segmentLength[i];
+    double c = e.row(i - 1).dot(e.row(i));
     curvatureBinormal.row(i) = a.transpose() / (b + c);
   }
 }
@@ -138,7 +138,8 @@ void DiscreteSimulator::initBendingForceMetadata() {
   // Initialize direction 1 with arbitrary vector that's normal to u.row(0)
   if (std::abs(Q(0, 0) + Q(1, 0)) < std::abs(Q(2, 0))) {
     m1.row(0) = Eigen::Vector3d(1, 0, 0).cross(vec(e, 0));
-  } else {
+  }
+  else {
     m1.row(0) = Eigen::Vector3d(0, 0, 1).cross(vec(e, 0));
   }
   m1.row(0).normalize();
@@ -148,7 +149,7 @@ void DiscreteSimulator::initBendingForceMetadata() {
 
   // Fill in all frames
   for (int i = 1; i < m - 1; i++) {
-    m1.row(i) = parallelTransport(m1.row(i-1), e.row(i-1), e.row(i)).normalized();
+    m1.row(i) = parallelTransport(m1.row(i - 1), e.row(i - 1), e.row(i)).normalized();
     m2.row(i) = vec(e, i).cross(vec(m1, i)).normalized();
   }
 
@@ -170,41 +171,41 @@ void DiscreteSimulator::initBendingForceMetadata() {
 static inline Eigen::Matrix3d crossMatrix(Eigen::Vector3d e) {
   Eigen::Matrix3d result;
   result <<
-        0, -e(2),  e(1),
-     e(2),     0, -e(0),
-    -e(1),  e(0),     0;
+    0, -e(2), e(1),
+    e(2), 0, -e(0),
+    -e(1), e(0), 0;
   return result;
 }
 
 void DiscreteSimulator::gradCurvatureBinormalTask
-    (int thread_id, int start_index, int end_index) {
+(int thread_id, int start_index, int end_index) {
   Eigen::Matrix3d a;
   Eigen::RowVector3d b;
   double c;
   for (int i = start_index; i < end_index; i++) {
-    a = 2 * crossMatrix(e.row(i)) + 2 * crossMatrix(e.row(i-1));
-    b = (e.row(i) - e.row(i-1));
-    c = segmentLength[i-1] * segmentLength[i] + e.row(i-1).dot(e.row(i));
+    a = 2 * crossMatrix(e.row(i)) + 2 * crossMatrix(e.row(i - 1));
+    b = (e.row(i) - e.row(i - 1));
+    c = segmentLength[i - 1] * segmentLength[i] + e.row(i - 1).dot(e.row(i));
     for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
-      gradCurvatureBinormal[i][k - (i-1)] =
-        - (a + vec(curvatureBinormal, k) * b) / c;
+      gradCurvatureBinormal[i][k - (i - 1)] =
+        -(a + vec(curvatureBinormal, k) * b) / c;
     }
   }
 }
 
-static double newThetaHat(RowMatrixX3d &e, RowMatrixX3d &u, int i) {
-  Eigen::Vector3d newU = parallelTransport(u.row(i-1), e.row(i - 1), e.row(i));
+static double newThetaHat(RowMatrixX3d& e, RowMatrixX3d& u, int i) {
+  Eigen::Vector3d newU = parallelTransport(u.row(i - 1), e.row(i - 1), e.row(i));
   return std::atan2(newU.cross(vec(u, i)).norm(), newU.dot(u.row(i)));
 }
 
 void DiscreteSimulator::bendingForceTask
-    (int thread_id, int start_index, int end_index) {
+(int thread_id, int start_index, int end_index) {
   for (int i = start_index; i < end_index; i++) {
     Eigen::Vector3d force;
     force.setZero();
 
     for (int k = std::max(1, i - 1); k <= std::min(m - 2, i + 1); k++) {
-      double l = segmentLength[k-1] + segmentLength[k];
+      double l = segmentLength[k - 1] + segmentLength[k];
       Eigen::Vector3d kb = vec(curvatureBinormal, k);
       for (int j = k - 1; j <= k; j++) {
         Eigen::MatrixXd coeff(2, 3);
@@ -223,7 +224,7 @@ void DiscreteSimulator::bendingForceTask
 }
 
 void DiscreteSimulator::twistingForceTask
-    (int thread_id, int start_index, int end_index) {
+(int thread_id, int start_index, int end_index) {
   for (int i = start_index; i < end_index; i++) {
     Eigen::Vector3d dTheta_dQi_1 = vec(curvatureBinormal, i) / 2 / segmentLength[i - 1];
     Eigen::Vector3d dTheta_dQi = vec(curvatureBinormal, i) / 2 / segmentLength[i];
@@ -244,29 +245,29 @@ void DiscreteSimulator::applyBendingForce() {
   {
     EASY_BLOCK("curvatureBinormalTask");
     auto task = std::bind(&DiscreteSimulator::curvatureBinormalTask,
-                          this, _1, _2, _3);
-    threading::runSequentialJob(thread_pool, task, 1, m-1, step);
+      this, _1, _2, _3);
+    threading::runSequentialJob(thread_pool, task, 1, m - 1, step);
   }
 
   {
     EASY_BLOCK("gradCurvatureBinormalTask");
     auto task = std::bind(&DiscreteSimulator::gradCurvatureBinormalTask,
-                          this, _1, _2, _3);
-    threading::runSequentialJob(thread_pool, task, 1, m-1, step);
+      this, _1, _2, _3);
+    threading::runSequentialJob(thread_pool, task, 1, m - 1, step);
   }
 
   {
     EASY_BLOCK("bendingForceTask");
     auto task = std::bind(&DiscreteSimulator::bendingForceTask,
-                          this, _1, _2, _3);
-    threading::runSequentialJob(thread_pool, task, 1, m-1, step);
+      this, _1, _2, _3);
+    threading::runSequentialJob(thread_pool, task, 1, m - 1, step);
   }
 
   {
     EASY_BLOCK("twistingForceTask");
     auto task = std::bind(&DiscreteSimulator::twistingForceTask,
-                          this, _1, _2, _3);
-    threading::runSequentialJob(thread_pool, task, 1, m-2, step);
+      this, _1, _2, _3);
+    threading::runSequentialJob(thread_pool, task, 1, m - 2, step);
   }
 }
 
@@ -283,15 +284,15 @@ void DiscreteSimulator::updateBendingForceMetadata() {
 
   // Update frames
   EASY_BLOCK("Update frame")
-  threading::runSequentialJob(thread_pool,
-    [this](int thread_id, int start, int end) {
-      for (int i = start; i < end; i++) {
-        Eigen::Vector3d newE = pointAt(Q, i + 1) - pointAt(Q, i);
-        u.row(i) = parallelTransport(u.row(i), e.row(i), newE).normalized();
-        v.row(i) = newE.cross(vec(u, i)).normalized();
-        e.row(i) = newE.transpose();
-      }
-    }, 1, m - 1, step);
+    threading::runSequentialJob(thread_pool,
+      [this](int thread_id, int start, int end) {
+        for (int i = start; i < end; i++) {
+          Eigen::Vector3d newE = pointAt(Q, i + 1) - pointAt(Q, i);
+          u.row(i) = parallelTransport(u.row(i), e.row(i), newE).normalized();
+          v.row(i) = newE.cross(vec(u, i)).normalized();
+          e.row(i) = newE.transpose();
+        }
+      }, 1, m - 1, step);
   EASY_END_BLOCK;
 
   EASY_BLOCK("Solve theta");
@@ -306,7 +307,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
           double li = segmentLength[i] + segmentLength[i - 1];
           thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
           double li_1 = segmentLength[i] + segmentLength[i + 1];
-          thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
+          thetaUpdate[i] -= params.kTwist * 2 * (theta[i + 1] - theta[i] - thetaHat[i]) / li_1;
         }
       }, 1, m - 2, step);
 
@@ -342,9 +343,10 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     [this](int thread_id, int start, int end) {
       for (int i = start; i < end; i++) {
         double newValue = newThetaHat(e, u, i);
-        if (newValue + pi * thetaHatOffset[i] - thetaHat[i] < - pi / 2) {
+        if (newValue + pi * thetaHatOffset[i] - thetaHat[i] < -pi / 2) {
           thetaHatOffset[i] += 1;
-        } else if (newValue + pi * thetaHatOffset[i] - thetaHat[i] > pi / 2) {
+        }
+        else if (newValue + pi * thetaHatOffset[i] - thetaHat[i] > pi / 2) {
           thetaHatOffset[i] -= 1;
         }
         assert(std::abs(newValue + pi * thetaHatOffset[i] - thetaHat[i]) < pi / 2);
@@ -362,8 +364,10 @@ void DiscreteSimulator::applyGlobalDamping() {
 
 void DiscreteSimulator::setUpConstraints() {
   // Length Constraints
-  for (int i = 0; i < m - 1; i++) {
-    addSegmentLengthConstraint(i);
+  for (const auto& yarn : yarns.yarns) {
+    for (int i = yarn.begin; i < yarn.end - 1; i++) {
+      addSegmentLengthConstraint(i);
+    }
   }
 
   // Add pin constraints. TODO: remove hard-coded pin
