@@ -134,6 +134,9 @@ protected:
     // number of timesteps since last update
     int lastUpdate;
 
+    // Cached eigen values for the polar decomposition
+    Eigen::Matrix3d jacobiV;
+
     // Is the model valid
     bool valid = false;
   };
@@ -187,6 +190,8 @@ protected:
     std::atomic<int> linearizedModelRebuildCount;
     std::atomic<int> approximationUsedCount;
     std::atomic<double> contactForceTotalError;
+    std::atomic<double> jacobiMethodError;
+    std::atomic<int> jacobiMethodErrorCount;
     std::atomic<int> contactForceErrorDivider;
     std::atomic<int> materialFrameUpdateCount;
 
@@ -200,6 +205,8 @@ protected:
       linearizedModelRebuildCount = 0;
       approximationUsedCount = 0;
       contactForceTotalError = 0;
+      jacobiMethodError = 0;
+      jacobiMethodErrorCount = 0;
       contactForceErrorDivider = 0;
       materialFrameUpdateCount = 0;
     }
@@ -218,6 +225,9 @@ protected:
       stat.contactForceTotalError / stat.contactForceErrorDivider,
       stat.contactForceErrorDivider);
     SPDLOG_INFO("* Material frame update: {}", stat.materialFrameUpdateCount);
+    SPDLOG_INFO("* Jacobi error: {} ({})",
+      stat.jacobiMethodError / stat.jacobiMethodErrorCount,
+      stat.jacobiMethodErrorCount);
   }
 
   // === Debug helper ===
