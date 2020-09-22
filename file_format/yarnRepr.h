@@ -15,6 +15,16 @@ struct Yarn {
   Eigen::MatrixXd points;
   // RGB color (in range 0-255)
   glm::ivec3 color = glm::ivec3(128, 128, 128);
+  // Bishop frame directions (unit vector or zero)
+  // The frame at index `i` is the frame for the segment between
+  // `points.row(i)` and `points.row(i+1)`
+  Eigen::MatrixX3d bishopFrameU;
+  Eigen::MatrixX3d bishopFrameV;
+  // Material frame directions (unit vector or zero)
+  // The frame at index `i` is the frame for the segment between
+  // `points.row(i)` and `points.row(i+1)`
+  Eigen::MatrixX3d materialFrameU;
+  Eigen::MatrixX3d materialFrameV;
   // Yarn radius
   double radius;
 };

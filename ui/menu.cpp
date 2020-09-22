@@ -101,8 +101,10 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
       make_checkbox("Show overlay", viewer->data().show_overlay);
       make_checkbox("Show overlay depth", viewer->data().show_overlay_depth);
       ImGui::Checkbox("Show control point labels", &(viewer->data().show_labels));
-      ImGui::ColorEdit4("Background color", viewer->core().background_color.data(),
-        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel);
+      if (ImGui::Checkbox("Show material frames", &(yarnViewer->showMaterialFrames)))
+        needRefresh = true;
+      if (ImGui::Checkbox("Show bishop frames", &(yarnViewer->showBishopFrame)))
+        needRefresh = true;
       ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
       ImGui::DragFloat("Shininess", &(viewer->data().shininess), 0.05f, 0.0f, 100.0f);
       if (ImGui::DragInt("Cross-section samples",
@@ -117,6 +119,19 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         invalidateCache = true;
       }
       ImGui::PopItemWidth();
+    }
+
+    if (ImGui::CollapsingHeader("Colors")) {
+      ImGui::ColorEdit4("Background color", viewer->core().background_color.data(),
+        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel);
+      if (ImGui::ColorEdit3("Material Frame U", yarnViewer->materialFrameUColor.data()))
+        needRefresh = true;
+      if (ImGui::ColorEdit3("Material Frame V", yarnViewer->materialFrameVColor.data()))
+        needRefresh = true;
+      if (ImGui::ColorEdit3("Bishop Frame U", yarnViewer->bishopFrameUColor.data()))
+        needRefresh = true;
+      if (ImGui::ColorEdit3("Bishop Frame V", yarnViewer->bishopFrameVColor.data()))
+        needRefresh = true;
     }
 
     // Overlays
