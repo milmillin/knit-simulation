@@ -31,7 +31,6 @@ public:
 
   void initBendingForceMetadata();
   void applyBendingForce();
-  void applyTwistingForce();
   void updateBendingForceMetadata();
 
   // Velocity filter
@@ -40,10 +39,6 @@ public:
 
 
  private:
-  // === Constrains ===
-  // Index of control points to be fixed
-  std::vector<int> pinControlPoints;
-
   // === Bending Force ===
   RowMatrixX3d e;
   RowMatrixX3d m1;
@@ -69,11 +64,12 @@ protected:
 
 private:
   // === Bending and twisting ===
-  void curvatureBinormalTask(int thread_id, int start_index, int end_index);
-  void gradCurvatureBinormalTask(int thread_id, int start_index, int end_index);
-  void bendingForceTask(int thread_id, int start_index, int end_index);
-  void twistingForceTask(int thread_id, int start_index, int end_index);
-  Eigen::Vector2d omega(int i, int j);
+  void curvatureBinormalTask(int thread_id, size_t index);
+  void gradCurvatureBinormalTask(int thread_id, size_t index);
+  void bendingForceTask(int thread_id, size_t index);
+  void twistingForceTask(int thread_id, size_t index);
+
+  Eigen::Vector2d omega(size_t i, size_t j);
 };
 
 } // namespace simulator 

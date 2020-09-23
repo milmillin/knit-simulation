@@ -84,4 +84,6 @@ double maxCoeff(const Eigen::MatrixXd& m);
 
 std::string toString(Eigen::MatrixXd x);
 
+inline Eigen::Vector3d parallelTransport(const Eigen::Vector3d& u, const Eigen::Vector3d& e1, const Eigen::Vector3d& e2);
+
 } // namespace simulator
