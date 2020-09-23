@@ -40,4 +40,24 @@ void runSequentialJob(ctpl::thread_pool &thread_pool,
     start, end, 1 + ((end - start) / thread_pool.size()));
 }
 
+static void loopTask(int thread_id, size_t start, size_t end, const Task& task) {
+  for (size_t i = start; i < end; i++) {
+    task(thread_id, i);
+  }
+}
+
+static void loopTaskProducer(int thread_id, ctpl::thread_pool* thread_pool, size_t start, size_t end, const Task& task) {
+  size_t step = std::ceil((double)(end - start) / thread_pool->size());
+  for (size_t i = start; i < end; i += step) {
+    thread_pool->push(loopTask, i, std::min(end, i + step), std::ref(task));
+  }
+}
+
+void runParallelFor(ctpl::thread_pool& thread_pool, size_t start, size_t end, const Task& task)
+{
+  using namespace std::placeholders;
+  auto producer = std::bind(loopTaskProducer, _1, _2, start, end, std::ref(task));
+  submitProducerAndWait(thread_pool, producer);
+}
+
 }  // namespace threading
