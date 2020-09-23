@@ -189,6 +189,13 @@ void DiscreteSimulator::initBendingForceMetadata() {
     m2.row(i) = vec(e, i).cross(vec(m1, i)).normalized();
   }
 
+  // Update curvature binormal
+  {
+    using namespace std::placeholders;
+    auto task = std::bind(&DiscreteSimulator::curvatureBinormalTask,
+                          this, _1, _2, _3);
+    threading::runSequentialJob(thread_pool, task, 1, m-1, 100);
+  }
 
   // Calculate rest omega
   for (int i = 1; i < m - 1; i++) {
@@ -328,7 +335,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
         v.row(i) = newE.cross(vec(u, i)).normalized();
         e.row(i) = newE.transpose();
       }
-    }, 1, m - 1, step);
+    }, 0, m, step);
   EASY_END_BLOCK;
 
   EASY_BLOCK("Solve theta");
@@ -343,7 +350,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
           double li = segmentLength[i] + segmentLength[i - 1];
           thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
           double li_1 = segmentLength[i] + segmentLength[i + 1];
-          thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i]) / li_1;
+          thetaUpdate[i] -= params.kTwist * 2 * (theta[i+1] - theta[i] - thetaHat[i + 1]) / li_1;
         }
       }, 1, m - 2, step);
 
@@ -371,7 +378,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     [this](int thread_id, int start, int end) {
       for (int i = start; i < end; i++) {
         m1.row(i) = std::cos(theta[i]) * u.row(i) + std::sin(theta[i]) * v.row(i);
-        m2.row(i) = std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
+        m2.row(i) = -std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
       }
     }, 1, m - 1, step);
   EASY_END_BLOCK;
@@ -386,7 +393,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
         } else if (newValue + pi * thetaHatOffset[i] - thetaHat[i] > pi / 2) {
           thetaHatOffset[i] -= 1;
         }
-        assert(std::abs(newValue + pi * thetaHatOffset[i] - thetaHat[i]) < pi / 2);
+        assert(std::abs(newValue + pi * thetaHatOffset[i] - thetaHat[i]) <= pi / 2);
         thetaHat[i] = newValue + pi * thetaHatOffset[i];
       }
     }, 1, m - 1, step);
