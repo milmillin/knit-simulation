@@ -13,7 +13,7 @@ void Simulator::calculateGlobalDamping(int i) {
 
   DECLARE_POINTS2(pD, dQ, index);
 
-  double coefficient = params.kGlobal;
+  double coefficient = params.kGlobalDamping;
 
   using Vec12 = Eigen::Matrix<double, 12, 1>;
 

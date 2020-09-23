@@ -12,7 +12,7 @@ namespace file_format {
 
 class ViewerState {
 public:
-  ViewerState(simulator::SimulatorType type = simulator::SimulatorType::Continuous,
+  ViewerState(simulator::SimulatorType type = simulator::SimulatorType::Discrete,
     simulator::SimulatorParams params = simulator::SimulatorParams(),
     int numSteps = 1);
   ViewerState(const std::string& filename);

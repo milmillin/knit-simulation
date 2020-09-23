@@ -6,7 +6,6 @@
 
 #include "./ctpl_stl.h"
 
-namespace simulator {
 namespace threading {
 
 void submitProducerAndWait(ctpl::thread_pool &thread_pool,
@@ -42,4 +41,3 @@ void runSequentialJob(ctpl::thread_pool &thread_pool,
 }
 
 }  // namespace threading
-}  // namespace simulator

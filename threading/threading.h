@@ -4,7 +4,6 @@
 
 #include "./ctpl_stl.h"
 
-namespace simulator {
 namespace threading {
 
 typedef std::function<void(int, ctpl::thread_pool*)> TaskProducer;
@@ -21,4 +20,3 @@ void runSequentialJob(ctpl::thread_pool &thread_pool,
                       int start, int end);
 
 }  // namespace threading
-}  // namespace simulator

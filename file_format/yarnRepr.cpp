@@ -21,11 +21,17 @@ YarnRepr::YarnRepr(file_format::Yarns::Yarns &yarns) {
       P(i, 2) = yarn.points[i][2];
     }
 
-    // Other meta data
+    // Store meta data
     Yarn internalYarn;
     internalYarn.points = P;
     internalYarn.color = yarn.color;
     internalYarn.radius = yarn.radius;
+
+    // Initialize frames to zero
+    internalYarn.bishopFrameU = Eigen::MatrixX3d::Zero(nPoints, 3);
+    internalYarn.bishopFrameU = Eigen::MatrixX3d::Zero(nPoints, 3);
+    internalYarn.materialFrameU = Eigen::MatrixX3d::Zero(nPoints, 3);
+    internalYarn.materialFrameV = Eigen::MatrixX3d::Zero(nPoints, 3);
 
     // Save
     this->yarns.push_back(internalYarn);

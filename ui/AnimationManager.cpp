@@ -1,5 +1,7 @@
 #include "./AnimationManager.h"
 
+#include "spdlog/spdlog.h"
+
 #include <chrono>
 
 namespace UI {
@@ -87,7 +89,7 @@ void AnimationManager::runSimulation() {
 
     int currentFrame = _parent->history()->totalFrameNumber() + 1;
 
-    simulator::log() << "Simulating Frame: " << currentFrame << std::endl;
+    SPDLOG_INFO("Simulating Frame: {}", currentFrame);
 
     _parent->simulator()->step(terminated);
 
@@ -109,10 +111,10 @@ void AnimationManager::runSimulation() {
 
       _parent->saveState();
 
-      simulator::log() << "> Done" << std::endl;
+      SPDLOG_INFO("> Done");
     }
     else {
-      simulator::log() << "> Early Terminated" << std::endl;
+      SPDLOG_INFO("> Early Terminated");
     }
   }
 }

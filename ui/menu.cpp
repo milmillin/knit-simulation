@@ -1,5 +1,7 @@
 #include "./menu.h"
 
+#include <spdlog/spdlog.h>
+
 #include <iostream>
 #include <string>
 
@@ -99,8 +101,10 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
       make_checkbox("Show overlay", viewer->data().show_overlay);
       make_checkbox("Show overlay depth", viewer->data().show_overlay_depth);
       ImGui::Checkbox("Show control point labels", &(viewer->data().show_labels));
-      ImGui::ColorEdit4("Background color", viewer->core().background_color.data(),
-        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel);
+      if (ImGui::Checkbox("Show material frames", &(yarnViewer->showMaterialFrames)))
+        needRefresh = true;
+      if (ImGui::Checkbox("Show bishop frames", &(yarnViewer->showBishopFrame)))
+        needRefresh = true;
       ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
       ImGui::DragFloat("Shininess", &(viewer->data().shininess), 0.05f, 0.0f, 100.0f);
       if (ImGui::DragInt("Cross-section samples",
@@ -115,6 +119,19 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         invalidateCache = true;
       }
       ImGui::PopItemWidth();
+    }
+
+    if (ImGui::CollapsingHeader("Colors")) {
+      ImGui::ColorEdit4("Background color", viewer->core().background_color.data(),
+        ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel);
+      if (ImGui::ColorEdit3("Material Frame U", yarnViewer->materialFrameUColor.data()))
+        needRefresh = true;
+      if (ImGui::ColorEdit3("Material Frame V", yarnViewer->materialFrameVColor.data()))
+        needRefresh = true;
+      if (ImGui::ColorEdit3("Bishop Frame U", yarnViewer->bishopFrameUColor.data()))
+        needRefresh = true;
+      if (ImGui::ColorEdit3("Bishop Frame V", yarnViewer->bishopFrameVColor.data()))
+        needRefresh = true;
     }
 
     // Overlays
@@ -184,38 +201,40 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         reinterpret_cast<int*>(&yarnViewer->simulatorType),
         "Simulator\0"
         "Discrete Simulator\0\0")) {
-        std::cout << "Simulator Changed" << std::endl;
+        SPDLOG_INFO("Simulator Changed");
       }
       ImGui::Checkbox("Debug mode", &(params.debug));
-      ImGui::InputDouble("Time resolution", &(params.h),
-        0.00001, 0.001, "%.7f");
+      ImGui::Checkbox("Print statistics", &(params.statistics));
+      ImGui::Checkbox("Enable ground", &(params.enableGround));
+      ImGui::InputDouble("Time resolution", &(params.h));
       ImGui::InputInt("steps per frame", &(params.steps),
         10, 100);
+
       ImGui::Separator();
+
       ImGui::Text("Constraint and Fast Projection");
-      ImGui::InputDouble("Target Error", &(params.fastProjErrorCutoff),
-        1e-6, 1e-3, "%.7f");
-      ImGui::InputInt("Max iterations", &(params.fastProjMaxIter));
+      ImGui::InputDouble("Scale fator", &(params.cInit));
+      ImGui::Checkbox("Enable length constrain", &(params.enableLenghConstrain));
+      ImGui::InputDouble("Target error", &(params.fastProjErrorCutoff));
+      ImGui::InputInt("Max iterations", &(params.fastProjMaxIter), 1, 5);
+
       ImGui::Separator();
+
       ImGui::Text("Parameters");
-      ImGui::InputDouble("Gravity", &(params.gravity),
-        0.1, 1);
-      ImGui::InputDouble("Ground height", &(params.groundHeight),
-        0.01, 0.1, "%.2f");
-      ImGui::InputDouble("Ground fiction", &(params.groundFriction),
-        0.01, 0.1, "%.2f");
+      ImGui::InputDouble("Gravity", &(params.gravity));
+      ImGui::InputDouble("Ground height", &(params.groundHeight));
+      ImGui::InputDouble("Ground fiction", &(params.groundFriction));
       ImGui::InputInt("Contact force samples", &(params.contactForceSamples),
         1, 5);
-      ImGui::InputDouble("Contact force", &(params.kContact),
-        100, 10, "%.1f");
-      ImGui::InputDouble("Global damping", &(params.kGlobal),
-        0.1, 1, "%.1f");
-      ImGui::InputDouble("Length Constant", &(params.kLen),
-        1, 100, "%f");
-      ImGui::InputDouble("Bending Constant", &(params.kBend),
-        0.1, 1, "%f");
-      ImGui::InputDouble("Twisting Constant", &(params.kTwist),
-        0.1, 1, "%f");
+      ImGui::InputDouble("Contact force model tolerance", &(params.contactModelTolerance));
+      ImGui::InputInt("Max model update interval", &(params.maxContactModelUpdateInterval));
+      ImGui::InputDouble("Contact force", &(params.kContact));
+      ImGui::InputDouble("Global damping", &(params.kGlobalDamping));
+      ImGui::InputDouble("Length Constant", &(params.kLen));
+      ImGui::InputDouble("Bending Constant", &(params.kBend));
+      ImGui::InputDouble("Material frame tolerance", &(params.materialFrameTolerance));
+      ImGui::InputInt("Material frame max iterations", &(params.materialFrameMaxUpdate), 1, 5);
+      ImGui::InputDouble("Twisting Constant", &(params.kTwist));
       ImGui::PopItemWidth();
       if (ImGui::Button("Create")) {
         yarnViewer->createSimulator();

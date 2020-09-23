@@ -4,6 +4,7 @@
 #include <functional>
 
 #include <Eigen/SparseLU>
+#include "spdlog/spdlog.h"
 #include "easy_profiler_stub.h"
 
 #include "./threading/threading.h"
@@ -28,23 +29,59 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
 
   // Calculate acceleration
   F.setZero();
-  applyGravity();
-  applyContactForce(cancelled);
-  applyBendingForce();
+
+  if (params.gravity >= 1e-6) {
+    applyGravity();
+  }
+
+  checkNaN(F);
+
+  if (params.kContact >= 1e-6) {
+    applyContactForce(cancelled);
+  }
+
+  checkNaN(F);
+
+  if (params.kBend >= 1e-6) {
+    applyBendingForce();
+  }
+
+  checkNaN(F);
+
+  if (params.kLen >= 1e-6) {
+    applyLengthSpringForce();
+  }
+
+  checkNaN(F);
+
 
   Eigen::MatrixXd ddQ = F; // invM * F
 
   // Calculate velocity
   dQ += ddQ * params.h;
-  applyGroundVelocityFilter();
-  applyGlobalDamping();
+  if (params.enableGround) {
+    applyGroundVelocityFilter();
+  }
+
+  checkNaN(dQ);
+
+  if (params.kGlobalDamping >= 1e-6) {
+    applyGlobalDamping();
+  }
+
+  checkNaN(dQ);
+
 
   // Calculate position
   Q += dQ * params.h;
+
+  checkNaN(Q);
 }
 
 void DiscreteSimulator::postStep(const StateGetter& cancelled) {
-  updateBendingForceMetadata();
+  if (params.kBend >= 1e-6) {
+    updateBendingForceMetadata();
+  }
 }
 
 void DiscreteSimulator::applyGravity() {
@@ -296,7 +333,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
 
   EASY_BLOCK("Solve theta");
   bool shouldContinue = true;
-  for (int iter = 0; shouldContinue && iter < 100; iter++) {
+  for (int iter = 0; shouldContinue && iter < params.materialFrameMaxUpdate; iter++) {
     shouldContinue = false;
 
     std::vector<double> thetaUpdate(m - 1, 0.0);
@@ -317,13 +354,15 @@ void DiscreteSimulator::updateBendingForceMetadata() {
       maxUpdate = std::max(maxUpdate, thetaUpdate[i]);
     }
 
-    if (maxUpdate > 1e-4) {
+    if (maxUpdate > params.materialFrameTolerance) {
       shouldContinue = true;
     }
 
     if (params.debug) {
-      std::cout << "Solve for material frame iteration " << iter << " " << maxUpdate << std::endl;
+      SPDLOG_INFO("Solve for material frame iteration {}, maximum update is {}", iter, maxUpdate);
     }
+
+    statistics.materialFrameUpdateCount++;
   }
   EASY_END_BLOCK;
 
@@ -357,60 +396,63 @@ void DiscreteSimulator::updateBendingForceMetadata() {
 void DiscreteSimulator::applyGlobalDamping() {
   EASY_FUNCTION();
 
-  dQ *= exp(-params.kGlobal * params.h);
+  for (int i = 0; i < m; i++) {
+    double v = pointAt(dQ, i).norm();
+    pointAt(dQ, i) *= std::max(0.0, v - params.kGlobalDamping) / v;
+  }
+}
+
+const file_format::YarnRepr& DiscreteSimulator::getYarns() {
+  // Lazy-initialize the frames
+  yarns.yarns[0].bishopFrameU = u;
+  yarns.yarns[0].bishopFrameV = v;
+  yarns.yarns[0].materialFrameU = m1;
+  yarns.yarns[0].materialFrameV = m2;
+
+  // Lazy-initialize other data and then return
+  return BaseSimulator::getYarns();
 }
 
 void DiscreteSimulator::setUpConstraints() {
   // Length Constraints
-  for (int i = 0; i < m - 1; i++) {
-    addSegmentLengthConstraint(i);
+  if (params.enableLenghConstrain) {
+    for (int i = 0; i < m - 1; i++) {
+      addSegmentLengthConstraint(i);
+    }
   }
 
-  // Add pin constraints. TODO: remove hard-coded pin
-  // addPinConstraint(0, pointAt(Q, 0));
-  // addPinConstraint(81-59, pointAt(Q, 81-59));
-  // addPinConstraint(88-59, pointAt(Q, 88-59));
-  // addPinConstraint(74-59, pointAt(Q, 74-59));
+  // TODO: remove hard-coded pin
+  std::vector<int> pins = {1203,
+    1195, 1179, 1183, 1169, 1165, 1151, 1155, 1137, 1141, 1123, 1127, 1109, 1113, 1095, 1099,
+    1089, 1024, 798, 578, 382, 210, 62,
+    909, 687, 479, 295, 135, 0, 1, 10,
+    12, 24, 36, 48};
 
-  std::vector<int> pins;
   // pins.push_back(0);
+  // pins.push_back(152);
   // pins.push_back(153);
+  // pins.push_back(229);
   // pins.push_back(230);
-  // pins.push_back(237);
-  // pins.push_back(249);
-  // pins.push_back(261);
-  // pins.push_back(273);
-  // pins.push_back(285);
-  // pins.push_back(297);
+  // pins.push_back(236);
+  // pins.push_back(238);
+  // pins.push_back(248);
+  // pins.push_back(250);
+  // pins.push_back(260);
+  // pins.push_back(262);
+  // pins.push_back(272);
+  // pins.push_back(274);
+  // pins.push_back(284);
+  // pins.push_back(286);
+  // pins.push_back(296);
+  // pins.push_back(298);
   // pins.push_back(80);
   // pins.push_back(303);
   // pins.push_back(74);
+  // pins.push_back(73);
 
-  pins.push_back(0);
-  pins.push_back(152);
-  pins.push_back(153);
-  pins.push_back(229);
-  pins.push_back(230);
-  pins.push_back(236);
-  pins.push_back(238);
-  pins.push_back(248);
-  pins.push_back(250);
-  pins.push_back(260);
-  pins.push_back(262);
-  pins.push_back(272);
-  pins.push_back(274);
-  pins.push_back(284);
-  pins.push_back(286);
-  pins.push_back(296);
-  pins.push_back(298);
-  pins.push_back(80);
-  pins.push_back(303);
-  pins.push_back(74);
-  pins.push_back(73);
-
-  for (auto i : pins) {
-    addPinConstraint(i, pointAt(Q, i));
-  }
+  // for (auto i : pins) {
+  //   addPinConstraint(i, pointAt(Q, i));
+  // }
 }
 
 }  // namespace Simulator
