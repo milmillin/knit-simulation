@@ -7,12 +7,11 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-#include "file_format/yarnRepr.h"
 #include "./SimulatorParams.h"
 #include "./Constraints.h"
 #include "./macros.h"
-#include "./ParallelWorker.h"
 #include "./BaseSimulator.h"
+#include "file_format/yarnRepr.h"
 
 namespace simulator{
 
@@ -24,10 +23,9 @@ namespace simulator{
 // segment[i] is governed by q[i], q[i + 1], q[i + 2], q[i + 3].
 class Simulator : public BaseSimulator {
 private:
-  void calculate(void (Simulator::* func)(int), int start, int end);
-  void calculateBendingEnergy(int i);
-  void calculateLengthEnergy(int i);
-  void calculateGlobalDamping(int i);
+  void calculateBendingEnergy(int thread_id, size_t i);
+  void calculateLengthEnergy(int thread_id, size_t i);
+  void calculateGlobalDamping(int thread_id, size_t i);
   void calculateGravity();
 
 public:

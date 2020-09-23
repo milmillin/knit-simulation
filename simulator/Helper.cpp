@@ -132,27 +132,6 @@ Eigen::MatrixXd simulator::inflate(const Eigen::MatrixXd& v, size_t col) {
 	return res;
 }
 
-std::ostream& simulator::log()
-{
-	char buf[20];
-	time_t rawTime;
-	struct tm* timeInfo;
-
-	time(&rawTime);
-  timeInfo = localtime(&rawTime);
-
-	strftime(buf, 20, "%D %T", timeInfo);
-	return std::cout << "[" << buf << "] ";
-}
-
-Eigen::Block<Eigen::MatrixXd, 3, 1> simulator::pointAt(Eigen::MatrixXd& q, int index) {
-  return q.block<3, 1>(index * 3ll, 0);
-}
-
-Eigen::Block<const Eigen::MatrixXd, 3, 1> simulator::pointAt(const Eigen::MatrixXd& q, int index) {
-  return q.block<3, 1>(index * 3ll, 0);
-}
-
 double& simulator::coordAt(Eigen::MatrixXd& q, int index, int axis) {
   return q(index * 3ll + axis);
 }
@@ -164,4 +143,32 @@ const double& simulator::coordAt(const Eigen::MatrixXd& q, int index, int axis) 
 double simulator::maxCoeff(const Eigen::MatrixXd& m) {
 	if (m.rows() == 0 || m.cols() == 0) return 0;
 	return std::max(fabs(m.maxCoeff()), fabs(m.minCoeff()));
+}
+
+std::string simulator::toString(Eigen::MatrixXd x) {
+  std::string s = "[";
+  for (int r = 0; r < x.rows(); r++) {
+    s += "[";
+    for (int c = 0; c < x.cols(); c++) {
+      s += std::to_string(x(r, c)) + ", ";
+    }
+    s += "]";
+    if (r != x.rows() - 1) {
+      s += ", ";
+    }
+  }
+  s += "]";
+  return s;
+}
+
+Eigen::Vector3d simulator::parallelTransport(const Eigen::Vector3d& u, const Eigen::Vector3d& e1, const Eigen::Vector3d& e2) {
+  Eigen::Vector3d t1 = e1 / e1.norm();
+  Eigen::Vector3d t2 = e2 / e2.norm();
+  Eigen::Vector3d n = t1.cross(t2);
+  if (n.norm() < 1e-10)
+    return u;
+  n /= n.norm();
+  Eigen::Vector3d p1 = n.cross(t1);
+  Eigen::Vector3d p2 = n.cross(t2);
+  return u.dot(n) * n + u.dot(t1) * t2 + u.dot(p1) * p2;
 }

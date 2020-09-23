@@ -8,12 +8,12 @@ namespace simulator {
 // Global Damping
 //
 
-void Simulator::calculateGlobalDamping(int i) {
+void Simulator::calculateGlobalDamping(int thread_id, size_t i) {
   int index = i * 3;
 
   DECLARE_POINTS2(pD, dQ, index);
 
-  double coefficient = params.kGlobal;
+  double coefficient = params.kGlobalDamping;
 
   using Vec12 = Eigen::Matrix<double, 12, 1>;
 

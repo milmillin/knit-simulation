@@ -23,6 +23,12 @@ class Menu;
 class HistoryManager;
 class AnimationManager;
 
+enum ViewerLayerID {
+  GROUND = 0,
+  MATERIAL_FRAMES,
+  YARNS
+};
+
 class Viewer : igl::opengl::glfw::Viewer {
  public:
   Viewer(std::string outputDirectory, bool reload = true);
@@ -48,7 +54,7 @@ class Viewer : igl::opengl::glfw::Viewer {
   // Animation playback interval (millisecond)
   int animationPlaybackInterval = 1000/10;
   // Type of simulator to use
-  simulator::SimulatorType simulatorType = simulator::SimulatorType::Continuous;
+  simulator::SimulatorType simulatorType = simulator::SimulatorType::Discrete;
 
   simulator::SimulatorParams params;
 
@@ -60,6 +66,13 @@ class Viewer : igl::opengl::glfw::Viewer {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     _needRefresh = true;
   }
+
+  bool showMaterialFrames = false;
+  bool showBishopFrame = false;
+  Eigen::Vector3f materialFrameUColor = Eigen::Vector3f(211, 67, 67) / 255;
+  Eigen::Vector3f materialFrameVColor = Eigen::Vector3f(243, 207, 68) / 255;
+  Eigen::Vector3f bishopFrameUColor = Eigen::Vector3f(167, 104, 246) / 255;
+  Eigen::Vector3f bishopFrameVColor = Eigen::Vector3f(99, 240, 153) / 255;
  private:
   std::unique_ptr<Menu> _menu;
   std::unique_ptr<simulator::BaseSimulator> _simulator;
@@ -76,6 +89,14 @@ class Viewer : igl::opengl::glfw::Viewer {
   mutable std::recursive_mutex _mutex;
 
   void refresh();
+
+  // Generate lines that visualize the material and bishop frames.
+  // yarnRepr: the yarn that need to be visualized
+  // V: vertices
+  // E: lines
+  // C: colors
+  void visualizeMaterialAndBishopFrames(const file_format::YarnRepr &yarnRepr,
+    Eigen::MatrixX3d *V, Eigen::MatrixX2i *E, Eigen::MatrixX3f *C);
 };
 
 }  // namespace UI

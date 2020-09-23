@@ -8,8 +8,8 @@ namespace simulator {
 // Length Energy
 //
 
-void Simulator::calculateLengthEnergy(int i) {
-  int index = i * 3;
+void Simulator::calculateLengthEnergy(int thread_id, size_t i) {
+  size_t index = i * 3;
   DECLARE_POINTS2(p, Q, index);
 
   double coefficient = params.kLen;
