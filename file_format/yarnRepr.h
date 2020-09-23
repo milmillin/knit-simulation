@@ -23,12 +23,12 @@ struct Yarn {
 class YarnRepr {
 public:
   struct YarnInfo {
-    uint32_t begin;
-    uint32_t end; // exclusive
+    size_t begin = 0;
+    size_t end = 0; // exclusive
     Eigen::RowVector3d color = Eigen::RowVector3d(0.5, 0.5, 0.5);
-    double radius;
+    double radius = 0.1;
 
-    inline uint32_t size() const { return end - begin; }
+    inline size_t size() const { return end - begin; }
   };
 
   // Empty constructor
@@ -43,8 +43,8 @@ public:
   // Vertices
   Eigen::MatrixXd vertices;
   
-  Eigen::Block<Eigen::MatrixXd> getYarnPoints(uint32_t index);
-  const Eigen::Block<const Eigen::MatrixXd> getYarnPoints(uint32_t index) const;
+  Eigen::Block<Eigen::MatrixXd> getYarnPoints(size_t index);
+  const Eigen::Block<const Eigen::MatrixXd> getYarnPoints(size_t index) const;
 
   size_t numYarns() const { return yarns.size(); }
 

@@ -42,10 +42,10 @@ static const double MASS_CONTRIBUTION[4][4] =
 };
 
 void Simulator::constructMassMatrix() {
-  M = Eigen::SparseMatrix<double>(3ll * m, 3ll * m);
+  M = Eigen::SparseMatrix<double>(3ll * nControlPoints, 3ll * nControlPoints);
 
   // Iterate though each segment
-  int N = m - 3;
+  int N = nControlPoints - 3;
 
   double mUnit = params.m;
   for (int i = 0; i < N; i++) {
@@ -101,7 +101,7 @@ void Simulator::calculate(void (Simulator::* func)(int), int start, int end) {
 }
 
 void Simulator::calculateGravity() {
-	F += Eigen::Vector3d(0, -params.gravity, 0).replicate(m, 1);
+	F += Eigen::Vector3d(0, -params.gravity, 0).replicate(nControlPoints, 1);
 }
 
 //////////////////////////////////////////////
@@ -121,7 +121,7 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
   // update gradE, gradD, f
   if (params.debug)
     SPDLOG_INFO("Calculating Gradient");
-  int N = m - 3;
+  int N = nControlPoints - 3;
 
   // Energy
   if (params.kLen != 0) {
@@ -170,14 +170,14 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
 }
 
 void Simulator::setUpConstraints() {
-  int N = m - 3;
+  int N = nControlPoints - 3;
 
   for (int i = 0; i < N; i++) {
     addCatmullRomLengthConstraint(i);
   }
 
   addSegmentLengthConstraint(0);
-  addSegmentLengthConstraint(m - 2);
+  addSegmentLengthConstraint(nControlPoints - 2);
 
   std::vector<int> pin = {
     159, 171, 183, 195

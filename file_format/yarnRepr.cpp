@@ -17,9 +17,9 @@ YarnRepr::YarnRepr(file_format::Yarns::Yarns& yarns) {
   vertices = Eigen::MatrixXd(n, 3);
   this->yarns.reserve(yarns.yarns.size());
 
-  uint32_t idx = 0;
+  size_t idx = 0;
   for (auto& yarn : yarns.yarns) {
-    int nPoints = yarn.points.size();
+    size_t nPoints = yarn.points.size();
 
     this->yarns.emplace_back();
     YarnInfo& yarnInfo = this->yarns.back();
@@ -73,13 +73,13 @@ YarnRepr YarnRepr::createAlike() const {
   return res;
 }
 
-Eigen::Block<Eigen::MatrixXd> YarnRepr::getYarnPoints(uint32_t index) {
+Eigen::Block<Eigen::MatrixXd> YarnRepr::getYarnPoints(size_t index) {
   assert(index >= 0 && index < yarns.size());
   const auto& yarn = yarns[index];
   return vertices.block(yarn.begin, 0, yarn.end - yarn.begin, 3);
 }
 
-const Eigen::Block<const Eigen::MatrixXd> YarnRepr::getYarnPoints(uint32_t index) const {
+const Eigen::Block<const Eigen::MatrixXd> YarnRepr::getYarnPoints(size_t index) const {
   assert(index >= 0 && index < yarns.size());
   const auto& yarn = yarns[index];
   return vertices.block(yarn.begin, 0, yarn.end - yarn.begin, 3);

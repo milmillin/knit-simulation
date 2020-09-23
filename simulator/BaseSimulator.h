@@ -27,7 +27,7 @@ public:
   virtual ~BaseSimulator() { }
 
   // Returns current yarns
-  const file_format::YarnRepr& getYarns();
+  const file_format::YarnRepr& getYarns() const;
 
   file_format::YarnRepr getVelocityYarns();
 
@@ -50,7 +50,7 @@ protected:
   SimulatorParams params;
 
   // Number of control points
-  int m;
+  size_t nControlPoints;
 
   // Flattened Coordinates [x0 y0 z0 x1 y1 x1 ...]
   // Position of control points
@@ -132,7 +132,7 @@ protected:
     StiffnessMatrix dForceJJ;
 
     // number of timesteps since last update
-    int lastUpdate;
+    int lastUpdate = 0;
 
     // Is the model valid
     bool valid = false;
@@ -142,14 +142,14 @@ protected:
 
   // Calculate the contact force between segment `i` and `j`
   // Save the result in `forceI` and `forceJ`
-  void contactForce(int i, int j, ControlPoints *forceI, ControlPoints *forceJ);
+  void contactForce(size_t i, size_t j, ControlPoints *forceI, ControlPoints *forceJ);
   // Build the linearized contact force model between segment `i` and `j`
   // Save the result in `model`
-  void buildLinearModel(int i, int j, LinearizedContactModel *model);
+  void buildLinearModel(size_t i, size_t j, LinearizedContactModel *model);
   // Apply the force between segment `i` and `j` to the accumulator `forces`,
   // using the linearized model in `model`
   // Return `true` iff the approximation is valid
-  bool applyApproxContactForce(int i, int j, Eigen::MatrixXd &forces, LinearizedContactModel *model);
+  bool applyApproxContactForce(size_t i, size_t j, Eigen::MatrixXd &forces, LinearizedContactModel *model);
 
   // catmullRomCoefficient(i, j) is the coefficient of the j^th control point
   // when the curve paramter s = (i + 0.5) / <number of samples>
@@ -161,7 +161,7 @@ protected:
   void applyContactForceBetweenSegments
       (int thread_id,
       std::vector<Eigen::MatrixXd> *forces,
-      int ii, int jj);
+      size_t ii, size_t jj);
 
   ///////////////////////
   // Length spring
@@ -173,11 +173,11 @@ protected:
   // Constraints
 
   // Add length constraint of line segment defined by points i and i + 1.
-  void addSegmentLengthConstraint(int i);
+  void addSegmentLengthConstraint(size_t i);
   // Add length constraint of Catmull-Rom segment defined by points i to i + 3.
-  void addCatmullRomLengthConstraint(int i);
+  void addCatmullRomLengthConstraint(size_t i);
   // Add pin constraint of point i to a fixed position
-  void addPinConstraint(int i, Eigen::Vector3d position);
+  void addPinConstraint(size_t i, Eigen::Vector3d position);
 
   ///////////////////////
   // Statistics
