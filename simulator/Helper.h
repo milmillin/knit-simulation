@@ -75,7 +75,7 @@ Eigen::MatrixXd flatten(const Eigen::MatrixXd& v);
 // Returns a new matrix.
 Eigen::MatrixXd inflate(const Eigen::MatrixXd& v, size_t col = 3);
 
-#define pointAt(q, index) (q).block<3,1>((index) * 3, 0)
+#define pointAt(q, index) (q).block<3,1>((index) * 3ull, 0)
 
 double& coordAt(Eigen::MatrixXd& q, int index, int axis);
 const double& coordAt(const Eigen::MatrixXd& q, int index, int axis);
@@ -83,5 +83,7 @@ const double& coordAt(const Eigen::MatrixXd& q, int index, int axis);
 double maxCoeff(const Eigen::MatrixXd& m);
 
 std::string toString(Eigen::MatrixXd x);
+
+Eigen::Vector3d parallelTransport(const Eigen::Vector3d& u, const Eigen::Vector3d& e1, const Eigen::Vector3d& e2);
 
 } // namespace simulator

@@ -160,3 +160,15 @@ std::string simulator::toString(Eigen::MatrixXd x) {
   s += "]";
   return s;
 }
+
+Eigen::Vector3d simulator::parallelTransport(const Eigen::Vector3d& u, const Eigen::Vector3d& e1, const Eigen::Vector3d& e2) {
+  Eigen::Vector3d t1 = e1 / e1.norm();
+  Eigen::Vector3d t2 = e2 / e2.norm();
+  Eigen::Vector3d n = t1.cross(t2);
+  if (n.norm() < 1e-10)
+    return u;
+  n /= n.norm();
+  Eigen::Vector3d p1 = n.cross(t1);
+  Eigen::Vector3d p2 = n.cross(t2);
+  return u.dot(n) * n + u.dot(t1) * t2 + u.dot(p1) * p2;
+}

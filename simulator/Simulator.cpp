@@ -42,27 +42,26 @@ static const double MASS_CONTRIBUTION[4][4] =
 };
 
 void Simulator::constructMassMatrix() {
-  M = Eigen::SparseMatrix<double>(3ll * m, 3ll * m);
-
-  // Iterate though each segment
-  int N = m - 3;
+  M = Eigen::SparseMatrix<double>(3ll * nControlPoints, 3ll * nControlPoints);
 
   double mUnit = params.m;
-  for (int i = 0; i < N; i++) {
-    // Iterate through combination of control points to find mass contribution.
-    for (int j = 0; j < 4; j++) {
-      for (int k = j; k < 4; k++) {
-        // M[(i+j)*3][(i+k)*3] = mUnit * l[i] * integrate(bj(s), bk(s), (s, 0, 1))
-        double contribution = mUnit * catmullRomLength[i] * MASS_CONTRIBUTION[j][k];
-        M.coeffRef((i + j) * 3, (i + k) * 3) += contribution;
-        M.coeffRef((i + j) * 3 + 1, (i + k) * 3 + 1) += contribution;
-        M.coeffRef((i + j) * 3 + 2, (i + k) * 3 + 2) += contribution;
+  for (const auto& yarn : yarns.yarns) {
+    for (size_t i = yarn.begin; i < yarn.end - 3; i++) {
+      // Iterate through combination of control points to find mass contribution.
+      for (size_t j = 0; j < 4; j++) {
+        for (size_t k = j; k < 4; k++) {
+          // M[(i+j)*3][(i+k)*3] = mUnit * l[i] * integrate(bj(s), bk(s), (s, 0, 1))
+          double contribution = mUnit * catmullRomLength[i] * MASS_CONTRIBUTION[j][k];
+          M.coeffRef((i + j) * 3ull, (i + k) * 3ull) += contribution;
+          M.coeffRef((i + j) * 3ull + 1ull, (i + k) * 3ull + 1ull) += contribution;
+          M.coeffRef((i + j) * 3ull + 2ull, (i + k) * 3ull + 2ull) += contribution;
 
-        // transpose
-        if (j != k) {
-          M.coeffRef((i + k) * 3, (i + j) * 3) += contribution;
-          M.coeffRef((i + k) * 3 + 1, (i + j) * 3 + 1) += contribution;
-          M.coeffRef((i + k) * 3 + 2, (i + j) * 3 + 2) += contribution;
+          // transpose
+          if (j != k) {
+            M.coeffRef((i + k) * 3ull, (i + j) * 3ull) += contribution;
+            M.coeffRef((i + k) * 3ull + 1ull, (i + j) * 3ull + 1ull) += contribution;
+            M.coeffRef((i + k) * 3ull + 2ull, (i + j) * 3ull + 2ull) += contribution;
+          }
         }
       }
     }
@@ -90,18 +89,8 @@ void Simulator::constructMassMatrix() {
 // Energy Gradient
 //
 
-void Simulator::calculate(void (Simulator::* func)(int), int start, int end) {
-  auto calculateTask = [this, &func](int thread_id, int start_index, int end_index) {
-    for (int i = start_index; i < end_index; i++) {
-      (this->*func)(i);
-    }
-  };
-
-  threading::runSequentialJob(thread_pool, calculateTask, start, end);
-}
-
 void Simulator::calculateGravity() {
-	F += Eigen::Vector3d(0, -params.gravity, 0).replicate(m, 1);
+	F += Eigen::Vector3d(0, -params.gravity, 0).replicate(nControlPoints, 1);
 }
 
 //////////////////////////////////////////////
@@ -117,49 +106,55 @@ Simulator::Simulator(file_format::YarnRepr yarns, SimulatorParams params_) :
 
 void Simulator::stepImpl(const StateGetter& cancelled) {
   F.setZero();
+  using namespace std::placeholders;
 
   // update gradE, gradD, f
-  if (params.debug)
-    SPDLOG_INFO("Calculating Gradient");
-  int N = m - 3;
+  if (params.debug) SPDLOG_INFO("Calculating Gradient");
 
-  // Energy
-  if (params.kLen != 0) {
-    if (cancelled()) return;
-    if (params.debug)
-      SPDLOG_INFO("- Length Energy");
+  {
     EASY_BLOCK("Length Energy");
-    calculate(&Simulator::calculateLengthEnergy, 0, N);
-    EASY_END_BLOCK;
+    if (params.kLen != 0) {
+      if (cancelled()) return;
+      if (params.debug) SPDLOG_INFO("- Length Energy");
+      auto task = std::bind(&Simulator::calculateLengthEnergy, this, _1, _2);
+      for (const auto& yarn : yarns.yarns) {
+        threading::runParallelFor(thread_pool, yarn.begin, yarn.end - 3, task);
+      }
+    }
   }
 
-  if (params.kBend != 0) {
-    if (cancelled()) return;
-    if (params.debug)
-      SPDLOG_INFO("- Bending Energy");
+  {
     EASY_BLOCK("Bending Energy");
-    calculate(&Simulator::calculateBendingEnergy, 0, N);
-    EASY_END_BLOCK;
+    if (params.kBend != 0) {
+      if (cancelled()) return;
+      if (params.debug) SPDLOG_INFO("- Bending Energy");
+      auto task = std::bind(&Simulator::calculateBendingEnergy, this, _1, _2);
+      for (const auto& yarn : yarns.yarns) {
+        threading::runParallelFor(thread_pool, yarn.begin, yarn.end - 3, task);
+      }
+    }
   }
 
   if (cancelled()) return;
-  if (params.debug)
-    SPDLOG_INFO("- Collision Energy");
+  if (params.debug) SPDLOG_INFO("- Collision Energy");
   applyContactForce(cancelled);
 
   // Damping
-  if (params.kGlobalDamping != 0) {
-    if (cancelled()) return;
-    if (params.debug)
-      SPDLOG_INFO("- Global Damping");
+  {
     EASY_BLOCK("Global Damping");
-    calculate(&Simulator::calculateGlobalDamping, 0, N);
-    EASY_END_BLOCK;
+    if (params.kGlobalDamping != 0) {
+      if (cancelled()) return;
+      if (params.debug) SPDLOG_INFO("- Global Damping");
+      auto task = std::bind(&Simulator::calculateGlobalDamping, this, _1, _2);
+      for (const auto& yarn : yarns.yarns) {
+        threading::runParallelFor(thread_pool, yarn.begin, yarn.end - 3, task);
+      }
+      EASY_END_BLOCK;
+    }
   }
 
   if (cancelled()) return;
-  if (params.debug)
-    SPDLOG_INFO("- Gravity");
+  if (params.debug) SPDLOG_INFO("- Gravity");
   EASY_BLOCK("Gravity");
   calculateGravity();
   EASY_END_BLOCK;
@@ -170,22 +165,22 @@ void Simulator::stepImpl(const StateGetter& cancelled) {
 }
 
 void Simulator::setUpConstraints() {
-  int N = m - 3;
+  for (const auto& yarn : yarns.yarns) {
+    for (size_t i = yarn.begin; i < yarn.end - 3; i++) {
+      addCatmullRomLengthConstraint(i);
+    }
 
-  for (int i = 0; i < N; i++) {
-    addCatmullRomLengthConstraint(i);
+    addSegmentLengthConstraint(yarn.begin);
+    addSegmentLengthConstraint(yarn.end - 2);
   }
 
-  addSegmentLengthConstraint(0);
-  addSegmentLengthConstraint(m - 2);
+  // std::vector<int> pin = {
+    // 159, 171, 183, 195
+  // };
 
-  std::vector<int> pin = {
-    159, 171, 183, 195
-  };
-
-  for (int p : pin) {
-    addPinConstraint(p, pointAt(Q, p));
-  }
+  // for (int p : pin) {
+    // addPinConstraint(p, pointAt(Q, p));
+  // }
 
   //addPinConstraint(0, pointAt(Q, 0));
   //addPinConstraint(m - 1, pointAt(Q, m - 1));
