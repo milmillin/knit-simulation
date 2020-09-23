@@ -62,7 +62,7 @@ protected:
   // Simulates next timestep.
   void stepImpl(const StateGetter& cancelled) override;
   // Called after each step's calculation
-  void postStep(const std::function<bool()>& cancelled) override;
+  void postStep(const StateGetter& cancelled) override;
 
   // Set up constraints
   void setUpConstraints() override;
