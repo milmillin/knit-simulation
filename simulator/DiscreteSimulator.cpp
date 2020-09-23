@@ -66,19 +66,16 @@ void DiscreteSimulator::applyGravity() {
 void DiscreteSimulator::applyGroundVelocityFilter() {
   EASY_FUNCTION();
 
-  for (size_t i = 0; i < nControlPoints; i++) {
-    if (coordAt(Q, i, 1) < params.groundHeight && coordAt(dQ, i, 1) < 0) {
-      coordAt(dQ, i, 0) *= params.groundFriction;
-      coordAt(dQ, i, 1) = 0;
-      coordAt(dQ, i, 2) *= params.groundFriction;
-      coordAt(Q, i, 1) = params.groundHeight;
-    }
+  for (const auto& yarn : yarns.yarns) {
+    threading::runParallelFor(thread_pool, yarn.begin, yarn.end, [this](int thread_id, size_t i) {
+      if (coordAt(Q, i, 1) < params.groundHeight && coordAt(dQ, i, 1) < 0) {
+        coordAt(dQ, i, 0) *= params.groundFriction;
+        coordAt(dQ, i, 1) = 0;
+        coordAt(dQ, i, 2) *= params.groundFriction;
+        coordAt(Q, i, 1) = params.groundHeight;
+      }
+      });
   }
-}
-
-// CHECK
-static inline Eigen::Vector3d vec(RowMatrixX3d& v, int index) {
-  return Eigen::Vector3d(v.row(index).transpose());
 }
 
 // CHECK
@@ -182,14 +179,14 @@ void DiscreteSimulator::gradCurvatureBinormalTask(int thread_id, size_t i) {
   // FIXME: assert(i - 1 >= 0 && i + 1 < nControlPoints - 1)
   for (size_t k = i - 1; k <= i + 1; k++) {
     gradCurvatureBinormal[i][k - (i - 1ull)] =
-      -(a + vec(curvatureBinormal, k) * b) / c;
+      -(a + curvatureBinormal.row(k) * b) / c;
   }
 }
 
 // CHECK
 static double newThetaHat(RowMatrixX3d& e, RowMatrixX3d& u, size_t i) {
   Eigen::Vector3d newU = parallelTransport(u.row(i - 1ull), e.row(i - 1ull), e.row(i));
-  return std::atan2(newU.cross(vec(u, i)).norm(), newU.dot(u.row(i)));
+  return std::atan2(newU.cross(u.row(i)).norm(), newU.dot(u.row(i)));
 }
 
 void DiscreteSimulator::bendingForceTask(int thread_id, size_t i) {
@@ -270,7 +267,7 @@ void DiscreteSimulator::updateBendingForceMetadata() {
       threading::runParallelFor(thread_pool, yarn.begin + 1, yarn.end - 1, [this](int thread_id, size_t i) {
           Eigen::Vector3d newE = pointAt(Q, i + 1) - pointAt(Q, i);
           u.row(i) = parallelTransport(u.row(i), e.row(i), newE).normalized();
-          v.row(i) = newE.cross(vec(u, i)).normalized();
+          v.row(i) = newE.cross(u.row(i)).normalized();
           e.row(i) = newE.transpose();
         });
     }
