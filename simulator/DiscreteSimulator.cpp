@@ -179,7 +179,7 @@ void DiscreteSimulator::gradCurvatureBinormalTask(int thread_id, size_t i) {
   // FIXME: assert(i - 1 >= 0 && i + 1 < nControlPoints - 1)
   for (size_t k = i - 1; k <= i + 1; k++) {
     gradCurvatureBinormal[i][k - (i - 1ull)] =
-      -(a + curvatureBinormal.row(k) * b) / c;
+      -(a + curvatureBinormal.row(k).transpose() * b) / c;
   }
 }
 
