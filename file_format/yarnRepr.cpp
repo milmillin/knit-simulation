@@ -36,6 +36,11 @@ YarnRepr::YarnRepr(file_format::Yarns::Yarns& yarns) {
       vertices(idx, 2) = yarn.points[i][2];
       idx++;
     }
+    // Initialize frames to zero
+    this->bishopFrameU = Eigen::MatrixX3d::Zero(n, 3);
+    this->bishopFrameU = Eigen::MatrixX3d::Zero(n, 3);
+    this->materialFrameU = Eigen::MatrixX3d::Zero(n, 3);
+    this->materialFrameV = Eigen::MatrixX3d::Zero(n, 3);
   }
 }
 

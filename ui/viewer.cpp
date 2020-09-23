@@ -77,29 +77,47 @@ void Viewer::refresh() {
   const file_format::YarnRepr yarns = _history->getFrame(_currentFrame);
   const simulator::SimulatorParams& params = _simulator->getParams();
 
+  // Create Layers
+  while (this->data_list.size() <= ViewerLayerID::YARNS +  yarns.yarns.size()) {
+    this->data_list.push_back(igl::opengl::ViewerData());
+  }
+
   // Draw ground
   if (_simulator.get()->getParams().enableGround) {
-    this->selected_data_index = 0;
+    this->selected_data_index = ViewerLayerID::GROUND;
+
     Eigen::MatrixXd groundPoints(4, 3);
     groundPoints << 10, params.groundHeight, 10,
       10, params.groundHeight, -10,
       -10, params.groundHeight, -10,
       -10, params.groundHeight, 10;
+
     Eigen::MatrixXi groundTrianges(2, 3);
     groundTrianges << 2, 0, 1,
       3, 0, 2;
+
     this->data().clear();
     this->data().set_mesh(groundPoints.cast<double>(), groundTrianges);
   }
 
-  // Create new mesh
-  while (this->data_list.size() <= yarns.yarns.size()) {
-    this->data_list.push_back(igl::opengl::ViewerData());
+  // Draw frames
+  if (showMaterialFrames || showBishopFrame) {
+    this->selected_data_index = ViewerLayerID::MATERIAL_FRAMES;
+
+    Eigen::MatrixX3d V;
+    Eigen::MatrixX2i E;
+    Eigen::MatrixX3f C;
+    visualizeMaterialAndBishopFrames(yarns, &V, &E, &C);
+
+    this->data().clear();
+    this->data().set_edges(V, E, C.cast<double>());
+    this->data().show_lines = true;
+    this->data().line_width = 5;
   }
 
   for (int i = 0; i < yarns.yarns.size(); i++) {
     // Clear old mesh
-    this->selected_data_index = i + 1;
+    this->selected_data_index = i + ViewerLayerID::YARNS;
     this->data().clear();
 
     // Get curve
@@ -166,7 +184,7 @@ void Viewer::createSimulator() {
 
   // Reset manager
   _animationManager.reset(new AnimationManager(this));
-  _history.reset(new HistoryManager(this, _yarnsRepr));
+  _history.reset(new HistoryManager(this, _simulator.get()->getYarns()));
   
   _currentFrame = 0;
 
@@ -262,6 +280,67 @@ void Viewer::saveState() const {
     _history->totalFrameNumber());
 
   state.save(_outputDirectory + VIEWER_STATE_NAME);
+}
+
+void Viewer::visualizeMaterialAndBishopFrames(const file_format::YarnRepr &yarnRepr,
+    Eigen::MatrixX3d *V, Eigen::MatrixX2i *E, Eigen::MatrixX3f *C) {
+  std::vector<Eigen::RowVector3d> v;
+  std::vector<Eigen::RowVector2i> e;
+  std::vector<Eigen::Vector3f> c;
+
+  for (auto &yarn : yarnRepr.yarns) {
+    // Start of vertex IDs for vetices on the yarn
+    int yarnVidStart = v.size();
+    // Insert vertices on the yarn
+    for (int i = 0; i < yarn.points.rows(); i++) {
+      v.push_back(yarn.points.row(i));
+    }
+
+    // Insert lines representing the material frame
+    for (int i = 0; i < yarn.bishopFrameU.rows(); i++) {
+      // Show a rectangle in the direction of the axis
+      auto addAxis = [&](Eigen::RowVector3d direction, Eigen::Vector3f &color) {
+        // Insert vertices
+        int vid1 = v.size();
+        v.push_back(yarn.points.row(i) + yarn.radius * 2 * direction);
+        int vid2 = v.size();
+        v.push_back(yarn.points.row(i + 1) + yarn.radius * 2 * direction);
+
+        // Insert lines
+        e.push_back({vid1, vid2});
+        e.push_back({vid1, yarnVidStart + i});
+        e.push_back({vid2, yarnVidStart + i + 1});
+
+        // Insert colors
+        c.push_back(color);
+        c.push_back(color);
+        c.push_back(color);
+      };
+
+      // Show the frames
+      if (showBishopFrame) {
+        addAxis(yarn.bishopFrameU.row(i), bishopFrameUColor);
+        addAxis(yarn.bishopFrameV.row(i), bishopFrameVColor);
+      }
+      if (showMaterialFrames) {
+        addAxis(yarn.materialFrameU.row(i), materialFrameUColor);
+        addAxis(yarn.materialFrameV.row(i), materialFrameVColor);
+      }
+    }
+  }
+
+  // Convert to matrix
+  V->resize(v.size(), 3);
+  for (int i = 0; i < v.size(); i++)
+    V->row(i) = v[i];
+
+  E->resize(e.size(), 2);
+  for (int i = 0; i < e.size(); i++)
+    E->row(i) = e[i];
+
+  C->resize(c.size(), 3);
+  for (int i = 0; i < c.size(); i++)
+    C->row(i) = c[i].transpose();
 }
 
 } // namespace UI

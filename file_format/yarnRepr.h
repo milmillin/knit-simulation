@@ -9,16 +9,6 @@
 
 namespace file_format {
 
-// An internal representation of a yarn in the simulator
-struct Yarn {
-  // A list of 3D control points (row based)
-  Eigen::Block<Eigen::MatrixXd, -1, -1, false> points;
-  // RGB color (in range 0-1)
-  Eigen::RowVector3d color = Eigen::RowVector3d(0.5, 0.5, 0.5);
-  // Yarn radius
-  double radius;
-};
-
 // An internal representation of yarns in the simulator 
 class YarnRepr {
 public:
@@ -42,6 +32,16 @@ public:
 
   // Vertices
   Eigen::MatrixXd vertices;
+  // Bishop frame directions (unit vector or zero)
+  // The frame at index `i` is the frame for the segment between
+  // `points.row(i)` and `points.row(i+1)`
+  Eigen::MatrixX3d bishopFrameU;
+  Eigen::MatrixX3d bishopFrameV;
+  // Material frame directions (unit vector or zero)
+  // The frame at index `i` is the frame for the segment between
+  // `points.row(i)` and `points.row(i+1)`
+  Eigen::MatrixX3d materialFrameU;
+  Eigen::MatrixX3d materialFrameV;
   
   Eigen::Block<Eigen::MatrixXd> getYarnPoints(size_t index);
   const Eigen::Block<const Eigen::MatrixXd> getYarnPoints(size_t index) const;

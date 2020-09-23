@@ -15,6 +15,7 @@
 #include "threading/threading.h"
 #include "./SimulatorParams.h"
 #include "./Helper.h"
+#include "./JacobiMethod.h"
 
 namespace simulator {
 BaseSimulator::BaseSimulator(file_format::YarnRepr _yarns,
@@ -98,6 +99,7 @@ void BaseSimulator::setVelocity(const file_format::YarnRepr& yarn) {
 }
 
 const file_format::YarnRepr& BaseSimulator::getYarns() const {
+  yarns.vertices = inflate(Q);
   return yarns;
 }
 
@@ -143,7 +145,6 @@ void BaseSimulator::step(const StateGetter& cancelled) {
   if (params.statistics) {
     printStatistics();
   }
-  yarns.vertices = inflate(Q);
 }
 
 void BaseSimulator::updateCollisionTree(const StateGetter& cancelled) {
@@ -377,6 +378,9 @@ void BaseSimulator::buildLinearModel(size_t i, size_t j, LinearizedContactModel*
   (model->dForceJI) *= coefficient;
   (model->dForceJJ) *= coefficient;
 
+  // Initialize jacobi method metadata
+  model->jacobiV = Eigen::Matrix3d::Identity();
+
   // Mark as valid
   model->lastUpdate = 0;
   model->valid = true;
@@ -423,40 +427,57 @@ bool BaseSimulator::applyApproxContactForce(size_t i, size_t j,
   Eigen::Matrix3d Apq = Eigen::Matrix3d::Zero();
   for (int k = 0; k < 4; k++) {
     Apq += (pointAt(QI, k) - center) * pointAt(model->RelativeQI, k).transpose();
+  }
+  for (int k = 0; k < 4; k++) {
     Apq += (pointAt(QJ, k) - center) * pointAt(model->RelativeQJ, k).transpose();
   }
-  checkNaN(Apq);
 
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(Apq.transpose() * Apq);
-  Eigen::Matrix3d rotation;  // The estimated rotation matrix
-  bool appliedRotation = false;  // Is rotation successful
-  if (solver.info() != Eigen::Success) {
-    SPDLOG_ERROR("Failed to solve for lineared model rotation (1)");
-  }
-  else {
-    rotation = Apq * solver.operatorInverseSqrt();
+  Eigen::Matrix3d A = Apq.transpose() * Apq;
 
-    if (solver.info() != Eigen::Success || rotation.hasNaN()) {
-      if (!foundNaN) {
-        SPDLOG_ERROR("Failed to solve for lineared model rotation (2)");
-        SPDLOG_ERROR("Apq: {}", toString(Apq).c_str());
-        SPDLOG_ERROR("Inside solver: {}", toString(Apq.transpose() * Apq).c_str());
-      }
-      foundNaN = true;
+  // Store the ground truth calculated by Eigen
+  // Compare it with Jacobi method later
+  Eigen::Matrix3d rotationGroundTruth = Eigen::Matrix3d::Zero();
+  if (params.statistics) {
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(A);
+    if (solver.info() != Eigen::Success) {
     }
     else {
-      // The inverse of a rotational matrix is the the transpose
-      Eigen::Matrix3d inverseRotation = rotation.transpose();
-      checkNaN(inverseRotation);
-      for (int k = 0; k < 4; k++) {
-        pointAt(dQI, k) = inverseRotation * pointAt(dQI, k);
-        pointAt(dQJ, k) = inverseRotation * pointAt(dQJ, k);
-      }
-      appliedRotation = true;
+      rotationGroundTruth = Apq * solver.operatorInverseSqrt();
     }
   }
 
-  // Check if a model rebuild is needed
+  // Warm start Jacobi method
+  A = model->jacobiV.transpose() * A * model->jacobiV;
+
+  // Estimate rotation using Jacobi method
+  cyclicJacobi(&A, &(model->jacobiV), 1);
+  inverseSquareRoot(&A, model->jacobiV);
+  Eigen::Matrix3d rotation = Apq * A;
+
+  // The inverse of a rotational matrix is the the transpose
+  Eigen::Matrix3d inverseRotation = rotation.transpose();
+  checkNaN(inverseRotation);
+
+  // Rotate the points
+  for (int k = 0; k < 4; k++) {
+    pointAt(dQI, k) = inverseRotation * pointAt(dQI, k);
+    pointAt(dQJ, k) = inverseRotation * pointAt(dQJ, k);
+  }
+
+  // Check the error by Jacobi method
+  if (params.statistics) {
+    double error = (rotation - rotationGroundTruth).cwiseAbs().sum() / rotationGroundTruth.cwiseAbs().sum();
+    double oldError = statistics.jacobiMethodError;
+    while (!statistics.jacobiMethodError.compare_exchange_strong(
+      oldError, error + oldError)) {
+      oldError = statistics.jacobiMethodError;
+    }
+    statistics.jacobiMethodErrorCount++;
+  }
+
+  // EASY_END_BLOCK; EASY_BLOCK("Deviation");
+
+  // === Check if a model rebuild is needed ===
   double deviation = std::max(dQI.cwiseAbs().maxCoeff(), dQJ.cwiseAbs().maxCoeff());
   const double r = yarns.yarns[0].radius;
   if (deviation >= params.contactModelTolerance * r) {
@@ -464,28 +485,29 @@ bool BaseSimulator::applyApproxContactForce(size_t i, size_t j,
     return false;
   }
 
-  // Estimate the force
+  // EASY_END_BLOCK; EASY_BLOCK("Estimation");
+
+  // === Estimate the force ===
   ControlPoints forceI = model->baseForceI + model->dForceII * dQI + model->dForceIJ * dQJ;
   ControlPoints forceJ = model->baseForceJ + model->dForceJI * dQI + model->dForceJJ * dQJ;
 
-  // Revert the rotation
-  if (appliedRotation) {
-    for (int k = 0; k < 4; k++) {
-      pointAt(forceI, k) = rotation * pointAt(forceI, k);
-      pointAt(forceJ, k) = rotation * pointAt(forceJ, k);
-    }
+  // EASY_END_BLOCK; EASY_BLOCK("Revert Rotation");
+
+  // === Revert the rotation ===
+  for (int k = 0; k < 4; k++) {
+    pointAt(forceI, k) = rotation * pointAt(forceI, k);
+    pointAt(forceJ, k) = rotation * pointAt(forceJ, k);
   }
 
-  checkNaN(forceI);
-  checkNaN(forceJ);
+  // EASY_END_BLOCK; EASY_BLOCK("Apply");
 
-  // Apply force
-  forces.block<12, 1>(i * 3ull, 0) += forceI;
-  forces.block<12, 1>(j * 3ull, 0) += forceJ;
+  // === Apply force ===
+  forces.block<12, 1>(i * 3, 0) += forceI;
+  forces.block<12, 1>(j * 3, 0) += forceJ;
 
-  checkNaN(forces);
+  // EASY_END_BLOCK; EASY_BLOCK("Statistics");
 
-  // Calculate statistics when needed
+  // === Calculate statistics ===
   if (params.statistics) {
     ControlPoints realForceI;
     ControlPoints realForceJ;
@@ -501,9 +523,9 @@ bool BaseSimulator::applyApproxContactForce(size_t i, size_t j,
       oldError = statistics.contactForceTotalError;
     }
   }
+  model->lastUpdate++;
 
   // Estimation applied
-  model->lastUpdate++;
   return true;
 }
 

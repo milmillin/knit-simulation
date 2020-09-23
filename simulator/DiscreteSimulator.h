@@ -37,6 +37,7 @@ public:
   void applyGroundVelocityFilter();
   void applyGlobalDamping();
 
+  const file_format::YarnRepr& getYarns() override;
 
  private:
   // === Bending Force ===
