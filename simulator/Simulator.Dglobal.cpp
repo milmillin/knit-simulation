@@ -8,7 +8,7 @@ namespace simulator {
 // Global Damping
 //
 
-void Simulator::calculateGlobalDamping(int i) {
+void Simulator::calculateGlobalDamping(int thread_id, size_t i) {
   int index = i * 3;
 
   DECLARE_POINTS2(pD, dQ, index);

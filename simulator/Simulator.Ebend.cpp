@@ -8,7 +8,7 @@ namespace simulator {
 // Bending Energy
 //
 
-void Simulator::calculateBendingEnergy(int i) {
+void Simulator::calculateBendingEnergy(int thread_id, size_t i) {
   int index = i * 3;
   DECLARE_POINTS2(p, Q, index);
 
