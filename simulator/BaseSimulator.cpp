@@ -22,15 +22,16 @@ namespace simulator {
     thread_pool(std::thread::hardware_concurrency()),
     yarns(_yarns),
     params(_params),
-    m(_yarns.yarns[0].points.rows()),
-    Q(flatten(_yarns.yarns[0].points)),
+    m(_yarns.vertices.rows()),
+    Q(flatten(_yarns.vertices)),
     dQ(Eigen::MatrixXd::Zero(3ll * m, 1)),
     F(Eigen::MatrixXd::Zero(3ll * m, 1)),
     constraints(m, &thread_pool),
     contactModelCache(m, m)
   {
-    SPDLOG_INFO("Initializing Simulator");
-    SPDLOG_INFO("> Found {} control points", m);
+    log() << "Initializing Simulator" << std::endl;
+    log() << "> Found " << m << " control points" << std::endl;
+    log() << "> Found " << _yarns.numYarns() << " yarns" << std::endl;
 
     SPDLOG_INFO("Calculating Segment Length");
     segmentLength.resize(m - 1ll);
@@ -38,31 +39,32 @@ namespace simulator {
       segmentLength[i] = params.cInit * (pointAt(Q, i) - pointAt(Q, i + 1)).norm();
     }
 
-    catmullRomLength.resize(m - 3);
-    for (int i = 0; i < m - 3; i++) {
-      int index = i * 3;
-      DECLARE_POINTS2(p, Q, index);
-
-      catmullRomLength[i] = params.cInit * integrate<double>([&](double s)->double {
-        DECLARE_BASIS_D2(bD, s);
-        return POINT_FROM_BASIS(p, bD).norm();
-        }, 0, 1);
-    }
-
+    int N = m - 3;
     double totalLength = 0;
-    for (double length : catmullRomLength) {
-      totalLength += length;
+    catmullRomLength.resize(N, 0);
+    for (const auto& yarn : _yarns.yarns) {
+      for (int i = yarn.begin; i < yarn.end - 3; i++) {
+        int index = i * 3;
+        DECLARE_POINTS2(p, Q, index);
+
+        totalLength += catmullRomLength[i] = params.cInit * integrate<double>([&](double s)->double {
+          DECLARE_BASIS_D2(bD, s);
+          return POINT_FROM_BASIS(p, bD).norm();
+          }, 0, 1);
+      }
     }
-    SPDLOG_INFO("> Total Length: {}", totalLength);
+    log() << "> Total Length: " << totalLength << std::endl;
 
 
-    SPDLOG_INFO("Initializing AABB tree");
-    collisionTree = aabb::Tree(3, 0.05, Q.rows() - 4, true);
+    log() << "Initializing AABB tree" << std::endl;
+    collisionTree = aabb::Tree(3, 0.05, N, true);
     std::vector<double> lowerBound;
     std::vector<double> upperBound;
-    for (int i = 0; i < m - 3; i++) {
-      catmullRomBoundingBox(Q, i, lowerBound, upperBound, yarns.yarns[0].radius);
-      collisionTree.insertParticle((unsigned)i, lowerBound, upperBound);
+    for (const auto& yarn : _yarns.yarns) {
+      for (int i = yarn.begin; i < yarn.end - 3; i++) {
+        catmullRomBoundingBox(Q, i, lowerBound, upperBound, yarn.radius);
+        collisionTree.insertParticle((unsigned)i, lowerBound, upperBound);
+      }
     }
   }
 
@@ -84,25 +86,24 @@ namespace simulator {
   }
 
   void BaseSimulator::setPosition(const file_format::YarnRepr& yarn) {
-    const Eigen::MatrixXd& v = yarn.yarns[0].points;
+    const Eigen::MatrixXd& v = yarn.vertices;
     assert(v.cols() == 3 && 3 * v.rows() == dQ.rows());
     Q = flatten(v);
   }
 
   void BaseSimulator::setVelocity(const file_format::YarnRepr& yarn) {
-    const Eigen::MatrixXd& v = yarn.yarns[0].points;
+    const Eigen::MatrixXd& v = yarn.vertices;
     assert(v.cols() == 3 && 3 * v.rows() == dQ.rows());
     dQ = flatten(v);
   }
 
   const file_format::YarnRepr& BaseSimulator::getYarns() {
-    yarns.yarns[0].points = inflate(Q);
     return yarns;
   }
 
   file_format::YarnRepr BaseSimulator::getVelocityYarns() {
     file_format::YarnRepr yarn = yarns.createAlike();
-    yarn.yarns[0].points = inflate(dQ);
+    yarn.vertices = inflate(dQ);
     return yarn;
   }
 
@@ -137,12 +138,12 @@ namespace simulator {
       if (cancelled()) break;
       this->postStep(cancelled);
 
-      yarns.yarns[0].points = inflate(Q);
     }
 
     if (params.statistics) {
       printStatistics();
     }
+    yarns.vertices = inflate(Q);
   }
 
   void BaseSimulator::updateCollisionTree(const StateGetter& cancelled) {
@@ -154,9 +155,11 @@ namespace simulator {
     // Update AABB tree
     std::vector<double> lowerBound;
     std::vector<double> upperBound;
-    for (int i = 0; i < m - 3; i++) {
-      catmullRomBoundingBox(Q, i, lowerBound, upperBound, yarns.yarns[0].radius);
-      collisionTree.updateParticle((unsigned)i, lowerBound, upperBound);
+    for (const auto& yarn : yarns.yarns) {
+      for (int i = yarn.begin; i < yarn.end - 3; i++) {
+        catmullRomBoundingBox(Q, i, lowerBound, upperBound, yarn.radius);
+        collisionTree.updateParticle((unsigned)i, lowerBound, upperBound);
+      }
     }
   }
 
@@ -541,23 +544,25 @@ namespace simulator {
     }
 
     // Find all intersecting segments
-    auto task =
-      [this, &forces](int threadID, int start, int end){
-        for (int i = start; i < end; i++) {
-          std::vector<unsigned int> intersections = collisionTree.query(i);
-          for (int j : intersections) {
-            if (j > i + 1) {
-              using namespace std::placeholders;
-              auto task = std::bind(&BaseSimulator::applyContactForceBetweenSegments,
-                                    this, _1,
-                                    &forces,
-                                    i, j);
-              thread_pool.push(task);
+    threading::submitProducerAndWait(thread_pool,
+      [this, &forces](int, ctpl::thread_pool *thread_pool){
+
+        for (const auto& yarn : yarns.yarns) {
+          for (int i = yarn.begin; i < yarn.end - 3; i++) {
+            std::vector<unsigned int> intersections = collisionTree.query(i);
+            for (int j : intersections) {
+              if (j > i + 1) {
+                using namespace std::placeholders;
+                auto task = std::bind(&BaseSimulator::contactForceBetweenSegments,
+                  this, _1,
+                  &forces,
+                  i, j);
+                thread_pool->push(task);
+              }
             }
           }
         }
-      };
-    threading::runSequentialJob(thread_pool, task, 0, m - 3);
+      });
 
     // Summarize the result of all threads
     for (auto force : forces) {

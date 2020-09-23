@@ -418,9 +418,11 @@ void DiscreteSimulator::applyGlobalDamping() {
 
 void DiscreteSimulator::setUpConstraints() {
   // Length Constraints
-  if (params.enableLenghConstrain) {
-    for (int i = 0; i < m - 1; i++) {
-      addSegmentLengthConstraint(i);
+  if (params.enableLengthConstrain) {
+    for (const auto& yarn : yarns.yarns) {
+      for (int i = yarn.begin; i < yarn.end - 1; i++) {
+        addSegmentLengthConstraint(i);
+      }
     }
   }
 
