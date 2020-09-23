@@ -98,7 +98,7 @@ void BaseSimulator::setVelocity(const file_format::YarnRepr& yarn) {
   dQ = flatten(v);
 }
 
-const file_format::YarnRepr& BaseSimulator::getYarns() const {
+const file_format::YarnRepr& BaseSimulator::getYarns() {
   yarns.vertices = inflate(Q);
   return yarns;
 }

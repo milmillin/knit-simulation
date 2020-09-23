@@ -351,10 +351,10 @@ void DiscreteSimulator::applyGlobalDamping() {
 
 const file_format::YarnRepr& DiscreteSimulator::getYarns() {
   // Lazy-initialize the frames
-  yarns.yarns[0].bishopFrameU = u;
-  yarns.yarns[0].bishopFrameV = v;
-  yarns.yarns[0].materialFrameU = m1;
-  yarns.yarns[0].materialFrameV = m2;
+  yarns.bishopFrameU = u;
+  yarns.bishopFrameV = v;
+  yarns.materialFrameU = m1;
+  yarns.materialFrameV = m2;
 
   // Lazy-initialize other data and then return
   return BaseSimulator::getYarns();

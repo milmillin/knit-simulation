@@ -37,7 +37,7 @@ Viewer::Viewer(std::string outputDirectory, bool reload) : _outputDirectory(outp
   }
 }
 
-int Viewer::launch(bool resizable, bool fullscreen, const std::string &name, int width, int height) {
+int Viewer::launch(bool resizable, bool fullscreen, const std::string& name, int width, int height) {
   assert(_loaded);
   // Add menu
   _menu.reset(new Menu());
@@ -78,7 +78,7 @@ void Viewer::refresh() {
   const simulator::SimulatorParams& params = _simulator->getParams();
 
   // Create Layers
-  while (this->data_list.size() <= ViewerLayerID::YARNS +  yarns.yarns.size()) {
+  while (this->data_list.size() <= ViewerLayerID::YARNS + yarns.yarns.size()) {
     this->data_list.push_back(igl::opengl::ViewerData());
   }
 
@@ -101,27 +101,27 @@ void Viewer::refresh() {
   }
 
   // Draw frames
+  this->selected_data_index = ViewerLayerID::MATERIAL_FRAMES;
+  this->data().clear();
   if (showMaterialFrames || showBishopFrame) {
-    this->selected_data_index = ViewerLayerID::MATERIAL_FRAMES;
 
     Eigen::MatrixX3d V;
     Eigen::MatrixX2i E;
     Eigen::MatrixX3f C;
     visualizeMaterialAndBishopFrames(yarns, &V, &E, &C);
 
-    this->data().clear();
     this->data().set_edges(V, E, C.cast<double>());
     this->data().show_lines = true;
     this->data().line_width = 5;
   }
 
-  for (int i = 0; i < yarns.yarns.size(); i++) {
+  for (size_t i = 0; i < yarns.yarns.size(); i++) {
     // Clear old mesh
     this->selected_data_index = i + ViewerLayerID::YARNS;
     this->data().clear();
 
     // Get curve
-    auto &yarn = yarns.yarns[i];
+    auto& yarn = yarns.yarns[i];
     auto yarnPoints = yarns.getYarnPoints(i);
 
     // Use Catmull-Rom to smooth the curve
@@ -144,7 +144,7 @@ void Viewer::refresh() {
         E(i, 1) = i + 1;
       }
       this->data().set_edges(yarnPoints,
-          E, Eigen::RowVector3d(1, 1, 1));
+        E, Eigen::RowVector3d(1, 1, 1));
     }
 
     // Set vertex labels
@@ -185,7 +185,7 @@ void Viewer::createSimulator() {
   // Reset manager
   _animationManager.reset(new AnimationManager(this));
   _history.reset(new HistoryManager(this, _simulator.get()->getYarns()));
-  
+
   _currentFrame = 0;
 
   this->refresh();
@@ -197,7 +197,8 @@ void Viewer::loadYarn(const std::string& filename) {
   file_format::Yarns::Yarns yarns;
   try {
     yarns = file_format::Yarns::Yarns::load(filename);
-  } catch (const std::runtime_error& e) {
+  }
+  catch (const std::runtime_error& e) {
     SPDLOG_ERROR("Runtime error while loading \"{}\": {}", filename, e.what());
   }
 
@@ -282,49 +283,46 @@ void Viewer::saveState() const {
   state.save(_outputDirectory + VIEWER_STATE_NAME);
 }
 
-void Viewer::visualizeMaterialAndBishopFrames(const file_format::YarnRepr &yarnRepr,
-    Eigen::MatrixX3d *V, Eigen::MatrixX2i *E, Eigen::MatrixX3f *C) {
+void Viewer::visualizeMaterialAndBishopFrames(const file_format::YarnRepr& yarnRepr,
+  Eigen::MatrixX3d* V, Eigen::MatrixX2i* E, Eigen::MatrixX3f* C) {
   std::vector<Eigen::RowVector3d> v;
   std::vector<Eigen::RowVector2i> e;
   std::vector<Eigen::Vector3f> c;
 
-  for (auto &yarn : yarnRepr.yarns) {
-    // Start of vertex IDs for vetices on the yarn
-    int yarnVidStart = v.size();
-    // Insert vertices on the yarn
-    for (int i = 0; i < yarn.points.rows(); i++) {
-      v.push_back(yarn.points.row(i));
-    }
+  // Insert vertices on the yarn
+  for (size_t i = 0; i < yarnRepr.vertices.rows(); i++) {
+    v.push_back(yarnRepr.vertices.row(i));
+  }
 
-    // Insert lines representing the material frame
-    for (int i = 0; i < yarn.bishopFrameU.rows(); i++) {
-      // Show a rectangle in the direction of the axis
-      auto addAxis = [&](Eigen::RowVector3d direction, Eigen::Vector3f &color) {
-        // Insert vertices
-        int vid1 = v.size();
-        v.push_back(yarn.points.row(i) + yarn.radius * 2 * direction);
-        int vid2 = v.size();
-        v.push_back(yarn.points.row(i + 1) + yarn.radius * 2 * direction);
+  for (const auto& yarn : yarnRepr.yarns) {
+    size_t i;
+    // Show a rectangle in the direction of the axis
+    auto addAxis = [&](Eigen::RowVector3d direction, Eigen::Vector3f& color) {
+      // Insert vertices
+      size_t vid1 = v.size();
+      v.push_back(yarnRepr.vertices.row(i) + yarn.radius * 2 * direction);
+      size_t vid2 = v.size();
+      v.push_back(yarnRepr.vertices.row(i + 1) + yarn.radius * 2 * direction);
 
-        // Insert lines
-        e.push_back({vid1, vid2});
-        e.push_back({vid1, yarnVidStart + i});
-        e.push_back({vid2, yarnVidStart + i + 1});
+      // Insert lines
+      e.push_back({ vid1, vid2 });
+      e.push_back({ vid1, i });
+      e.push_back({ vid2, i + 1 });
 
-        // Insert colors
-        c.push_back(color);
-        c.push_back(color);
-        c.push_back(color);
-      };
-
+      // Insert colors
+      c.push_back(color);
+      c.push_back(color);
+      c.push_back(color);
+    };
+    for (i = yarn.begin; i < yarn.end - 1; i++) {
       // Show the frames
       if (showBishopFrame) {
-        addAxis(yarn.bishopFrameU.row(i), bishopFrameUColor);
-        addAxis(yarn.bishopFrameV.row(i), bishopFrameVColor);
+        addAxis(yarnRepr.bishopFrameU.row(i), bishopFrameUColor);
+        addAxis(yarnRepr.bishopFrameV.row(i), bishopFrameVColor);
       }
       if (showMaterialFrames) {
-        addAxis(yarn.materialFrameU.row(i), materialFrameUColor);
-        addAxis(yarn.materialFrameV.row(i), materialFrameVColor);
+        addAxis(yarnRepr.materialFrameU.row(i), materialFrameUColor);
+        addAxis(yarnRepr.materialFrameV.row(i), materialFrameVColor);
       }
     }
   }
