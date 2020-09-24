@@ -66,6 +66,9 @@ set(SRCFILES ${SRCFILES} third_party/aabbcc/src/AABB.cc)
 # Threading
 include_directories(third_party/CTPL)
 
+# cxxopts
+include_directories(third_party/cxxopts/include)
+
 # Linking
 add_executable(${PROJECT_NAME} ${SRCFILES})
 target_link_libraries(${PROJECT_NAME} easy_profiler igl::core igl::opengl_glfw igl::opengl_glfw_imgui) # Add stdc++fs

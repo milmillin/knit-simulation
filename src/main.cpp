@@ -1,6 +1,6 @@
 #include "./easy_profiler_stub.h"
-#include "./cxxopts.h"
-#include "spdlog/spdlog.h"
+#include <cxxopts.hpp>
+#include <spdlog/spdlog.h>
 
 #include "ui/viewer.h"
 
