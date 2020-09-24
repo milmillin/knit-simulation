@@ -21,6 +21,23 @@ else()
   file(GLOB SRCFILES src/*.cpp src/*/*.cpp src/*/*/*.cpp third_party/)
 endif()
 
+# Enable warnings
+if (MSVC)
+  # For Microsoft compilers
+  set_source_files_properties(
+    ${SRCFILES}
+    PROPERTIES
+    COMPILE_FLAGS "/W4"
+  )
+else()
+  # For other compilers
+  set_source_files_properties(
+    ${SRCFILES}
+    PROPERTIES
+    COMPILE_FLAGS "-Wall -Wextra -pedantic"
+  )
+endif()
+
 # spdlog
 include_directories("./third_party/spdlog/include/")
 
