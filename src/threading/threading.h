@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "./ctpl_stl.h"
+#include <ctpl_stl.h>
 
 namespace threading {
 

@@ -4,6 +4,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include <AABB.h>
+#include <ctpl_stl.h>
 #include "spdlog/spdlog.h"
 
 #include <functional>
@@ -11,9 +13,7 @@
 #include <atomic>
 
 #include "file_format/yarnRepr.h"
-#include "./threading/ctpl_stl.h"
 #include "./SimulatorParams.h"
-#include "./AABB.h"
 #include "./Constraints.h"
 #include "./CacheArray2D.h"
 

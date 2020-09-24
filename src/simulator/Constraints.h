@@ -6,10 +6,10 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include <ctpl_stl.h>
 
 #include "./macros.h"
 #include "./Helper.h"
-#include "./threading/ctpl_stl.h"
 
 namespace simulator {
 
