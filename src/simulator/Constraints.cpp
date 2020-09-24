@@ -41,6 +41,8 @@ Eigen::MatrixXd Constraints::calculate(const Eigen::MatrixXd& q) const {
   Eigen::MatrixXd res(constraints.size(), 1);
 
   auto calculateTask = [this, &res, &q](int thread_id, int start_index, int end_index) {
+    EIGEN_UNUSED_VARIABLE(thread_id);
+
     for (int i = start_index; i < end_index; i++) {
       res(i) = constraints[i].f(q);
     }

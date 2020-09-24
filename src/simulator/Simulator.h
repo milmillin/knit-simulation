@@ -41,4 +41,4 @@ protected:
   void setUpConstraints() override;
 };
 
-}; // namespace simulator
+} // namespace simulator

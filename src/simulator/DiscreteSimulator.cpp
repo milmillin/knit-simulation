@@ -54,6 +54,8 @@ void DiscreteSimulator::stepImpl(const StateGetter& cancelled) {
 }
 
 void DiscreteSimulator::postStep(const StateGetter& cancelled) {
+  EIGEN_UNUSED_VARIABLE(cancelled)
+
   if (params.kBend >= 1e-6) updateBendingForceMetadata();
 }
 
@@ -68,6 +70,8 @@ void DiscreteSimulator::applyGroundVelocityFilter() {
 
   for (const auto& yarn : yarns.yarns) {
     threading::runParallelFor(thread_pool, yarn.begin, yarn.end, [this](int thread_id, size_t i) {
+      EIGEN_UNUSED_VARIABLE(thread_id)
+
       if (coordAt(Q, i, 1) < params.groundHeight && coordAt(dQ, i, 1) < 0) {
         coordAt(dQ, i, 0) *= params.groundFriction;
         coordAt(dQ, i, 1) = 0;
@@ -76,14 +80,6 @@ void DiscreteSimulator::applyGroundVelocityFilter() {
       }
       });
   }
-}
-
-// CHECK
-void DiscreteSimulator::curvatureBinormalTask(int thread_id, size_t i) {
-  Eigen::Vector3d a = 2 * e.row(i - 1).cross(e.row(i));
-  double b = segmentLength[i - 1] * segmentLength[i];
-  double c = e.row(i - 1).dot(e.row(i));
-  curvatureBinormal.row(i) = a.transpose() / (b + c);
 }
 
 // CHECK
@@ -172,7 +168,25 @@ static inline Eigen::Matrix3d crossMatrix(Eigen::Vector3d e) {
   return result;
 }
 
+// CHECK
+static double newThetaHat(RowMatrixX3d& e, RowMatrixX3d& u, size_t i) {
+  Eigen::Vector3d newU = parallelTransport(u.row(i - 1ull), e.row(i - 1ull), e.row(i));
+  return std::atan2(newU.cross(u.row(i)).norm(), newU.dot(u.row(i)));
+}
+
+// CHECK
+void DiscreteSimulator::curvatureBinormalTask(int thread_id, size_t i) {
+  EIGEN_UNUSED_VARIABLE(thread_id)
+
+  Eigen::Vector3d a = 2 * e.row(i - 1).cross(e.row(i));
+  double b = segmentLength[i - 1] * segmentLength[i];
+  double c = e.row(i - 1).dot(e.row(i));
+  curvatureBinormal.row(i) = a.transpose() / (b + c);
+}
+
 void DiscreteSimulator::gradCurvatureBinormalTask(int thread_id, size_t i) {
+  EIGEN_UNUSED_VARIABLE(thread_id)
+
   Eigen::Matrix3d a = 2 * crossMatrix(e.row(i)) + 2 * crossMatrix(e.row(i - 1ull));
   Eigen::RowVector3d b = (e.row(i) - e.row(i - 1ull));
   double c = segmentLength[i - 1ull] * segmentLength[i] + e.row(i - 1ull).dot(e.row(i));
@@ -183,20 +197,15 @@ void DiscreteSimulator::gradCurvatureBinormalTask(int thread_id, size_t i) {
   }
 }
 
-// CHECK
-static double newThetaHat(RowMatrixX3d& e, RowMatrixX3d& u, size_t i) {
-  Eigen::Vector3d newU = parallelTransport(u.row(i - 1ull), e.row(i - 1ull), e.row(i));
-  return std::atan2(newU.cross(u.row(i)).norm(), newU.dot(u.row(i)));
-}
-
 void DiscreteSimulator::bendingForceTask(int thread_id, size_t i) {
+  EIGEN_UNUSED_VARIABLE(thread_id)
+
   Eigen::Vector3d force = Eigen::Vector3d::Zero();
 
   // FIXME: assert(i - 1 >= 0 && i + 1 < nControlPoints - 1)
   for (size_t k = i - 1; k <= i + 1; k++) {
     double l = segmentLength[k - 1ull] + segmentLength[k];
-    Eigen::Vector3d kb = curvatureBinormal.row(k);
-    for (int j = k - 1; j <= k; j++) {
+    for (size_t j = k - 1; j <= k; j++) {
       Eigen::MatrixXd coeff(2, 3);
       coeff.row(0) = m2.row(j);
       coeff.row(1) = -m1.row(j);
@@ -213,6 +222,8 @@ void DiscreteSimulator::bendingForceTask(int thread_id, size_t i) {
 
 // CHECK
 void DiscreteSimulator::twistingForceTask(int thread_id, size_t i) {
+  EIGEN_UNUSED_VARIABLE(thread_id)
+
   Eigen::Vector3d dTheta_dQi_1 = curvatureBinormal.row(i) / 2 / segmentLength[i - 1ull];
   Eigen::Vector3d dTheta_dQi = curvatureBinormal.row(i) / 2 / segmentLength[i];
   double coeff = 2 * (theta[i] - theta[i + 1ull] - thetaHat[i]) / (segmentLength[i - 1ull] + segmentLength[i]);
@@ -265,6 +276,8 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     for (const auto& yarn : yarns.yarns) {
       // FIXME: Start from 0?
       threading::runParallelFor(thread_pool, yarn.begin + 1, yarn.end - 1, [this](int thread_id, size_t i) {
+          EIGEN_UNUSED_VARIABLE(thread_id)
+
           Eigen::Vector3d newE = pointAt(Q, i + 1) - pointAt(Q, i);
           u.row(i) = parallelTransport(u.row(i), e.row(i), newE).normalized();
           v.row(i) = newE.cross(u.row(i)).normalized();
@@ -284,6 +297,8 @@ void DiscreteSimulator::updateBendingForceMetadata() {
       for (const auto& yarn : yarns.yarns) {
         // NOTE: We are using the stress-free boundary condition, so theta[0] and theta[end] are always 0.
         threading::runParallelFor(thread_pool, yarn.begin + 1, yarn.end - 2, [this, &thetaUpdate](int thread_id, size_t i) {
+          EIGEN_UNUSED_VARIABLE(thread_id)
+
           double li = segmentLength[i] + segmentLength[i - 1];
           thetaUpdate[i] = params.kTwist * 2 * (theta[i] - theta[i - 1] - thetaHat[i]) / li;
           double li_1 = segmentLength[i] + segmentLength[i + 1];
@@ -313,8 +328,10 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     for (const auto& yarn : yarns.yarns) {
       // FIXME: Should start from 0?
       threading::runParallelFor(thread_pool, yarn.begin + 1, yarn.end - 1, [this](int thread_id, size_t i) {
-        m1.row(i) = std::cos(theta[i]) * u.row(i) + std::sin(theta[i]) * v.row(i);
-        m2.row(i) = -std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
+          EIGEN_UNUSED_VARIABLE(thread_id)
+
+          m1.row(i) = std::cos(theta[i]) * u.row(i) + std::sin(theta[i]) * v.row(i);
+          m2.row(i) = -std::sin(theta[i]) * u.row(i) + std::cos(theta[i]) * v.row(i);
         });
     }
   }
@@ -323,6 +340,8 @@ void DiscreteSimulator::updateBendingForceMetadata() {
     EASY_BLOCK("updateThetaHat");
     for (const auto& yarn : yarns.yarns) {
       threading::runParallelFor(thread_pool, yarn.begin + 1, yarn.end - 1, [this](int thread_id, size_t i) {
+        EIGEN_UNUSED_VARIABLE(thread_id)
+
         double newValue = newThetaHat(e, u, i);
         if (newValue + pi * thetaHatOffset[i] - thetaHat[i] < -pi / 2) {
           thetaHatOffset[i] += 1;
@@ -343,6 +362,8 @@ void DiscreteSimulator::applyGlobalDamping() {
 
   for (const auto& yarn : yarns.yarns) {
     threading::runParallelFor(thread_pool, yarn.begin, yarn.end, [this](int thread_id, size_t i) {
+      EIGEN_UNUSED_VARIABLE(thread_id)
+
       double v = pointAt(dQ, i).norm();
       pointAt(dQ, i) *= std::max(0.0, v - params.kGlobalDamping) / v;
       });

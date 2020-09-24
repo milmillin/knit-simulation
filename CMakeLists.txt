@@ -11,6 +11,7 @@ set (CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories("./src/")
+include_directories("./third_party/")
 
 # Add project files
 if (${CMAKE_VERSION} VERSION_EQUAL "3.11.0"

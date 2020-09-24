@@ -25,7 +25,6 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
   this->callback_draw_viewer_menu = [&]() {
     // Based on 'ImGuiMenu::draw_viewer_menu'
     bool needRefresh = false;
-    bool invalidateCache = true;
     Viewer* yarnViewer = reinterpret_cast<Viewer*>(viewer);
     simulator::SimulatorParams& params = yarnViewer->params;
 
@@ -116,7 +115,6 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
         &(yarnViewer->curveSamples),
         1, 1, 10)) {
         needRefresh = true;
-        invalidateCache = true;
       }
       ImGui::PopItemWidth();
     }

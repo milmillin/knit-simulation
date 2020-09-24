@@ -56,11 +56,6 @@ glm::dvec3 simulator::catmullRomSample(const Eigen::MatrixXd &controlPoints, int
 static inline void catmullRowSample
     (const Eigen::MatrixXd &controlPoints, int controlStartRow, int nSamples,
     Eigen::MatrixXd *samples, int samplesStartRow) {
-  glm::dvec3 c0 = POINT_FROM_ROW(controlPoints, controlStartRow);
-  glm::dvec3 c1 = POINT_FROM_ROW(controlPoints, controlStartRow + 1);
-  glm::dvec3 c2 = POINT_FROM_ROW(controlPoints, controlStartRow + 2);
-  glm::dvec3 c3 = POINT_FROM_ROW(controlPoints, controlStartRow + 3);
-
   for (int i = 0; i < nSamples; i++) {
     double s = (double) i / nSamples;
     auto c = simulator::catmullRomSample(controlPoints, controlStartRow, s);
@@ -125,7 +120,7 @@ Eigen::MatrixXd simulator::inflate(const Eigen::MatrixXd& v, size_t col) {
 
 	Eigen::MatrixXd res(r, col);
 	for (int i = 0; i < r; i++) {
-		for (int j = 0; j < col; j++) {
+		for (size_t j = 0; j < col; j++) {
 			res(i, j) = v(i * col + j, 0);
 		}
 	}

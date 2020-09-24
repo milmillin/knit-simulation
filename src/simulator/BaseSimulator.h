@@ -4,9 +4,9 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
-#include <AABB.h>
 #include <ctpl_stl.h>
 #include "spdlog/spdlog.h"
+#include "aabbcc/src/AABB.h"
 
 #include <functional>
 #include <mutex>
@@ -102,7 +102,8 @@ protected:
   void fastProjection(const StateGetter& cancelled);
   void updateCollisionTree(const StateGetter& cancelled);
   // Called after all update is done
-  virtual void postStep(const StateGetter& cancelled) {};
+  virtual void postStep(const StateGetter& cancelled){
+    EIGEN_UNUSED_VARIABLE(cancelled)}
 
 
   ///////////////////////
