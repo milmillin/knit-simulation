@@ -52,7 +52,8 @@ This should find and build the dependencies and create a `knit-simulator` binary
 
 ## Usage
 
-    ./knit-simulator <yarns-filename> [-r,--restore] [--no-gui] [-o,--output-dir <output-directory>] [-v,--verbose] [--quiet]
+    ./knit-simulator <yarns-filename> [-r,--restore] [--no-gui]
+        [-o,--output-dir <output-directory>] [-v,--verbose] [--quiet]
 
 ### Options
 
