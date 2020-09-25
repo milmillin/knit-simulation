@@ -9,6 +9,8 @@ namespace simulator {
 //
 
 void Simulator::calculateLengthEnergy(int thread_id, size_t i) {
+  EIGEN_UNUSED_VARIABLE(thread_id)
+
   size_t index = i * 3;
   DECLARE_POINTS2(p, Q, index);
 

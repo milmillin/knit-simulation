@@ -6,6 +6,8 @@ This projects simulates yarn interactions.
 
 The dependencies are STL, GLM (for [upstream](https://github.com/textiles-lab/smobj/) code) , Eigen (for matrix calculations), spdlog (for logging) and [libigl](http://libigl.github.io/libigl/) (for visualization). An optional dependency is [Easy Profiler](https://github.com/yse/easy_profiler).
 
+Since many dependencies are included as git submodules, you need to run `git submodule update --init --recursive` after you clone the repo.
+
 The cmake build system will attempt to find libigl according to environment variables (e.g., `LIBIGL`) and searching in common desitinations (e.g., `/usr/local/libigl/`). If you haven't installed libigl before, we recommend you to clone a copy of libigl right here:
 
 ```Bash

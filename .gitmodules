@@ -1,3 +1,15 @@
-[submodule "spdlog"]
-	path = spdlog
-	url = https://github.com/gabime/spdlog
+[submodule "third_party/libigl"]
+	path = third_party/libigl
+	url = git@github.com:libigl/libigl.git
+[submodule "third_party/spdlog"]
+	path = third_party/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "third_party/aabbcc"]
+	path = third_party/aabbcc
+	url = git@github.com:lohedges/aabbcc.git
+[submodule "third_party/CTPL"]
+	path = third_party/CTPL
+	url = git@github.com:LouYu2015/CTPL.git
+[submodule "third_party/cxxopts"]
+	path = third_party/cxxopts
+	url = git@github.com:jarro2783/cxxopts.git

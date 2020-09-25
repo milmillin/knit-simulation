@@ -28,7 +28,7 @@ class CacheArray2D {
   // Release the element to other threads
   // x: x-axis position
   // y: y-axis position
-  inline void unlock(int x, int y) {
+  inline void unlock(int x, int /*y*/) {
     locks[x].unlock();
   }
 

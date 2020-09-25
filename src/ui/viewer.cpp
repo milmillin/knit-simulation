@@ -290,7 +290,7 @@ void Viewer::visualizeMaterialAndBishopFrames(const file_format::YarnRepr& yarnR
   std::vector<Eigen::Vector3f> c;
 
   // Insert vertices on the yarn
-  for (size_t i = 0; i < yarnRepr.vertices.rows(); i++) {
+  for (Eigen::Index i = 0; i < yarnRepr.vertices.rows(); i++) {
     v.push_back(yarnRepr.vertices.row(i));
   }
 
@@ -329,15 +329,15 @@ void Viewer::visualizeMaterialAndBishopFrames(const file_format::YarnRepr& yarnR
 
   // Convert to matrix
   V->resize(v.size(), 3);
-  for (int i = 0; i < v.size(); i++)
+  for (size_t i = 0; i < v.size(); i++)
     V->row(i) = v[i];
 
   E->resize(e.size(), 2);
-  for (int i = 0; i < e.size(); i++)
+  for (size_t i = 0; i < e.size(); i++)
     E->row(i) = e[i];
 
   C->resize(c.size(), 3);
-  for (int i = 0; i < c.size(); i++)
+  for (size_t i = 0; i < c.size(); i++)
     C->row(i) = c[i].transpose();
 }
 

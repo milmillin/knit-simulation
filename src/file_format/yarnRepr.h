@@ -9,7 +9,7 @@
 
 namespace file_format {
 
-// An internal representation of yarns in the simulator 
+// An internal representation of yarns in the simulator
 class YarnRepr {
 public:
   struct YarnInfo {
@@ -42,7 +42,7 @@ public:
   // `points.row(i)` and `points.row(i+1)`
   Eigen::MatrixX3d materialFrameU;
   Eigen::MatrixX3d materialFrameV;
-  
+
   Eigen::Block<Eigen::MatrixXd> getYarnPoints(size_t index);
   const Eigen::Block<const Eigen::MatrixXd> getYarnPoints(size_t index) const;
 

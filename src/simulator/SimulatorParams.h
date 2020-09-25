@@ -63,4 +63,4 @@ struct SimulatorParams {
   }
 };
 
-}; // namespace simulator
+} // namespace simulator

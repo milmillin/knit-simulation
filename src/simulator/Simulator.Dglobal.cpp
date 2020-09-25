@@ -9,6 +9,8 @@ namespace simulator {
 //
 
 void Simulator::calculateGlobalDamping(int thread_id, size_t i) {
+  EIGEN_UNUSED_VARIABLE(thread_id)
+
   int index = i * 3;
 
   DECLARE_POINTS2(pD, dQ, index);
@@ -34,6 +36,5 @@ void Simulator::calculateGlobalDamping(int thread_id, size_t i) {
     F.block<12, 1>(index, 0) -= coefficient * res;
   }
 }
-
 
 } // namespace simulator

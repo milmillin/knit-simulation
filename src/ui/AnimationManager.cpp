@@ -7,8 +7,10 @@
 namespace UI {
 
 AnimationManager::AnimationManager(Viewer *parent) : 
-    _parent(parent), _terminate(false),
-    _animationRunning(false), _simulationRunning(false) {
+    _parent(parent),
+    _terminate(false),
+    _simulationRunning(false),
+    _animationRunning(false) {
   _simulationThread = std::thread(&AnimationManager::runSimulation, this);
   _animationThread = std::thread(&AnimationManager::runAnimation, this);
 }

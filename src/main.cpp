@@ -1,6 +1,6 @@
 #include "./easy_profiler_stub.h"
-#include "./cxxopts.h"
-#include "spdlog/spdlog.h"
+#include <cxxopts.hpp>
+#include <spdlog/spdlog.h>
 
 #include "ui/viewer.h"
 
@@ -51,7 +51,7 @@ int main(int argc, const char *argv[]) {
     } else {
       viewer.launch();
     }
-  } catch (cxxopts::OptionException e) {
+  } catch (cxxopts::OptionException &e) {
     SPDLOG_ERROR("Error while parsing arguments: {}", e.what());
     std::cout << options.help() << std::endl;
   }

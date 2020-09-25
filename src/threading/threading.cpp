@@ -3,8 +3,9 @@
 #include <functional>
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 
-#include "./ctpl_stl.h"
+#include <ctpl_stl.h>
 
 namespace threading {
 
@@ -15,7 +16,7 @@ void submitProducerAndWait(ctpl::thread_pool &thread_pool,
   thread_pool.wait();
 }
 
-static void sequencialJobProducer(int thread_id, ctpl::thread_pool *thread_pool,
+static void sequencialJobProducer(int /*thread_id*/, ctpl::thread_pool *thread_pool,
     SequencialTaskConsumer consumer,
     int start, int end, int step) {
   for (int i = start; i < end; i += step) {
@@ -46,7 +47,7 @@ static void loopTask(int thread_id, size_t start, size_t end, const Task& task) 
   }
 }
 
-static void loopTaskProducer(int thread_id, ctpl::thread_pool* thread_pool, size_t start, size_t end, const Task& task) {
+static void loopTaskProducer(int /*thread_id*/, ctpl::thread_pool* thread_pool, size_t start, size_t end, const Task& task) {
   size_t step = std::ceil((double)(end - start) / thread_pool->size());
   for (size_t i = start; i < end; i += step) {
     thread_pool->push(loopTask, i, std::min(end, i + step), std::ref(task));

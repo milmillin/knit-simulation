@@ -28,9 +28,9 @@ BaseSimulator::BaseSimulator(file_format::YarnRepr _yarns,
   dQ(Eigen::MatrixXd::Zero(3ll * nControlPoints, 1)),
   F(Eigen::MatrixXd::Zero(3ll * nControlPoints, 1)),
   constraints(nControlPoints, &thread_pool),
-  contactModelCache(nControlPoints, nControlPoints),
   segmentLength(nControlPoints, 0),
-  catmullRomLength(nControlPoints, 0)
+  catmullRomLength(nControlPoints, 0),
+  contactModelCache(nControlPoints, nControlPoints)
 {
   SPDLOG_INFO("Initializing Simulator");
   SPDLOG_INFO("> Found {} yarn(s) with total of {} control points.", _yarns.numYarns(), nControlPoints);
@@ -148,6 +148,7 @@ void BaseSimulator::step(const StateGetter& cancelled) {
 }
 
 void BaseSimulator::updateCollisionTree(const StateGetter& cancelled) {
+  EIGEN_UNUSED_VARIABLE(cancelled)
   EASY_FUNCTION();
 
   if (params.debug)
@@ -157,7 +158,7 @@ void BaseSimulator::updateCollisionTree(const StateGetter& cancelled) {
   std::vector<double> lowerBound;
   std::vector<double> upperBound;
   for (const auto& yarn : yarns.yarns) {
-    for (int i = yarn.begin; i < yarn.end - 3; i++) {
+    for (size_t i = yarn.begin; i < yarn.end - 3; i++) {
       catmullRomBoundingBox(Q, i, lowerBound, upperBound, yarn.radius);
       collisionTree.updateParticle((unsigned)i, lowerBound, upperBound);
     }
@@ -170,7 +171,6 @@ void BaseSimulator::fastProjection(const StateGetter& cancelled) {
   int nIter = 0;
   Eigen::MatrixXd constraint;
   Eigen::MatrixXd& Qj = Q;
-  double& h = params.h;
   double cValue;
   while ((cValue = maxCoeff(constraint = constraints.calculate(Qj))) > params.fastProjErrorCutoff
     && nIter < params.fastProjMaxIter && !cancelled()) {
@@ -560,11 +560,12 @@ void BaseSimulator::applyContactForceBetweenSegments
 }
 
 void BaseSimulator::applyContactForce(const StateGetter& cancelled) {
+  EIGEN_UNUSED_VARIABLE(cancelled)
   EASY_FUNCTION();
 
   // Initialize accumulator for each thread
   std::vector<Eigen::MatrixXd> forces;
-  for (int i = 0; i < thread_pool.size(); i++) {
+  for (size_t i = 0; i < thread_pool.size(); i++) {
     forces.push_back(Eigen::MatrixXd::Zero(Q.rows(), Q.cols()));
   }
 
@@ -574,8 +575,7 @@ void BaseSimulator::applyContactForce(const StateGetter& cancelled) {
 
       for (const auto& yarn : yarns.yarns) {
         for (size_t i = yarn.begin; i < yarn.end - 3; i++) {
-          std::vector<unsigned int> intersections = collisionTree.query(i);
-          for (int j : intersections) {
+          for (auto j : collisionTree.query(i)) {
             if (j > i + 1) {
               using namespace std::placeholders;
               auto task = std::bind(&BaseSimulator::applyContactForceBetweenSegments,
@@ -676,14 +676,14 @@ void BaseSimulator::addCatmullRomLengthConstraint(size_t i) {
 }
 
 void BaseSimulator::addPinConstraint(size_t i, Eigen::Vector3d point) {
-  int index = i * 3;
-
   for (int ax = 0; ax < 3; ax++) {
     Constraints::Func f = [=](const Eigen::MatrixXd& q)->double {
       return coordAt(q, i, ax) - point(ax);
     };
 
     Constraints::JacobianFunc fD = [=](const Eigen::MatrixXd& q, const Constraints::Referrer& ref) {
+      EIGEN_UNUSED_VARIABLE(q)
+
       ref(i, ax) += 1;
     };
 

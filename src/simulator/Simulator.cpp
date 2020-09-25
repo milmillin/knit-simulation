@@ -186,4 +186,4 @@ void Simulator::setUpConstraints() {
   //addPinConstraint(m - 1, pointAt(Q, m - 1));
 }
 
-};  // namespace simulator
+}  // namespace simulator

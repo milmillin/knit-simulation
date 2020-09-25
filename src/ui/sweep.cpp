@@ -109,7 +109,6 @@ void circleSweep(const Eigen::MatrixXd path, const double radius, const int stri
     vertices->block(i * stride, 0, stride, 3) =
       circle(currentPoint, up, cross, radius, stride);
   }
-  glm::dvec3 endPoint = POINT_FROM_ROW(path, nPoints - 1);
 
   // The last two vertices is the start and end point
   ROW_FROM_POINT(*vertices, vertices->rows() - 2, POINT_FROM_ROW(path, 0));
