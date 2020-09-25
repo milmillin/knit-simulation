@@ -50,6 +50,7 @@ struct SimulatorParams {
   double groundFriction = 0.5;
 
   double cInit = 0.5;
+  double reparameterFactor = 0.8;
 
   // === Fast projection ===
   // maximum iteration

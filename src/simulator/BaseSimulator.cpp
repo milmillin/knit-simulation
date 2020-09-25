@@ -21,7 +21,7 @@ namespace simulator {
 BaseSimulator::BaseSimulator(file_format::YarnRepr _yarns,
   SimulatorParams _params) :
   thread_pool(std::thread::hardware_concurrency()),
-  yarns(reparameterizeYarns(_yarns, 0.8, &segmentLength)),
+  yarns(reparameterizeYarns(_yarns, _params.reparameterFactor, &segmentLength)),
   params(_params),
   nControlPoints(yarns.vertices.rows()),
   Q(flatten(yarns.vertices)),

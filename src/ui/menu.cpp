@@ -219,6 +219,7 @@ void Menu::init(igl::opengl::glfw::Viewer* _viewer) {
       ImGui::Separator();
 
       ImGui::Text("Parameters");
+      ImGui::InputDouble("Reparameterization Factor", &(params.reparameterFactor));
       ImGui::InputDouble("Gravity", &(params.gravity));
       ImGui::InputDouble("Ground height", &(params.groundHeight));
       ImGui::InputDouble("Ground fiction", &(params.groundFriction));
