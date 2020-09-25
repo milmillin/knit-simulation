@@ -39,6 +39,12 @@ else()
   )
 endif()
 
+# Link libraries
+set(LINK_LIBS igl::core igl::opengl_glfw igl::opengl_glfw_imgui)
+if (NOT MSVC)
+    list(APPEND LINK_LIBS stdc++fs)
+endif()
+
 # spdlog
 include_directories("./third_party/spdlog/include/")
 
@@ -56,8 +62,16 @@ link_directories(${GLM_LIBRARY_DIRS})
 add_definitions(${GLM_DEFINITIONS})
 
 # Easy Profiler
-list(APPEND CMAKE_PREFIX_PATH "C:/Users/milmi/Documents/1_Projects/KnittingSimulation/easy-profiler/lib/cmake/easy_profiler")
-find_package(easy_profiler REQUIRED)
+set(ENABLE_EASY_PROFILER TRUE)
+if (ENABLE_EASY_PROFILER)
+    add_definitions(-DUSE_EASY_PROFILER)
+    set(EASY_PROFILER_DIR "${PROJECT_SOURCE_DIR}/../easy-profiler") # change this to easy-profiler-dir
+    message(STATUS "Using easy-profiler from ${EASY_PROFILER_DIR}")
+	list(APPEND CMAKE_PREFIX_PATH "${EASY_PROFILER_DIR}/lib/cmake/easy_profiler")
+    list(APPEND LINK_LIBS easy_profiler)
+	find_package(easy_profiler REQUIRED)
+endif()
+
 
 # AABB tree
 include_directories(third_party/aabbcc/src)
@@ -71,4 +85,17 @@ include_directories(third_party/cxxopts/include)
 
 # Linking
 add_executable(${PROJECT_NAME} ${SRCFILES})
-target_link_libraries(${PROJECT_NAME} easy_profiler igl::core igl::opengl_glfw igl::opengl_glfw_imgui) # Add stdc++fs
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+
+# Copy easy_profiler.dll to binary folder
+if (ENABLE_EASY_PROFILER)
+if ("${CMAKE_SYSTEM_NAME}" MATCHES "[Ww]indows")
+    add_custom_command(TARGET ${PROJECT_NAME}
+      POST_BUILD
+      COMMAND
+        ${CMAKE_COMMAND} -E copy_if_different
+        "${EASY_PROFILER_DIR}/bin/easy_profiler.dll"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    )
+endif()
+endif()

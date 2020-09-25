@@ -1,5 +1,3 @@
-#define USE_EASY_PROFILER
-
 #ifdef USE_EASY_PROFILER
   #include <easy/profiler.h>
 #else
