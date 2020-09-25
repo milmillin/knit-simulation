@@ -9,6 +9,8 @@
 #include <Eigen/Dense>
 #include <glm/glm.hpp>
 
+#include "../file_format/yarnRepr.h"
+
 namespace simulator {
 
 constexpr double SIMPSON_EPS = 1e-5;
@@ -85,5 +87,15 @@ double maxCoeff(const Eigen::MatrixXd& m);
 std::string toString(Eigen::MatrixXd x);
 
 Eigen::Vector3d parallelTransport(const Eigen::Vector3d& u, const Eigen::Vector3d& e1, const Eigen::Vector3d& e2);
+
+// Reparameterize the Catmull-Rom curve by
+// (1) finding points in the curve such that they are equal length L apart;
+// (2) creating a new curve with these points; this will approximate the reparameterization.
+// Length L is determined by "avgLengthFactor" * average length of each pair of adjacent control points.
+// Since the length of the whole curve might not be divisible by L, the first and the last points will
+// be at the same offset from their original endpoints (i.e., the first point will be located at 
+// (curve length % L) / 2).
+// Returns a new YarnRepr and the length L
+file_format::YarnRepr reparameterizeYarns(const file_format::YarnRepr& yarn, double avgLengthFactor, double* L);
 
 } // namespace simulator

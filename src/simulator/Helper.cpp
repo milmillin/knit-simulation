@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <ctime>
+#include <functional>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -36,7 +37,7 @@ static double integrateImpl(const std::function<double(double)>& f, double a, do
 
 
 
-glm::dvec3 simulator::catmullRomSample(const Eigen::MatrixXd &controlPoints, int index, double s) {
+glm::dvec3 simulator::catmullRomSample(const Eigen::MatrixXd& controlPoints, int index, double s) {
   glm::dvec3 c0 = POINT_FROM_ROW(controlPoints, index);
   glm::dvec3 c1 = POINT_FROM_ROW(controlPoints, index + 1);
   glm::dvec3 c2 = POINT_FROM_ROW(controlPoints, index + 2);
@@ -54,10 +55,10 @@ glm::dvec3 simulator::catmullRomSample(const Eigen::MatrixXd &controlPoints, int
 // samples: output variable to store the result
 // samplesStartRow: store the samples in the index range [samplesStartRow, samplesStartRow + nSamples).
 static inline void catmullRowSample
-    (const Eigen::MatrixXd &controlPoints, int controlStartRow, int nSamples,
-    Eigen::MatrixXd *samples, int samplesStartRow) {
+(const Eigen::MatrixXd& controlPoints, int controlStartRow, int nSamples,
+  Eigen::MatrixXd* samples, int samplesStartRow) {
   for (int i = 0; i < nSamples; i++) {
-    double s = (double) i / nSamples;
+    double s = (double)i / nSamples;
     auto c = simulator::catmullRomSample(controlPoints, controlStartRow, s);
     ROW_FROM_POINT(*samples, samplesStartRow, c);
     samplesStartRow++;
@@ -79,7 +80,7 @@ Eigen::MatrixXd simulator::catmullRomSequenceSample(Eigen::MatrixXd points, int 
 
 // See https://pomax.github.io/bezierinfo/#catmullconv
 void simulator::catmullRomBoundingBox(const Eigen::MatrixXd& points, int index,
-    std::vector<double>& lowerBound, std::vector<double>& upperBound, double radius) {
+  std::vector<double>& lowerBound, std::vector<double>& upperBound, double radius) {
   Eigen::MatrixXd controlPoints(3, 4);
   controlPoints.col(0) = pointAt(points, index + 1);
   controlPoints.col(1) = pointAt(points, index + 1) + (pointAt(points, index + 2) - pointAt(points, index + 0)) / 3;
@@ -95,36 +96,36 @@ void simulator::catmullRomBoundingBox(const Eigen::MatrixXd& points, int index,
 
 void simulator::writeMatrix(std::string filename, const Eigen::MatrixXd& q) {
   std::ofstream f;
-	f.open(filename);
-	f << q.format(CSVFormat) << "\n";
-	f.close();
+  f.open(filename);
+  f << q.format(CSVFormat) << "\n";
+  f.close();
 }
 
 Eigen::MatrixXd simulator::flatten(const Eigen::MatrixXd& v) {
-	Eigen::MatrixXd res(v.rows() * v.cols(), 1);
-	int r = v.rows();
-	int c = v.cols();
-	for (int i = 0; i < r; i++) {
-		for (int j = 0; j < c; j++) {
-			res(i * c + j, 0) = v(i, j);
-		}
-	}
-	return res;
+  Eigen::MatrixXd res(v.rows() * v.cols(), 1);
+  int r = v.rows();
+  int c = v.cols();
+  for (int i = 0; i < r; i++) {
+    for (int j = 0; j < c; j++) {
+      res(i * c + j, 0) = v(i, j);
+    }
+  }
+  return res;
 }
 
 Eigen::MatrixXd simulator::inflate(const Eigen::MatrixXd& v, size_t col) {
-	assert(v.cols() == 1);
-	assert(v.rows() % col == 0);
+  assert(v.cols() == 1);
+  assert(v.rows() % col == 0);
 
-	int r = v.rows() / col;
+  int r = v.rows() / col;
 
-	Eigen::MatrixXd res(r, col);
-	for (int i = 0; i < r; i++) {
-		for (size_t j = 0; j < col; j++) {
-			res(i, j) = v(i * col + j, 0);
-		}
-	}
-	return res;
+  Eigen::MatrixXd res(r, col);
+  for (int i = 0; i < r; i++) {
+    for (size_t j = 0; j < col; j++) {
+      res(i, j) = v(i * col + j, 0);
+    }
+  }
+  return res;
 }
 
 double& simulator::coordAt(Eigen::MatrixXd& q, int index, int axis) {
@@ -136,8 +137,8 @@ const double& simulator::coordAt(const Eigen::MatrixXd& q, int index, int axis) 
 }
 
 double simulator::maxCoeff(const Eigen::MatrixXd& m) {
-	if (m.rows() == 0 || m.cols() == 0) return 0;
-	return std::max(fabs(m.maxCoeff()), fabs(m.minCoeff()));
+  if (m.rows() == 0 || m.cols() == 0) return 0;
+  return std::max(fabs(m.maxCoeff()), fabs(m.minCoeff()));
 }
 
 std::string simulator::toString(Eigen::MatrixXd x) {
@@ -166,4 +167,126 @@ Eigen::Vector3d simulator::parallelTransport(const Eigen::Vector3d& u, const Eig
   Eigen::Vector3d p1 = n.cross(t1);
   Eigen::Vector3d p2 = n.cross(t2);
   return u.dot(n) * n + u.dot(t1) * t2 + u.dot(p1) * p2;
+}
+
+static Eigen::RowVector3d getPointFromTime
+  (const Eigen::Block<const Eigen::MatrixXd, 4, 3>& controlPoints, double s) {
+  Eigen::RowVector3d vec = Eigen::RowVector3d::Zero();
+  DECLARE_BASIS2(b, s);
+  for (size_t i = 0; i < 4; i++) {
+    vec += controlPoints.row(i) * b[i];
+  }
+  return vec;
+}
+
+static double calculateSegmentLength(const Eigen::Block<const Eigen::MatrixXd, 4, 3>& controlPoints,
+  double a, double b) {
+  Eigen::RowVector3d vec;
+  return simulator::integrate<double>([&](double s)->double {
+    DECLARE_BASIS_D2(bD, s);
+    vec.setZero();
+    for (size_t i = 0; i < 4; i++) {
+      vec += controlPoints.row(i) * bD[i];
+    }
+    return vec.norm();
+    }, a, b);
+}
+
+static const double TIME_EPS = 1e-5;
+static double findTimeAtLength(const Eigen::Block<const Eigen::MatrixXd, 4, 3>& controlPoints, double length) {
+  double lo = 0;
+  double hi = 1;
+  double mid;
+  double toLoLength = 0;
+  double curLength;
+  while (hi - lo > TIME_EPS) {
+    mid = (lo + hi) / 2;
+    curLength = toLoLength + calculateSegmentLength(controlPoints, lo, mid);
+    if (curLength <= length) {
+      lo = mid;
+      toLoLength = curLength;
+    }
+    else {
+      hi = mid;
+    }
+  }
+  return (lo + hi) / 2;
+}
+
+file_format::YarnRepr simulator::reparameterizeYarns(const file_format::YarnRepr& yarns, double avgLengthFactor, double* L)
+{
+  std::vector<double> yarnLength(yarns.yarns.size(), 0);
+  std::vector<std::vector<double>> segmentLength(yarns.yarns.size());
+  double totalLength = 0;
+  size_t segmentCount = 0;
+
+  for (size_t y = 0; y < yarns.yarns.size(); y++) {
+    const auto& yarn = yarns.yarns[y];
+    segmentLength[y].resize(std::max(yarn.size() - 3, 0ull));
+
+    for (size_t i = yarn.begin; i < yarn.end - 3; i++) {
+      double currentLength = calculateSegmentLength(yarns.vertices.block<4, 3>(i, 0), 0, 1);
+      segmentLength[y][i - yarn.begin] = currentLength;
+      yarnLength[y] += currentLength;
+      totalLength += currentLength;
+      segmentCount++;
+    }
+  }
+
+  double avgLength = totalLength / segmentCount;
+  *L = avgLengthFactor * avgLength;
+
+  std::vector<Eigen::RowVector3d> newVertices;
+  file_format::YarnRepr newYarns;
+  newYarns.yarns = yarns.yarns;
+
+  for (size_t y = 0; y < yarns.yarns.size(); y++) {
+    const auto& yarn = yarns.yarns[y];
+    auto& newYarn = newYarns.yarns[y];
+
+    double offset = std::fmod(yarnLength[y], *L) / 2;
+    size_t nNewPoints = (size_t)std::floor(yarnLength[y] / *L) + 1;
+    // FIXME
+    if (yarn.size() < 3 || nNewPoints == 0) {
+      newYarn.begin = newYarn.end = newVertices.size();
+      continue;
+    }
+    size_t nSegment = yarn.size() - 3;
+    size_t i = 0;
+    double curT = 0;
+    double curLength = 0;
+    auto advanceLength = [&](double length) {
+      double toAdvance = length;
+
+      // advance by segment
+      while (i < nSegment && (segmentLength[y][i] - curLength) <= toAdvance) {
+        toAdvance -= segmentLength[y][i] - curLength;
+        curLength = 0;
+        curT = 0;
+        i++;
+      }
+      assert(i < nSegment || toAdvance <= 1e-5);
+
+      // advance within segment
+      if (toAdvance > 1e-5) {
+        curT = findTimeAtLength(yarns.vertices.block<4, 3>(i + yarn.begin, 0), curLength + toAdvance);
+        curLength += toAdvance;
+      }
+    };
+
+    advanceLength(offset);
+    newYarn.begin = newVertices.size();
+    newYarn.end = newYarn.begin + nNewPoints;
+    newVertices.push_back(getPointFromTime(yarns.vertices.block<4, 3>(i + yarn.begin, 0), curT));
+    for (size_t ii = 1; ii < nNewPoints; ii++) {
+      advanceLength(*L);
+      newVertices.push_back(getPointFromTime(yarns.vertices.block<4, 3>(i + yarn.begin, 0), curT));
+    }
+  }
+
+  newYarns.vertices.resize(newVertices.size(), 3);
+  for (size_t i = 0; i < newVertices.size(); i++) {
+    newYarns.vertices.row(i) = newVertices[i];
+  }
+  return newYarns;
 }
