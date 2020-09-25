@@ -6,7 +6,7 @@ This projects simulates yarn interactions.
 
 The dependencies are STL, GLM (for [upstream](https://github.com/textiles-lab/smobj/) code) , Eigen (for matrix calculations), spdlog (for logging) and [libigl](http://libigl.github.io/libigl/) (for visualization). An optional dependency is [Easy Profiler](https://github.com/yse/easy_profiler).
 
-Since many dependencies are included as git submodules, you need to run `git submodule update --init --recursive` after you clone the repo.
+Since many dependencies are included as git submodules, you need to run the following commands after you clone the repo.
 
 ```Bash
 cd knit-simulation/
@@ -20,7 +20,9 @@ Easy Profiler is used to time the program and help with algorithm optimization. 
 If you want to avoid this dependency, change `set(ENABLE_EASY_PROFILER TRUE)` to `FALSE` in `CMakeList.txt`.
 
 #### Linux
-To insall Easy Profiler, follow the documentation on the [project page](https://github.com/yse/easy_profiler#if-using-cmake), or follow [the following instruction](https://kezunlin.me/post/91b7cf13/) works on Linux:
+To insall Easy Profiler, follow the documentation on the [project page](https://github.com/yse/easy_profiler#if-using-cmake), 
+
+Or follow the following instruction: ([source](https://kezunlin.me/post/91b7cf13/))
 
 ```Bash
 git clone https://github.com/yse/easy_profiler.git
