@@ -21,38 +21,23 @@ namespace simulator {
 BaseSimulator::BaseSimulator(file_format::YarnRepr _yarns,
   SimulatorParams _params) :
   thread_pool(std::thread::hardware_concurrency()),
-  yarns(_yarns),
+  yarns(reparameterizeYarns(_yarns, 0.8, &segmentLength)),
   params(_params),
-  nControlPoints(_yarns.vertices.rows()),
-  Q(flatten(_yarns.vertices)),
+  nControlPoints(yarns.vertices.rows()),
+  Q(flatten(yarns.vertices)),
   dQ(Eigen::MatrixXd::Zero(3ll * nControlPoints, 1)),
   F(Eigen::MatrixXd::Zero(3ll * nControlPoints, 1)),
   constraints(nControlPoints, &thread_pool),
-  segmentLength(nControlPoints, 0),
-  catmullRomLength(nControlPoints, 0),
   contactModelCache(nControlPoints, nControlPoints)
 {
   SPDLOG_INFO("Initializing Simulator");
-  SPDLOG_INFO("> Found {} yarn(s) with total of {} control points.", _yarns.numYarns(), nControlPoints);
+  SPDLOG_INFO("> Found {} yarn(s) with total of {} control points.", yarns.numYarns(), nControlPoints);
 
   SPDLOG_INFO("Calculating Segment Length");
-  for (const auto& yarn : yarns.yarns) {
-    for (size_t i = yarn.begin; i < yarn.end - 1; i++) {
-      segmentLength[i] = params.cInit * (pointAt(Q, i) - pointAt(Q, i + 1)).norm();
-    }
-  }
-
+  segmentLength *= params.cInit;
   double totalLength = 0;
   for (const auto& yarn : yarns.yarns) {
-    for (size_t i = yarn.begin; i < yarn.end - 3; i++) {
-      size_t index = i * 3ull;
-      DECLARE_POINTS2(p, Q, index);
-
-      totalLength += catmullRomLength[i] = params.cInit * integrate<double>([&](double s)->double {
-        DECLARE_BASIS_D2(bD, s);
-        return POINT_FROM_BASIS(p, bD).norm();
-        }, 0, 1);
-    }
+    totalLength += segmentLength * (yarn.size() - 3);
   }
   SPDLOG_INFO("> Total Length: {}", totalLength);
 
@@ -284,7 +269,7 @@ void BaseSimulator::contactForce(size_t i, size_t j, ControlPoints* forceI, Cont
     }
   }
 
-  double coeffE = params.kContact * catmullRomLength[i] * catmullRomLength[j];
+  double coeffE = params.kContact * segmentLength * segmentLength;
 
   (*forceI) *= -coeffE * step * step;
   (*forceJ) *= -coeffE * step * step;
@@ -370,8 +355,7 @@ void BaseSimulator::buildLinearModel(size_t i, size_t j, LinearizedContactModel*
     }
   }
 
-  double coefficient = -params.kContact * catmullRomLength[i] * catmullRomLength[j]
-    * step * step;
+  double coefficient = -params.kContact * segmentLength * segmentLength * step * step;
 
   (model->dForceII) *= coefficient;
   (model->dForceIJ) *= coefficient;
@@ -604,7 +588,7 @@ void BaseSimulator::applyLengthSpringForce() {
     for (size_t i = yarn.begin; i < yarn.end - 1; i++) {
       Eigen::Vector3d force = pointAt(Q, i + 1) - pointAt(Q, i);
       double distance = force.norm();
-      force *= params.kLen * (distance - segmentLength[i]) / distance;
+      force *= params.kLen * (distance - segmentLength) / distance;
       F.block<3, 1>(i * 3, 0) += force;
       F.block<3, 1>((i + 1) * 3, 0) -= force;
     }
@@ -615,7 +599,7 @@ void BaseSimulator::applyLengthSpringForce() {
 // Constraints
 
 void BaseSimulator::addSegmentLengthConstraint(size_t i) {
-  double length = segmentLength[i];
+  double length = segmentLength;
 
   Constraints::Func f = [=](const Eigen::MatrixXd& q)->double {
     Eigen::Vector3d p0 = pointAt(q, i);
@@ -639,7 +623,7 @@ void BaseSimulator::addSegmentLengthConstraint(size_t i) {
 
 void BaseSimulator::addCatmullRomLengthConstraint(size_t i) {
   int index = i * 3;
-  double length = catmullRomLength[i];
+  double length = segmentLength;
 
   Constraints::Func f = [=](const Eigen::MatrixXd& q)->double {
     DECLARE_POINTS2(p, q, index);

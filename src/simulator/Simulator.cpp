@@ -51,7 +51,7 @@ void Simulator::constructMassMatrix() {
       for (size_t j = 0; j < 4; j++) {
         for (size_t k = j; k < 4; k++) {
           // M[(i+j)*3][(i+k)*3] = mUnit * l[i] * integrate(bj(s), bk(s), (s, 0, 1))
-          double contribution = mUnit * catmullRomLength[i] * MASS_CONTRIBUTION[j][k];
+          double contribution = mUnit * segmentLength * MASS_CONTRIBUTION[j][k];
           M.coeffRef((i + j) * 3ull, (i + k) * 3ull) += contribution;
           M.coeffRef((i + j) * 3ull + 1ull, (i + k) * 3ull + 1ull) += contribution;
           M.coeffRef((i + j) * 3ull + 2ull, (i + k) * 3ull + 2ull) += contribution;

@@ -15,7 +15,7 @@ void Simulator::calculateLengthEnergy(int thread_id, size_t i) {
   DECLARE_POINTS2(p, Q, index);
 
   double coefficient = params.kLen;
-  double L = catmullRomLength[i];
+  double L = segmentLength;
 
   using Vec12 = Eigen::Matrix<double, 12, 1>;
 

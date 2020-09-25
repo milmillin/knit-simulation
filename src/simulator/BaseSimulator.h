@@ -73,8 +73,9 @@ protected:
   Constraints constraints;
 
   // Length for each segment
-  std::vector<double> segmentLength;
-  std::vector<double> catmullRomLength;
+  // std::vector<double> segmentLength;
+  // std::vector<double> catmullRomLength;
+  double segmentLength;
 
   // Collision Tree
   aabb::Tree collisionTree;
